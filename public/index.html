@@ -1505,13 +1505,22 @@ function nextDungeonRoom(){
   logLine(`🚪 Room ${dungeonRoom}/5: ${ENEMIES[de.id].name}!`,'var(--acc)');renderAll();
 }
 
-function activateDomain(){
+async function activateDomain(){
   const p=player;
   if(!p.tech){logLine('No technique equipped!','var(--red2)');return;}
   if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
   const cost=Math.floor(p.maxCe*.6);
   if(p.ce<cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
-  p.ce-=cost;p.domainUsed=true;domainActive=true;
+  p.ce-=cost;p.domainUsed=true;
+
+  // Pure Love Train — slot machine
+  if(p.tech==='Private Pure Love Train'){
+    logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN!','#ff69b4');
+    try{const result=await openPLT(p.name,'Enemy',null,true);handlePLTResult(result,true);}catch(e){console.error(e);}
+    return;
+  }
+
+  domainActive=true;
   const DNAMES={
     'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden',
     'Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace',
@@ -1519,19 +1528,45 @@ function activateDomain(){
     'Flame Manipulation':'Meteor Shower','Piercing Blood':'Flowing Red Scale',
     'Cursed Speech':'Long Throw Domain','Lightning Rod':'Zeus Domain',
     'Ice Formation':'Absolute Zero Domain','Puppet Master':'Puppet Theater',
+    'Boogie Woogie':'Boogie Woogie Domain','Divergent Fist':'Divergent Fist Domain',
+    'Straw Doll':'Straw Doll Domain','Construction':'Earthen Prison',
   };
   const dn=DNAMES[p.tech]||`${p.tech}: Domain`;
   logLine(`🌀 DOMAIN EXPANSION: ${dn.toUpperCase()}!`,'rainbow');
   domainVFX();shakeScreen();
-  for(let i=0;i<3;i++){
-    const d=Math.floor((p.str*6+ri(60,120))*(1+(p.ascensions||0)*.1));
-    curEnemy.hp=Math.max(0,curEnemy.hp-d);
-    logLine(`💥 Hit ${i+1}: ${d} damage!`,'var(--pur3)');
+  logLine(`⚔ ${curEnemy?.label||ENEMIES[curEnemy?.id]?.name||'Enemy'} must dodge your domain!`,'var(--pur3)');
+
+  try{
+    const dr=await openDodgeGame(p.name,p.tech,dn,true);
+    const base=Math.floor((p.str*6+ri(80,150))*(1+(p.ascensions||0)*.1));
+    const final=Math.floor(base*(dr.dmgMult>0?(2-dr.dmgMult):2.5));
+    if(dr.result==='perfect'){
+      logLine(`💥 Domain: ${final} damage! No escape!`,'rainbow');
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
+      const bon=Math.floor(base*.5);
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-bon);
+      logLine(`↩ Counter bonus ${bon}!`,'var(--grn3)');
+    } else {
+      logLine(`💥 Domain hits for ${final}!`,'var(--pur3)');
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
+    }
+    applyStatus('enemy','curse',3,4);
+    if(domainTimer)clearTimeout(domainTimer);
+    domainTimer=setTimeout(()=>domainActive=false,10000);
+    if(curEnemy&&curEnemy.hp<=0){killEnemy();return;}
+  }catch(e){
+    // Fallback if dodge game fails
+    console.error('Domain error:',e);
+    for(let i=0;i<3;i++){
+      const d=Math.floor((p.str*6+ri(60,120))*(1+(p.ascensions||0)*.1));
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-d);
+      logLine(`💥 Hit ${i+1}: ${d} damage!`,'var(--pur3)');
+    }
+    applyStatus('enemy','curse',3,4);
+    if(domainTimer)clearTimeout(domainTimer);
+    domainTimer=setTimeout(()=>domainActive=false,10000);
+    if(curEnemy&&curEnemy.hp<=0){killEnemy();return;}
   }
-  applyStatus('enemy','curse',3,4);
-  if(domainTimer)clearTimeout(domainTimer);
-  domainTimer=setTimeout(()=>{domainActive=false;},10000);
-  if(curEnemy.hp<=0){killEnemy();return;}
   renderAll();schedSave();checkAch();
 }
 
@@ -1541,7 +1576,7 @@ function respawn(){
   logLine('🌀 Respawned (30% HP)','var(--pur3)');renderAll();renderElist();renderStatusBars();schedSave();
 }
 
-function doAttack(){
+async function doAttack(){
   if(!curEnemy||player.hp<=0)return;
   if(isStunned('player')){logLine('⚡ STUNNED! Cannot act!','#f1c40f');tickStatus('player');enemyCounter();renderAll();return;}
   const p=player,e=ENEMIES[curEnemy.id],bn=getClanBonus();
@@ -1570,9 +1605,19 @@ function doAttack(){
   tickStatus('player');
   if(p.hp<=0){logLine('💀 Defeated!','var(--red)');combo=0;curEnemy=null;waveMode=false;dungeonMode=false;}
   renderAll();
-}
-
-function enemyCounter(dmgMult=1){
+  // 15% chance mimic dodge
+  if(curEnemy&&player.hp>0&&p.tech&&Math.random()<0.15&&!dodgeActive&&typeof openDodgeGame==='function'){
+    logLine(`⚠ ${e.name} mimics your ${p.tech}! DODGE!`,'var(--red2)');
+    try{
+      const dr=await openDodgeGame(e.name,p.tech,p.tech,false);
+      const eDmg=Math.floor(e.dmg*1.5*dr.dmgMult);
+      if(eDmg>0){player.hp=Math.max(0,player.hp-eDmg);logLine(`💢 Mimic hit for ${eDmg}!`,'var(--red2)');if(player.hp<=0){logLine('💀 Defeated!','var(--red)');curEnemy=null;waveMode=false;dungeonMode=false;}}
+      else logLine('✨ Perfect dodge!','var(--grn3)');
+      if(dr.result==='perfect'&&curEnemy){const bon=Math.floor((player.str||5)*3);curEnemy.hp=Math.max(0,curEnemy.hp-bon);logLine(`↩ Counter! +${bon}!`,'var(--grn3)');if(curEnemy.hp<=0){killEnemy();return;}}
+      renderAll();
+    }catch(err){console.warn('Dodge skipped:',err);}
+  }
+}(dmgMult=1){
   if(!curEnemy)return;
   // PLT immortality
   if(player.pltImmune>0){
@@ -2746,103 +2791,7 @@ function dodgeEnd(outcome){
 // HOOK INTO GAME — replace doSkill & doAttack to trigger dodge
 // ══════════════════════════════════════════════════════
 
-// In PvP we send skill use over WS so defender sees the dodge game
-// For solo combat vs enemies — enemy skills trigger dodge for player
-
-// ── ALL PATCHES wrapped in setTimeout so they run after everything is defined ──
-setTimeout(function(){
-
-// Patch activateDomain
-const _baseDomain = activateDomain;
-activateDomain = async function(){
-  const p=player;
-  if(!p||!p.tech){logLine('No technique equipped!','var(--red2)');return;}
-  if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
-  if(p.tech==='Private Pure Love Train'){
-    const cost=Math.floor(p.maxCe*.6);
-    if(p.ce<cost){logLine(`Need ${cost} CE!`,'var(--red2)');return;}
-    p.ce-=cost;p.domainUsed=true;
-    logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN!','#ff69b4');
-    try{const result=await openPLT(p.name,'Enemy',null,true);handlePLTResult(result,true);}catch(e){console.error(e);}
-    return;
-  }
-  const cost=Math.floor(p.maxCe*.6);
-  if(p.ce<cost){logLine(`Need ${cost} CE!`,'var(--red2)');return;}
-  p.ce-=cost;p.domainUsed=true;domainActive=true;
-  const DNAMES={'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden','Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace','Shadow Monarch':'Shadow Domain','Black Sparks':'Thunderclap Domain','Flame Manipulation':'Meteor Shower','Piercing Blood':'Flowing Red Scale','Cursed Speech':'Long Throw Domain','Lightning Rod':'Zeus Domain','Ice Formation':'Absolute Zero Domain','Puppet Master':'Puppet Theater','Boogie Woogie':'Boogie Woogie Domain','Divergent Fist':'Divergent Fist Domain','Straw Doll':'Straw Doll Domain','Construction':'Earthen Prison'};
-  const dn=DNAMES[p.tech]||`${p.tech}: Domain`;
-  logLine(`🌀 DOMAIN EXPANSION: ${dn.toUpperCase()}!`,'rainbow');
-  domainVFX();shakeScreen();
-  logLine(`⚔ ${curEnemy?.label||ENEMIES[curEnemy?.id]?.name||'Enemy'} must dodge your domain!`,'var(--pur3)');
-  try{
-    const dr=await openDodgeGame(p.name,p.tech,dn,true);
-    const base=Math.floor((p.str*6+ri(80,150))*(1+(p.ascensions||0)*.1));
-    const final=Math.floor(base*(dr.dmgMult>0?(2-dr.dmgMult):2.5));
-    if(dr.result==='perfect'){
-      logLine(`💥 Domain: ${final} damage! No escape!`,'rainbow');
-      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
-      const bon=Math.floor(base*.5);
-      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-bon);
-      logLine(`↩ Counter bonus ${bon}!`,'var(--grn3)');
-    } else {
-      logLine(`💥 Domain hits for ${final}!`,'var(--pur3)');
-      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
-    }
-    applyStatus('enemy','curse',3,4);
-    if(domainTimer)clearTimeout(domainTimer);
-    domainTimer=setTimeout(()=>domainActive=false,10000);
-    if(curEnemy&&curEnemy.hp<=0){killEnemy();return;}
-  }catch(e){console.error('Domain error:',e);}
-  renderAll();schedSave();checkAch();
-};
-
-// Patch doAttack — 15% chance enemy mimics your technique
-const _baseAttack = doAttack;
-doAttack = async function(){
-  if(!curEnemy||!player||player.hp<=0)return;
-  const techName=player.tech;
-  if(techName&&Math.random()<0.15&&!dodgeActive){
-    _baseAttack();
-    if(!curEnemy||player.hp<=0)return;
-    logLine(`⚠ ${ENEMIES[curEnemy.id]?.name||'Enemy'} mimics your ${techName}! DODGE!`,'var(--red2)');
-    try{
-      const dr=await openDodgeGame(ENEMIES[curEnemy.id]?.name||'Enemy',techName,techName,false);
-      const eDmg=Math.floor((ENEMIES[curEnemy.id]?.dmg||10)*1.5*(dr.dmgMult));
-      if(eDmg>0){
-        player.hp=Math.max(0,player.hp-eDmg);
-        logLine(`💢 Mimic hit for ${eDmg}!`,'var(--red2)');
-        if(player.hp<=0){logLine('💀 Defeated!','var(--red)');curEnemy=null;waveMode=false;dungeonMode=false;}
-      } else {
-        logLine('✨ Perfect dodge! No damage!','var(--grn3)');
-      }
-      if(dr.result==='perfect'&&curEnemy){
-        const bon=Math.floor((player.str||5)*3);
-        curEnemy.hp=Math.max(0,curEnemy.hp-bon);
-        logLine(`↩ Counter! +${bon} damage!`,'var(--grn3)');
-        if(curEnemy.hp<=0){killEnemy();return;}
-      }
-      renderAll();
-    }catch(e){console.error('Dodge error:',e);}
-    return;
-  }
-  _baseAttack();
-};
-
-// Patch handleWS for PvP dodge signals
-const _baseWS = handleWS;
-handleWS = function(msg){
-  _baseWS(msg);
-  if(msg.type==='pvp_skill_dodge'&&msg.fightId===activeFight){
-    const isDefender=msg.targetId===player?.playerId;
-    if(isDefender&&!dodgeActive){
-      openDodgeGame(msg.attackerName,msg.tech,msg.skillName,msg.isDomain).then(result=>{
-        fetch(`/api/fights/${activeFight}/dodge`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId:player.playerId,result:result.result,dmgMult:result.dmgMult})}).catch(()=>{});
-      }).catch(()=>{});
-    }
-  }
-};
-
-},100); // end setTimeout
+// PvP dodge signals handled in handleWS below
 </script>
 </body>
 </html>
