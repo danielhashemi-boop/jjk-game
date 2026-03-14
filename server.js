@@ -289,9 +289,81 @@ function resolvePvpRound(fight, room, roomCode) {
 
   fight.log.push({ text: `━━ ROUND ${fight.round} ━━`, color: '#c9a227' });
 
-  // ── CLASH DETECTION ──
+  // ── DOMAIN CLASH — both used domain same turn ──
+  if (m1.action === 'domain' && m2.action === 'domain') {
+    fight.log.push({ text: `🌀 DOMAIN CLASH! Both sorcerers expand their domains!`, color: 'rainbow' });
+    fight.log.push({ text: `⚡ The stronger domain will overwhelm the other!`, color: '#bb8fce' });
+    // Server picks winner based on stats, sends QTE event to both
+    const p1power = (p1.str||5) + (p1.agi||5) + Math.random()*20;
+    const p2power = (p2.str||5) + (p2.agi||5) + Math.random()*20;
+    const domainWinnerId = p1power >= p2power ? fight.p1Id : fight.p2Id;
+    const domainLoserId = domainWinnerId === fight.p1Id ? fight.p2Id : fight.p1Id;
+    const winner = room.players[domainWinnerId];
+    const loser = room.players[domainLoserId];
+    fight.pendingDodge = {
+      type: 'domain_clash_result',
+      attackerId: domainWinnerId,
+      defenderId: domainLoserId,
+      attackerName: winner.name,
+      defenderName: loser.name,
+      tech: winner.tech || 'Unknown',
+      skillName: 'Domain Expansion',
+      fightId: fight.fightId,
+      isDomain: true,
+    };
+    fight.log.push({ text: `🌀 ${winner.name}'s domain overpowers ${loser.name}!`, color: '#c9a227' });
+    fight.log.push({ text: `💀 ${loser.name} must dodge ${winner.name}'s domain!`, color: '#bb8fce' });
+    // Broadcast event to both — winner watches, loser dodges
+    broadcastRoom(roomCode, {
+      type: 'pvp_dodge_required',
+      fightId: fight.fightId,
+      attackerId: domainWinnerId,
+      defenderId: domainLoserId,
+      attackerName: winner.name,
+      defenderName: loser.name,
+      tech: winner.tech || 'Unknown',
+      skillName: 'Domain Expansion',
+      isDomain: true,
+    });
+    // Don't resolve damage yet — wait for dodge result
+    broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+    return;
+  }
+
+  // ── SKILL USED — send dodge event to defender ──
+  // If p1 uses a skill, p2 gets a dodge minigame
+  // If p2 uses a skill, p1 gets a dodge minigame
+  // We still resolve damage normally BUT also notify defender for the mini game
+  if ((m1.action === 'skill' || m1.action === 'domain') && p1 && p2) {
+    const sk = m1.action === 'skill' && p1.skills?.[m1.skillIdx] ? p1.skills[m1.skillIdx] : null;
+    broadcastRoom(roomCode, {
+      type: 'pvp_dodge_skill',
+      fightId: fight.fightId,
+      attackerId: fight.p1Id,
+      defenderId: fight.p2Id,
+      attackerName: p1.name,
+      tech: p1.tech || 'Unknown',
+      skillName: sk ? sk.name : 'Domain Expansion',
+      isDomain: m1.action === 'domain',
+    }, null); // broadcast to everyone including attacker
+  }
+  if ((m2.action === 'skill' || m2.action === 'domain') && p1 && p2) {
+    const sk = m2.action === 'skill' && p2.skills?.[m2.skillIdx] ? p2.skills[m2.skillIdx] : null;
+    broadcastRoom(roomCode, {
+      type: 'pvp_dodge_skill',
+      fightId: fight.fightId,
+      attackerId: fight.p2Id,
+      defenderId: fight.p1Id,
+      attackerName: p2.name,
+      tech: p2.tech || 'Unknown',
+      skillName: sk ? sk.name : 'Domain Expansion',
+      isDomain: m2.action === 'domain',
+    }, null);
+  }
+
+  // ── REGULAR CLASH DETECTION ──
   const bothAttacking = ['attack','heavy','skill','domain'].includes(m1.action) && ['attack','heavy','skill','domain'].includes(m2.action);
-  if (bothAttacking && Math.random() < 0.2) {
+  if (bothAttacking && Math.random() < 0.15) {
     fight.log.push({ text: `⚡ TECHNIQUE CLASH! Cursed energy collides!`, color: 'rainbow' });
     const p1Power = calcMoveDmg(p1, m1);
     const p2Power = calcMoveDmg(p2, m2);
@@ -299,13 +371,12 @@ function resolvePvpRound(fight, room, roomCode) {
     fight.p1Hp = Math.max(0, fight.p1Hp - clashDmg);
     fight.p2Hp = Math.max(0, fight.p2Hp - clashDmg);
     fight.log.push({ text: `Both take ${clashDmg} from the clash!`, color: '#bb8fce' });
-    fight.p1Move = null; fight.p2Move = null;
     checkPvpOver(fight, p1, p2, room, roomCode);
     broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
     return;
   }
 
-  // ── RESOLVE P1 MOVE vs P2 DEFENSE ──
+  // ── RESOLVE MOVES ──
   resolveMove(fight, p1, p2, m1, m2, 'p1', room, roomCode);
   if (!fight.over) resolveMove(fight, p2, p1, m2, m1, 'p2', room, roomCode);
   if (!fight.over) checkPvpOver(fight, p1, p2, room, roomCode);
@@ -417,6 +488,56 @@ function checkPvpOver(fight, p1, p2, room, roomCode) {
 // Get ranked info for player
 app.get('/api/ranked/:pid', (req, res) => {
   res.json(getRankFromPoints(RANK_POINTS[req.params.pid]));
+});
+
+// PvP dodge result — defender submits their dodge outcome
+app.post('/api/fights/:fightId/dodge-result', (req, res) => {
+  const { playerId, result, dmgMult } = req.body;
+  let fight = null, roomCode = null;
+  for (const code in rooms) {
+    if (rooms[code].fights[req.params.fightId]) { fight = rooms[code].fights[req.params.fightId]; roomCode = code; break; }
+  }
+  if (!fight || fight.over) return res.status(400).json({ error: 'Fight not found' });
+  const room = rooms[roomCode];
+
+  // Apply dodge result to pending damage
+  const pd = fight.pendingDodge;
+  if (!pd) return res.status(400).json({ error: 'No pending dodge' });
+
+  const attacker = room.players[pd.attackerId];
+  const defender = room.players[pd.defenderId];
+  const isP1Defender = fight.p1Id === pd.defenderId;
+  const defHpKey = isP1Defender ? 'p1Hp' : 'p2Hp';
+
+  let baseDmg = calcMoveDmg(attacker, { action: pd.isDomain ? 'domain' : 'skill', skillIdx: 0 });
+  if (pd.isDomain) baseDmg = Math.floor(baseDmg * (2 - (dmgMult||1)));
+  else baseDmg = Math.floor(baseDmg * (dmgMult || 1));
+
+  const colorMap = { perfect: '#27ae60', dodge: '#c9a227', partial: '#e67e22', hit: '#e74c3c' };
+  const msgMap = {
+    perfect: `✨ ${defender.name} PERFECT DODGE! Counter attack!`,
+    dodge: `💨 ${defender.name} dodged most of it! (${Math.round((dmgMult||1)*100)}% dmg)`,
+    partial: `💢 ${defender.name} partially dodged! (${Math.round((dmgMult||1)*100)}% dmg)`,
+    hit: `💥 ${defender.name} took the full hit!`,
+  };
+
+  fight.log.push({ text: msgMap[result] || msgMap.hit, color: colorMap[result] || '#e74c3c' });
+  fight[defHpKey] = Math.max(0, fight[defHpKey] - baseDmg);
+  fight.log.push({ text: `${attacker.name}'s ${pd.skillName} dealt ${baseDmg} damage!`, color: '#e8dfc4' });
+
+  // Perfect dodge counter bonus
+  if (result === 'perfect') {
+    const atkHpKey = isP1Defender ? 'p2Hp' : 'p1Hp';
+    const counter = Math.floor((defender.str||5) * 3 + Math.random()*20);
+    fight[atkHpKey] = Math.max(0, fight[atkHpKey] - counter);
+    fight.log.push({ text: `↩ ${defender.name} counters for ${counter}!`, color: '#82e0aa' });
+  }
+
+  fight.pendingDodge = null;
+  const p1 = room.players[fight.p1Id], p2 = room.players[fight.p2Id];
+  checkPvpOver(fight, p1, p2, room, roomCode);
+  broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+  res.json({ fight: sanitizeFight(fight, room) });
 });
 
 // Ranked challenge
