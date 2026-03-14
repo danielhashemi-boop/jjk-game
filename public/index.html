@@ -792,24 +792,7 @@ function openPLT(p1Name, p2Name, fightId, isP1){
 // ══════════════════════════════════════════════════════
 // PURE LOVE TRAIN — DOMAIN OVERRIDE
 // ══════════════════════════════════════════════════════
-// Patch activateDomain to intercept Pure Love Train
-const _origActivateDomain = activateDomain;
-activateDomain = async function(){
-  const p = player;
-  if(p.tech === 'Private Pure Love Train'){
-    if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
-    const cost = Math.floor(p.maxCe*.6);
-    if(p.ce < cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
-    p.ce -= cost;
-    p.domainUsed = true;
-    logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN! 🚂','#ff69b4');
-    // Open slot machine
-    const result = await openPLT(p.name, curEnemy.label||'Enemy', null, true);
-    handlePLTResult(result, true);
-    return;
-  }
-  _origActivateDomain();
-};
+// (PLT domain is now handled in the setTimeout patch below)
 
 function handlePLTResult(result, isPvE){
   const p = player;
@@ -836,17 +819,7 @@ function handlePLTResult(result, isPvE){
   renderAll();schedSave();checkAch();
 }
 
-// Patch enemyCounter to check PLT immortality
-const _origEnemyCounter = enemyCounter;
-enemyCounter = function(dmgMult=1){
-  if(player.pltImmune > 0){
-    player.pltImmune--;
-    logLine(`✨ IMMORTAL! Attack blocked! (${player.pltImmune} turns left)`,'#ffd700');
-    if(player.pltImmune<=0) logLine('💔 Immortality faded...','#ff69b4');
-    return;
-  }
-  _origEnemyCounter(dmgMult);
-};
+// PLT immortality is handled inside enemyCounter directly (see combat section)
 </script>
 // ══════════════════════════════════════════════════════
 (function(){
@@ -1601,6 +1574,13 @@ function doAttack(){
 
 function enemyCounter(dmgMult=1){
   if(!curEnemy)return;
+  // PLT immortality
+  if(player.pltImmune>0){
+    player.pltImmune--;
+    logLine(`✨ IMMORTAL! Attack blocked! (${player.pltImmune} turns left)`,'#ffd700');
+    if(player.pltImmune<=0)logLine('💔 Immortality faded...','#ff69b4');
+    return;
+  }
   const p=player,e=ENEMIES[curEnemy.id],bn=getClanBonus();
   let ed=Math.max(1,Math.floor(e.dmg*dmgMult-(p.end*(bn.endM||1)*(bn.allM||1))*.3+ri(-3,6)));
   const rng=Math.random();
@@ -2768,27 +2748,6 @@ function dodgeEnd(outcome){
 
 // In PvP we send skill use over WS so defender sees the dodge game
 // For solo combat vs enemies — enemy skills trigger dodge for player
-
-// Wrap doSkill to use dodge system in solo combat
-const _origDoSkill = doSkill;
-doSkill = async function(idx){
-  if(!curEnemy||player.hp<=0)return;
-  const p=player;
-  if(!p.skills||!p.skills[idx])return;
-  const sk=p.skills[idx];
-  const key=`${p.tech}:${idx}`;
-  if(skillCds[key]>0)return;
-  if(p.ce<sk.cost){logLine('Not enough CE!','var(--red2)');return;}
-
-  // Trigger dodge for the ENEMY's counter skill occasionally (adds tension)
-  // Actually: player uses skill → dodge game fires showing the skill's pattern
-  // Player is the ATTACKER, the soul represents the ENEMY dodging
-  // But we flip it: when PLAYER uses a skill, briefly show their own attack as flavor VFX only
-  // More fun: Enemy "retaliates" with a technique attack that player must dodge
-  // Let's make it: every skill use = dodge minigame for the player (the enemy is defending with its own cursed energy)
-
-  _origDoSkill(idx);
-};
 
 // ── ALL PATCHES wrapped in setTimeout so they run after everything is defined ──
 setTimeout(function(){
