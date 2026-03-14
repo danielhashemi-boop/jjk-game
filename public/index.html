@@ -383,7 +383,22 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .sub-tab { background:transparent; border:1px solid var(--border); color:var(--muted); padding:5px 12px; font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; cursor:pointer; transition:all .2s; }
 .sub-tab.active { border-color:var(--accent); color:var(--accent); }
 
-.text-center { text-align:center; }
+.status-tag { font-family:'Cinzel',serif; font-size:9px; padding:2px 6px; border:1px solid; border-radius:2px; letter-spacing:1px; }
+.status-row { display:flex; gap:4px; flex-wrap:wrap; min-height:18px; margin:4px 0; }
+.combat-mode-btns { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.mode-btn { flex:1; padding:7px 4px; font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; cursor:pointer; border:1px solid; transition:all .2s; text-align:center; }
+.mode-btn.wave { background:rgba(41,128,185,0.1); border-color:var(--blue); color:var(--blue2); }
+.mode-btn.wave:hover { background:rgba(41,128,185,0.2); }
+.mode-btn.dungeon { background:rgba(201,162,39,0.1); border-color:var(--gold); color:var(--accent); }
+.mode-btn.dungeon:hover { background:rgba(201,162,39,0.2); }
+.mode-btn.elite { background:rgba(255,107,0,0.1); border-color:#ff6b00; color:#ff8c00; }
+.mode-btn.elite:hover { background:rgba(255,107,0,0.2); }
+.mode-btn.domain { background:rgba(142,68,173,0.15); border-color:var(--purple); color:var(--purple2); }
+.mode-btn.domain:hover { background:rgba(142,68,173,0.25); box-shadow:0 0 15px rgba(142,68,173,0.3); }
+.mode-btn:disabled { opacity:.4; cursor:not-allowed; }
+@keyframes domainFlash { 0%{box-shadow:0 0 0 rgba(142,68,173,0)} 30%{box-shadow:0 0 40px rgba(142,68,173,0.8),inset 0 0 20px rgba(142,68,173,0.3)} 100%{box-shadow:0 0 0 rgba(142,68,173,0)} }
+.wave-indicator { font-family:'Cinzel',serif; font-size:11px; color:var(--blue2); text-align:center; padding:4px; background:rgba(41,128,185,0.08); border:1px solid rgba(41,128,185,0.3); margin-bottom:8px; }
+.dungeon-indicator { font-family:'Cinzel',serif; font-size:11px; color:var(--gold); text-align:center; padding:4px; background:rgba(201,162,39,0.08); border:1px solid rgba(201,162,39,0.3); margin-bottom:8px; }
 .text-muted { color:var(--muted); }
 .text-gold { color:var(--accent); }
 .text-green { color:var(--green2); }
@@ -558,9 +573,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div class="combat-left">
         <div class="panel" style="flex:0 0 auto">
           <div class="panel-title">Combat Arena</div>
+          <!-- Mode buttons -->
+          <div class="combat-mode-btns">
+            <button class="mode-btn wave" onclick="startWaveMode()">🌊 Wave Mode</button>
+            <button class="mode-btn dungeon" onclick="startDungeon()">🏰 Dungeon</button>
+            <button class="mode-btn elite" onclick="showEliteSelect()">⚡ Elite Hunt</button>
+            <button class="mode-btn domain" onclick="activateDomain()">💥 Domain</button>
+          </div>
+          <div id="wave-indicator" style="display:none" class="wave-indicator">🌊 WAVE MODE ACTIVE</div>
+          <div id="dungeon-indicator" style="display:none" class="dungeon-indicator">🏰 DUNGEON ACTIVE</div>
           <div class="enemy-display" id="enemy-display">
             <div style="color:var(--muted);font-style:italic">No enemy selected</div>
           </div>
+          <!-- Enemy status row -->
+          <div class="status-row" id="enemy-status-row"></div>
           <div class="panel-title" style="border:none;font-size:11px;margin-bottom:8px">ACTIVE SKILLS</div>
           <div class="skill-grid" id="skill-grid">
             <div style="grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;font-size:12px;padding:8px">Roll a technique to unlock skills</div>
@@ -570,6 +596,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
             <span class="cinzel" style="font-size:12px;letter-spacing:2px">COMBO!</span>
             <span id="combo-bonus" style="font-size:11px;color:var(--accent)"></span>
           </div>
+          <!-- Player status row -->
+          <div class="status-row" id="player-status-row"></div>
           <button class="attack-btn" id="attack-btn" onclick="doAttack()">⚔ BASIC ATTACK</button>
           <button id="respawn-btn" onclick="respawn()" style="display:none;width:100%;padding:8px;margin-bottom:8px;background:rgba(142,68,173,0.12);border:1px solid var(--purple);color:var(--purple2);font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;cursor:pointer;">🌀 RESPAWN (FREE)</button>
           <div class="log-box" id="combat-log"></div>
@@ -983,6 +1011,10 @@ function renderAll(){
   document.getElementById('ascend-btn').disabled=p.level<25;
   document.getElementById('attack-btn').disabled=!currentEnemy||p.hp<=0;
   const rb=document.getElementById('respawn-btn'); if(rb) rb.style.display=p.hp<=0?'block':'none';
+  const wi=document.getElementById('wave-indicator'); if(wi) wi.style.display=waveMode?'block':'none';
+  const di=document.getElementById('dungeon-indicator'); if(di) di.style.display=dungeonMode?'block':'none';
+  if(wi&&waveMode) wi.textContent=`🌊 WAVE ${waveNum}/10 — FIGHT!`;
+  if(di&&dungeonMode) di.textContent=`🏰 DUNGEON ROOM ${dungeonRoom}/5`;
   renderSkillGrid();
   renderEnemyDisplay();
 }
@@ -1156,83 +1188,350 @@ function broadcastRoll(rarity,what){
 }
 
 // ══════════════════════════════════════════════════════
-// COMBAT
 // ══════════════════════════════════════════════════════
-function selectEnemy(idx){
-  if(player.hp<=0){logLine('You are dead! Use an HP potion.','var(--red2)');return;}
+// COMBAT - ENHANCED
+// ══════════════════════════════════════════════════════
+
+// Status effects: burn, curse, stun, bleed
+// currentEnemy extras: isElite, statusEffects[], waveMode, waveNum
+let statusEffects = {}; // player status effects {burn:{stacks,turns}, curse:{...}, stun:{turns}, bleed:{stacks,turns}}
+let enemyStatus = {}; // enemy status effects
+let waveMode = false;
+let waveNum = 0;
+let waveEnemyHp = 0;
+let domainActive = false;
+let domainTimer = null;
+let dungeonMode = false;
+let dungeonRoom = 0;
+let dungeonEnemies = [];
+
+const STATUS_COLORS = {burn:'#ff6b00',curse:'#8e44ad',stun:'#f1c40f',bleed:'#c0392b'};
+
+function applyStatus(target, type, stacks=1, turns=3){
+  if(target==='enemy'){
+    if(!enemyStatus[type]) enemyStatus[type]={stacks:0,turns:0};
+    enemyStatus[type].stacks=Math.min(5,enemyStatus[type].stacks+stacks);
+    enemyStatus[type].turns=Math.max(enemyStatus[type].turns,turns);
+  } else {
+    if(!statusEffects[type]) statusEffects[type]={stacks:0,turns:0};
+    statusEffects[type].stacks=Math.min(5,statusEffects[type].stacks+stacks);
+    statusEffects[type].turns=Math.max(statusEffects[type].turns,turns);
+  }
+  renderStatusBars();
+}
+
+function tickStatuses(target){
+  const effects = target==='enemy' ? enemyStatus : statusEffects;
+  const p = player;
+  let totalDmg = 0;
+  for(const type in effects){
+    const ef = effects[type];
+    if(ef.turns<=0){delete effects[type];continue;}
+    if(type==='burn'){const d=ef.stacks*8;totalDmg+=d;logLine(`🔥 ${target==='enemy'?currentEnemy&&ENEMIES[currentEnemy.id].name:'You'} burns for ${d}!`,STATUS_COLORS.burn);}
+    if(type==='bleed'){const d=ef.stacks*5;totalDmg+=d;logLine(`🩸 ${target==='enemy'?currentEnemy&&ENEMIES[currentEnemy.id].name:'You'} bleeds for ${d}!`,STATUS_COLORS.bleed);}
+    if(type==='curse'){const d=ef.stacks*12;totalDmg+=d;logLine(`💜 Cursed energy tears ${target==='enemy'?'the enemy':'you'} for ${d}!`,STATUS_COLORS.curse);}
+    ef.turns--;
+    if(ef.turns<=0) delete effects[type];
+  }
+  if(totalDmg>0){
+    if(target==='enemy'&&currentEnemy) currentEnemy.hp=Math.max(0,currentEnemy.hp-totalDmg);
+    else p.hp=Math.max(0,p.hp-totalDmg);
+  }
+  renderStatusBars();
+  return totalDmg;
+}
+
+function isStunned(target){
+  const ef = target==='enemy'?enemyStatus:statusEffects;
+  return !!(ef.stun&&ef.stun.turns>0);
+}
+
+function renderStatusBars(){
+  // Player statuses
+  const pEl = document.getElementById('player-status-row');
+  const eEl = document.getElementById('enemy-status-row');
+  if(pEl){
+    let html='';
+    for(const t in statusEffects){
+      const ef=statusEffects[t];
+      if(ef.turns>0) html+=`<span class="status-tag" style="background:${STATUS_COLORS[t]}22;border-color:${STATUS_COLORS[t]};color:${STATUS_COLORS[t]}">${t==='burn'?'🔥':t==='curse'?'💜':t==='stun'?'⚡':'🩸'} ${t} ×${ef.stacks} (${ef.turns})</span>`;
+    }
+    pEl.innerHTML=html;
+  }
+  if(eEl){
+    let html='';
+    for(const t in enemyStatus){
+      const ef=enemyStatus[t];
+      if(ef.turns>0) html+=`<span class="status-tag" style="background:${STATUS_COLORS[t]}22;border-color:${STATUS_COLORS[t]};color:${STATUS_COLORS[t]}">${t==='burn'?'🔥':t==='curse'?'💜':t==='stun'?'⚡':'🩸'} ${t} ×${ef.stacks} (${ef.turns})</span>`;
+    }
+    eEl.innerHTML=html;
+  }
+}
+
+function getClanPassive(){
+  const p=player;
+  if(!p.clan) return {};
+  const passives = {
+    'Zenin':{strMult:1.1},'Gojo':{ceMult:1.25},'Kamo':{endMult:1.08},
+    'Inumaki':{skillDmgMult:1.15},'Fushiguro':{agiMult:1.1},
+    'Itadori':{allMult:1.05},'Haibara':{hpMult:1.1},
+    'Nanami':{critMult:1.3},'Yuta':{ceRegenMult:1.5},'Commoner':{}
+  };
+  return passives[p.clan]||{};
+}
+
+function selectEnemy(idx, isElite=false){
+  if(player.hp<=0){logLine('You are dead! Respawn first.','var(--red2)');return;}
+  if(waveMode||dungeonMode) return;
   const e=ENEMIES[idx];
-  currentEnemy={id:idx,hp:e.maxHp};
+  const hpMult = isElite ? 3 : 1;
+  const eliteSuffix = isElite ? ' ⚡ ELITE' : '';
+  currentEnemy={id:idx, hp:Math.floor(e.maxHp*hpMult), isElite, label:e.name+eliteSuffix};
+  enemyStatus={};
   combo=0;
   stopAuto();
-  logLine(`▶ Engaging ${e.name}...`,'var(--accent)');
+  logLine(`${isElite?'⚡ ELITE ':''}▶ Engaging ${e.name}${eliteSuffix}...`, isElite?'#ff8c00':'var(--accent)');
+  if(isElite) logLine(`⚠ Elite enemy! 3× HP, 1.5× DMG, bonus rewards!`,'#ff8c00');
+  renderAll(); renderEnemyList(); renderStatusBars();
+}
+
+function showEliteSelect(){
+  if(player.hp<=0){logLine('Respawn first!','var(--red2)');return;}
+  if(waveMode||dungeonMode||currentEnemy){logLine('Finish current fight first!','var(--red2)');return;}
+  // Show enemy list with elite option
+  const el=document.getElementById('enemy-list');
+  el.innerHTML=`<div style="font-family:'Cinzel',serif;font-size:10px;color:#ff8c00;margin-bottom:8px;letter-spacing:1px">⚡ SELECT ELITE ENEMY (3× HP, 2.5× REWARDS)</div>`+
+  ENEMIES.map((e,i)=>`
+    <div class="enemy-list-item" onclick="selectEnemy(${i},true)" style="border-color:#ff6b00">
+      <div>
+        <div class="cinzel" style="font-size:12px;color:#ff8c00">⚡ ${e.name}</div>
+        <div class="text-muted" style="font-size:11px">${e.grade} ELITE</div>
+      </div>
+      <div style="text-align:right;font-size:12px">
+        <div style="color:#ff6b00">HP: ${e.maxHp*3} | DMG: ${Math.floor(e.dmg*1.5)}</div>
+        <div class="text-muted">XP: ${Math.floor(e.xp*2.5)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function startWaveMode(){
+  if(player.hp<=0){logLine('Respawn first!','var(--red2)');return;}
+  if(waveMode||dungeonMode||currentEnemy){logLine('Finish current fight first!','var(--red2)');return;}
+  waveMode=true; waveNum=0; enemyStatus={}; statusEffects={};
+  logLine('🌊 WAVE MODE STARTED! Survive 10 waves!','var(--blue2)');
+  nextWave();
+}
+
+function nextWave(){
+  waveNum++;
+  if(waveNum>10){
+    waveMode=false;
+    const bonus=Math.floor(500*(player.xpMult||1));
+    const coins=Math.floor(300*(player.coinMult||1));
+    player.xp+=bonus; player.coins+=coins; player.spins+=5;
+    logLine(`🏆 ALL 10 WAVES CLEARED! +${bonus} XP +${coins} Coins +5 Spins!`,'rainbow');
+    checkLevelUp(); renderAll(); scheduleSave(); return;
+  }
+  const eIdx=Math.min(waveNum-1, ENEMIES.length-1);
+  const hpMult=1+waveNum*0.3;
+  currentEnemy={id:eIdx, hp:Math.floor(ENEMIES[eIdx].maxHp*hpMult), isWave:true, label:`Wave ${waveNum}/10: ${ENEMIES[eIdx].name}`};
+  enemyStatus={};
+  logLine(`🌊 Wave ${waveNum}/10 — ${ENEMIES[eIdx].name} (${Math.floor(hpMult*100)}% HP)!`,'var(--blue2)');
+  renderAll(); renderEnemyList();
+}
+
+function startDungeon(){
+  if(player.hp<=0){logLine('Respawn first!','var(--red2)');return;}
+  if(waveMode||dungeonMode||currentEnemy){logLine('Finish current fight first!','var(--red2)');return;}
+  dungeonMode=true; dungeonRoom=0;
+  // Pick 5 random enemies
+  dungeonEnemies=[2,3,4,5,6].map(i=>({id:i,hp:ENEMIES[i].maxHp}));
+  statusEffects={}; enemyStatus={};
+  logLine('🏰 DUNGEON CRAWL! Fight 5 rooms without full healing!','var(--gold)');
+  nextDungeonRoom();
+}
+
+function nextDungeonRoom(){
+  dungeonRoom++;
+  if(dungeonRoom>dungeonEnemies.length){
+    dungeonMode=false;
+    const bonus=Math.floor(800*(player.xpMult||1));
+    const coins=Math.floor(600*(player.coinMult||1));
+    player.xp+=bonus; player.coins+=coins; player.spins+=8;
+    logLine(`🏆 DUNGEON CLEARED! +${bonus} XP +${coins} Coins +8 Spins!`,'rainbow');
+    checkLevelUp(); renderAll(); scheduleSave(); return;
+  }
+  const de=dungeonEnemies[dungeonRoom-1];
+  currentEnemy={...de, isDungeon:true, label:`Room ${dungeonRoom}/5: ${ENEMIES[de.id].name}`};
+  enemyStatus={};
+  logLine(`🚪 Room ${dungeonRoom}/5 — ${ENEMIES[de.id].name}!`,'var(--gold)');
+  // Partial heal between rooms
+  if(dungeonRoom>1){player.hp=Math.min(player.maxHp,player.hp+Math.floor(player.maxHp*0.15)); logLine('💊 +15% HP between rooms','var(--green2)');}
   renderAll();
-  renderEnemyList();
+}
+
+function activateDomain(){
+  const p=player;
+  if(!p.tech){logLine('No technique equipped!','var(--red2)');return;}
+  if(domainActive){logLine('Domain already active!','var(--muted)');return;}
+  if(!currentEnemy){logLine('No enemy to fight!','var(--red2)');return;}
+  const cost=Math.floor(p.maxCe*0.6);
+  if(p.ce<cost){logLine(`Need ${cost} CE for Domain Expansion!`,'var(--red2)');return;}
+  p.ce-=cost;
+  domainActive=true;
+  const domainNames={
+    'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden',
+    'Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace',
+    'Cursed Speech':'Long Throw','Shadow Monarch':'Shadow Domain',
+    'Black Sparks':'Thunderclap Domain','Flame Manipulation':'Meteor Domain',
+    'Piercing Blood':'Flowing Red Scale','Boogie Woogie':'Boogie Woogie Domain',
+    'Divergent Fist':'Divergent Fist Domain','Cursed Tool':'Arsenal Domain',
+    'Straw Doll':'Straw Doll Technique Domain','Construction':'Earthen Prison',
+  };
+  const dName=domainNames[p.tech]||`${p.tech}: Domain Expansion`;
+  logLine(`💥 DOMAIN EXPANSION: ${dName.toUpperCase()}!`,'rainbow');
+  // Domain deals 3 hits of massive damage
+  const e=ENEMIES[currentEnemy.id];
+  let totalDmg=0;
+  for(let i=0;i<3;i++){
+    const d=Math.floor((p.str*5+randInt(50,100))*(1+(p.ascensions||0)*0.1));
+    currentEnemy.hp=Math.max(0,currentEnemy.hp-d);
+    totalDmg+=d;
+  }
+  logLine(`✦ Domain deals ${totalDmg} total damage in 3 guaranteed hits!`,'var(--accent)');
+  // Apply curse status to enemy
+  applyStatus('enemy','curse',3,4);
+  // Animate
+  const el=document.getElementById('enemy-display');
+  if(el){el.style.animation='none';el.offsetHeight;el.style.animation='domainFlash 0.6s ease';}
+  if(domainTimer) clearTimeout(domainTimer);
+  domainTimer=setTimeout(()=>{domainActive=false;},8000);
+  if(currentEnemy.hp<=0){killEnemy();return;}
+  renderAll();
 }
 
 function respawn(){
   player.hp=Math.floor(player.maxHp*0.3);
   player.ce=Math.floor(player.maxCe*0.3);
-  currentEnemy=null; combo=0;
+  currentEnemy=null; combo=0; waveMode=false; dungeonMode=false;
+  statusEffects={}; enemyStatus={};
   logLine('🌀 You got back up... (30% HP restored)','var(--purple2)');
-  renderAll(); renderEnemyList(); scheduleSave();
+  renderAll(); renderEnemyList(); renderStatusBars(); scheduleSave();
 }
 
 function doAttack(){
   if(!currentEnemy||player.hp<=0)return;
+  if(isStunned('player')){
+    logLine('⚡ You are STUNNED and cannot act!','#f1c40f');
+    tickStatuses('player');
+    enemyCounterAttack();
+    renderAll(); return;
+  }
   const p=player;
   const e=ENEMIES[currentEnemy.id];
+  const passive=getClanPassive();
   // Player attacks
-  let dmg=Math.max(1,Math.floor(p.str*2+randInt(1,10)));
-  if(combo>=5)dmg=Math.floor(dmg*(1+Math.min(50,combo*5)/100));
-  const crit=Math.random()<0.1;
-  if(crit)dmg=Math.floor(dmg*1.5);
+  let dmg=Math.max(1,Math.floor((p.str*(passive.strMult||1)*(passive.allMult||1))*2+randInt(1,15)));
+  if(combo>=5) dmg=Math.floor(dmg*(1+Math.min(60,combo*6)/100));
+  if(domainActive) dmg=Math.floor(dmg*1.4);
+  const critChance=0.1+(passive.critMult?0.05:0);
+  const crit=Math.random()<critChance;
+  if(crit) dmg=Math.floor(dmg*(passive.critMult||1.5));
+  // Elite/wave/dungeon multiplier
+  const eDmgMult=currentEnemy.isElite?1.5:1;
   currentEnemy.hp=Math.max(0,currentEnemy.hp-dmg);
   combo++;
-  if(crit)logLine(`💥 CRITICAL! You hit ${e.name} for ${dmg}!`,'#ff8c00');
-  else logLine(`⚔ You hit ${e.name} for ${dmg}!`,'var(--text)');
+  // Random status on attack (5% chance each)
+  if(Math.random()<0.05){applyStatus('enemy','bleed',1,3);logLine(`🩸 ${e.name} starts bleeding!`,STATUS_COLORS.bleed);}
+  if(crit) logLine(`💥 CRITICAL! You hit ${e.name} for ${dmg}!${domainActive?' [DOMAIN]':''}`, '#ff8c00');
+  else logLine(`⚔ You hit ${e.name} for ${dmg}!${domainActive?' [DOMAIN]':''}`, 'var(--text)');
   updateComboDisplay();
-  if(currentEnemy.hp<=0){killEnemy();return;}
-  // Enemy attacks back
-  const eDmg=Math.max(1,e.dmg-Math.floor(p.end*0.3)+randInt(-3,3));
+  // Tick enemy statuses
+  tickStatuses('enemy');
+  if(currentEnemy&&currentEnemy.hp<=0){killEnemy();return;}
+  if(!isStunned('enemy')) enemyCounterAttack(eDmgMult);
+  else {logLine(`⚡ ${e.name} is STUNNED!`,'#f1c40f'); if(enemyStatus.stun) enemyStatus.stun.turns--;}
+  // Tick player statuses
+  tickStatuses('player');
+  if(p.hp<=0){logLine('💀 You were defeated!','var(--red)');combo=0;currentEnemy=null;waveMode=false;dungeonMode=false;}
+  renderAll();
+}
+
+function enemyCounterAttack(dmgMult=1){
+  if(!currentEnemy) return;
+  const p=player;
+  const e=ENEMIES[currentEnemy.id];
+  const passive=getClanPassive();
+  let eDmg=Math.max(1,Math.floor((e.dmg*dmgMult)-(p.end*(passive.endMult||1)*(passive.allMult||1))*0.3+randInt(-3,5)));
+  // Enemy special attacks based on type
+  const roll=Math.random();
+  if(roll<0.08){
+    // Enemy applies burn
+    applyStatus('player','burn',1,3);
+    logLine(`🔥 ${e.name} scorches you! Burn applied!`,STATUS_COLORS.burn);
+  } else if(roll<0.13){
+    // Enemy stuns you
+    applyStatus('player','stun',1,1);
+    logLine(`⚡ ${e.name} stuns you next turn!`,'#f1c40f');
+  } else if(roll<0.18&&currentEnemy.isElite){
+    // Elite curses you
+    applyStatus('player','curse',2,3);
+    eDmg=Math.floor(eDmg*1.3);
+    logLine(`💜 ELITE ${e.name} curses you for ${eDmg}!`,STATUS_COLORS.curse);
+    p.hp=Math.max(0,p.hp-eDmg); return;
+  }
   p.hp=Math.max(0,p.hp-eDmg);
   logLine(`👁 ${e.name} hits you for ${eDmg}!`,'var(--red2)');
-  if(p.hp<=0){logLine(`💀 You were defeated!`,'var(--red)');combo=0;currentEnemy=null;}
-  renderAll();
 }
 
 function doSkill(idx){
   if(!currentEnemy||player.hp<=0)return;
+  if(isStunned('player')){logLine('⚡ You are STUNNED!','#f1c40f');return;}
   const p=player;
   const sk=p.skills[idx];
   const key=`${p.tech}:${idx}`;
   if(skillCooldowns[key]>0)return;
   if(p.ce<sk.cost){logLine('Not enough CE!','var(--red2)');return;}
   const e=ENEMIES[currentEnemy.id];
+  const passive=getClanPassive();
   p.ce-=sk.cost;
-  let dmg=sk.dmg+randInt(0,Math.floor(sk.dmg*0.2));
-  const crit=Math.random()<0.12;
-  if(crit)dmg=Math.floor(dmg*1.6);
+  let dmg=(sk.dmg||0)+randInt(0,Math.floor((sk.dmg||0)*0.25));
+  dmg=Math.floor(dmg*(passive.skillDmgMult||1)*(passive.allMult||1));
+  if(domainActive) dmg=Math.floor(dmg*1.5);
+  const crit=Math.random()<0.15;
+  if(crit) dmg=Math.floor(dmg*(passive.critMult||1.6));
   currentEnemy.hp=Math.max(0,currentEnemy.hp-dmg);
-  if(sk.heal)p.hp=Math.min(p.maxHp,p.hp+(sk.heal||0));
+  if(sk.heal) p.hp=Math.min(p.maxHp,p.hp+sk.heal);
   combo+=2;
+  // Skill-specific status effects
+  const techEffects={
+    'Flame Manipulation':()=>applyStatus('enemy','burn',2,3),
+    'Piercing Blood':()=>applyStatus('enemy','bleed',2,3),
+    'Cursed Speech':()=>applyStatus('enemy','curse',1,2),
+    'Black Sparks':()=>applyStatus('enemy','stun',1,1),
+    'Shrine':()=>applyStatus('enemy','bleed',3,4),
+    'Ten Shadows':()=>applyStatus('enemy','curse',1,2),
+  };
+  if(techEffects[p.tech]) techEffects[p.tech]();
   const col=rarityColor(p.techRarity||'D');
-  if(crit)logLine(`💥 CRIT! ${sk.name} hits ${e.name} for ${dmg}!`,'#ff8c00');
-  else logLine(`✦ ${sk.name} hits ${e.name} for ${dmg}!`,col==='rainbow'?'var(--purple2)':col);
-  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'skill_used',name:p.name,skill:sk.name,enemy:e.name,dmg}));
+  if(crit) logLine(`💥 CRIT! ${sk.name} decimates ${e.name} for ${dmg}!${domainActive?' [DOMAIN]':''}`,'#ff8c00');
+  else logLine(`✦ ${sk.name} hits ${e.name} for ${dmg}!${domainActive?' [DOMAIN]':''}`,col==='rainbow'?'var(--purple2)':col);
+  if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'skill_used',name:p.name,skill:sk.name,enemy:e.name,dmg}));
   // Cooldown
   skillCooldowns[key]=sk.cd*1000;
   const cdInterval=setInterval(()=>{
     skillCooldowns[key]=Math.max(0,(skillCooldowns[key]||0)-100);
-    if(skillCooldowns[key]<=0){clearInterval(cdInterval);}
+    if(skillCooldowns[key]<=0) clearInterval(cdInterval);
     renderSkillGrid();
   },100);
   updateComboDisplay();
-  if(currentEnemy.hp<=0){killEnemy();return;}
-  // Enemy counter
-  const eDmg=Math.max(1,e.dmg-Math.floor(p.end*0.3)+randInt(-3,3));
-  p.hp=Math.max(0,p.hp-eDmg);
-  logLine(`👁 ${e.name} hits you for ${eDmg}!`,'var(--red2)');
-  if(p.hp<=0){logLine('💀 You were defeated!','var(--red)');combo=0;currentEnemy=null;}
+  tickStatuses('enemy');
+  if(currentEnemy&&currentEnemy.hp<=0){killEnemy();return;}
+  if(!isStunned('enemy')) enemyCounterAttack(currentEnemy?.isElite?1.5:1);
+  else {if(enemyStatus.stun) enemyStatus.stun.turns--;}
+  tickStatuses('player');
+  if(p.hp<=0){logLine('💀 You were defeated!','var(--red)');combo=0;currentEnemy=null;waveMode=false;dungeonMode=false;}
   renderAll();
 }
 
@@ -1241,37 +1540,35 @@ function killEnemy(){
   const e=ENEMIES[currentEnemy.id];
   const xpMult=p.xpMult||1;
   const coinMult=p.coinMult||1;
-  const xp=Math.floor(e.xp*xpMult);
-  const coins=Math.floor(e.coins*coinMult);
-  p.kills++;
-  p.xp+=xp;
-  p.coins+=coins;
-  if(e.spins>0)p.spins+=e.spins;
+  let xp=Math.floor(e.xp*xpMult);
+  let coins=Math.floor(e.coins*coinMult);
+  let spins=e.spins||0;
+  if(currentEnemy.isElite){xp=Math.floor(xp*2.5);coins=Math.floor(coins*2.5);spins+=3;logLine(`⚡ ELITE BONUS: ×2.5 rewards!`,'#ff8c00');}
+  if(waveMode) xp=Math.floor(xp*(1+waveNum*0.1));
+  if(dungeonMode) xp=Math.floor(xp*1.5);
+  p.kills++; p.xp+=xp; p.coins+=coins;
+  if(spins>0) p.spins+=spins;
+  enemyStatus={};
   updateDailyProgress('kills',1);
   updateDailyProgress('coins',coins);
-  logLine(`🏆 ${e.name} defeated! +${xp} XP +${coins} Coins${e.spins>0?` +${e.spins} Spins`:''}!`,'var(--accent)');
-  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'kill',name:p.name,enemy:e.name,xp}));
-  // Check level up
+  const label=currentEnemy.label||e.name;
+  logLine(`🏆 ${label} defeated! +${xp} XP +${coins} Coins${spins>0?` +${spins} Spins`:''}!`,'var(--accent)');
+  if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'kill',name:p.name,enemy:e.name,xp}));
   while(p.xp>=p.maxXp){
-    p.xp-=p.maxXp;
-    p.level++;
+    p.xp-=p.maxXp; p.level++;
     p.maxXp=Math.floor(100*Math.pow(1.15,p.level-1));
     p.maxHp=Math.floor(100+p.end*10+p.level*5);
-    p.hp=p.maxHp;
-    p.maxCe=Math.floor(100+p.level*8);
-    p.ce=p.maxCe;
-    // Update rank
+    p.hp=p.maxHp; p.maxCe=Math.floor(100+p.level*8); p.ce=p.maxCe;
     for(let i=RANK_THRESHOLDS.length-1;i>=0;i--){if(p.level>=RANK_THRESHOLDS[i]){p.rankIdx=i;break;}}
     logLine(`🔥 LEVEL UP! You are now Level ${p.level}!`,'var(--gold)');
     updateDailyProgress('level',1);
-    if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'levelup',name:p.name,level:p.level}));
+    if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'levelup',name:p.name,level:p.level}));
   }
-  currentEnemy=null;
-  combo=0;
-  updateComboDisplay();
-  checkAchievements();
-  renderAll();
-  scheduleSave();
+  const wasWave=waveMode, wasDungeon=dungeonMode;
+  currentEnemy=null; combo=0;
+  updateComboDisplay(); checkAchievements(); renderAll(); scheduleSave();
+  if(wasWave) setTimeout(nextWave,800);
+  else if(wasDungeon) setTimeout(nextDungeonRoom,800);
 }
 
 function updateComboDisplay(){
@@ -1279,11 +1576,9 @@ function updateComboDisplay(){
   if(combo>1){
     el.style.display='flex';
     document.getElementById('combo-x').textContent=`×${combo}`;
-    const bonus=combo>=5?`+${Math.min(50,combo*5)}% DMG`:'';
+    const bonus=combo>=5?`+${Math.min(60,combo*6)}% DMG`:'';
     document.getElementById('combo-bonus').textContent=bonus;
-  } else {
-    el.style.display='none';
-  }
+  } else {el.style.display='none';}
 }
 
 // ══════════════════════════════════════════════════════
