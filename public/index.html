@@ -2074,5 +2074,849 @@ setInterval(()=>{
   checkAch();
 },5000);
 </script>
+
+<!-- ══════════════════════════════════════════════════════
+     UNDERTALE DODGE MINIGAME
+     ══════════════════════════════════════════════════════ -->
+<style>
+/* ── DODGE GAME ── */
+.dodge-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;animation:fadeIn .3s ease}
+.dodge-top{font-family:'Cinzel',serif;font-size:13px;color:var(--mut);letter-spacing:3px;text-align:center}
+.dodge-title{font-family:'Cinzel',serif;font-size:22px;letter-spacing:5px;font-weight:900;text-align:center;margin-bottom:2px}
+.dodge-sub{font-family:'Cinzel',serif;font-size:10px;color:var(--mut);letter-spacing:2px;text-align:center}
+.dodge-arena-wrap{position:relative}
+.dodge-arena{
+  width:480px;height:380px;background:#000;
+  border:3px solid currentColor;
+  position:relative;overflow:hidden;
+  box-shadow:0 0 40px currentColor;
+}
+.dodge-arena::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0px,rgba(255,255,255,.015) 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,rgba(255,255,255,.015) 0px,rgba(255,255,255,.015) 1px,transparent 1px,transparent 40px)}
+.dodge-soul{position:absolute;width:16px;height:16px;transform:translate(-50%,-50%);z-index:10;transition:none;pointer-events:none;filter:drop-shadow(0 0 6px currentColor)}
+.dodge-bullet{position:absolute;pointer-events:none;z-index:5}
+.dodge-slash{position:absolute;pointer-events:none;z-index:5;transform-origin:left center}
+.dodge-bar-wrap{width:480px;background:rgba(0,0,0,.6);border:1px solid #444;height:12px;position:relative;overflow:hidden}
+.dodge-bar{height:100%;transition:width .1s linear}
+.dodge-hp-row{display:flex;align-items:center;gap:10px;width:480px}
+.dodge-hp-bar-wrap{flex:1;background:rgba(0,0,0,.6);border:1px solid #c0392b;height:10px;overflow:hidden}
+.dodge-hp-bar{height:100%;background:linear-gradient(90deg,#7b241c,#c0392b);transition:width .2s}
+.dodge-hp-label{font-family:'Cinzel',serif;font-size:10px;color:var(--red2);white-space:nowrap}
+.dodge-result-banner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:20;animation:fadeIn .3s ease}
+.dodge-result-title{font-family:'Cinzel',serif;font-size:32px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px currentColor}
+.dodge-result-sub{font-family:'Cinzel',serif;font-size:12px;color:var(--mut);letter-spacing:2px;margin-top:8px}
+.dodge-keys{font-family:'Cinzel',serif;font-size:10px;color:var(--mut);letter-spacing:2px;text-align:center}
+/* attacker spectate view */
+.dodge-spectate{position:absolute;top:6px;right:6px;font-family:'Cinzel',serif;font-size:9px;color:var(--mut);letter-spacing:1px;background:rgba(0,0,0,.7);padding:3px 7px;border:1px solid var(--b1)}
+/* mobile touch joystick */
+.dodge-joystick-zone{width:480px;height:80px;display:flex;align-items:center;justify-content:center;gap:12px}
+.dodge-dpad{display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px 40px;gap:3px}
+.dodge-dpad-btn{background:rgba(255,255,255,.08);border:1px solid #444;color:var(--txt);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;user-select:none;-webkit-user-select:none;active:background:rgba(255,255,255,.2)}
+.dodge-dpad-btn:active{background:rgba(255,255,255,.25)}
+</style>
+
+<!-- DODGE HTML -->
+<div id="dodge-overlay" class="dodge-overlay" style="display:none">
+  <div class="dodge-top" id="dodge-attacker-label">— is attacking —</div>
+  <div class="dodge-title" id="dodge-title">DODGE!</div>
+  <div class="dodge-sub" id="dodge-sub">Use WASD or Arrow Keys to move</div>
+  <div class="dodge-arena-wrap">
+    <canvas id="dodge-canvas" class="dodge-arena" width="480" height="380"></canvas>
+    <div class="dodge-spectate" id="dodge-spectate-label" style="display:none">👁 SPECTATING</div>
+  </div>
+  <div class="dodge-hp-row">
+    <span class="dodge-hp-label">❤ HP</span>
+    <div class="dodge-hp-bar-wrap"><div class="dodge-hp-bar" id="dodge-hp-bar" style="width:100%"></div></div>
+    <span class="dodge-hp-label" id="dodge-hp-label">100%</span>
+  </div>
+  <div class="dodge-bar-wrap"><div class="dodge-bar" id="dodge-timer-bar" style="width:100%;background:linear-gradient(90deg,#c9a227,#e74c3c)"></div></div>
+  <!-- Mobile D-Pad -->
+  <div class="dodge-joystick-zone" id="dodge-dpad-zone" style="display:none">
+    <div class="dodge-dpad">
+      <div></div>
+      <div class="dodge-dpad-btn" id="dpad-up">▲</div>
+      <div></div>
+      <div class="dodge-dpad-btn" id="dpad-left">◀</div>
+      <div></div>
+      <div class="dodge-dpad-btn" id="dpad-right">▶</div>
+      <div></div>
+      <div class="dodge-dpad-btn" id="dpad-down">▼</div>
+      <div></div>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--mut);letter-spacing:1px;text-align:center">TOUCH TO MOVE</div>
+  </div>
+  <div class="dodge-keys" id="dodge-keys-hint">WASD / Arrow Keys • Survive to reduce damage!</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DODGE MINIGAME ENGINE
+// ══════════════════════════════════════════════════════
+
+const DODGE_W = 480, DODGE_H = 380;
+const SOUL_SIZE = 14;
+const SOUL_SPEED = 3.8;
+
+// Technique patterns — each returns array of bullet spawn functions
+const TECH_PATTERNS = {
+  'Infinity': {
+    color: '#7ec8e3', title: 'INFINITY', sub: 'Dodge the infinite void...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(0,50,80,${.08+Math.sin(t*.002)*.04})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 1800,
+    spawn: (t)=>{
+      // Homing orbs that slowly curve toward player
+      const angle = Math.random()*Math.PI*2;
+      return {type:'orb', x: DODGE_W/2+Math.cos(angle)*220, y: DODGE_H/2+Math.sin(angle)*180,
+        vx: -Math.cos(angle)*1.2, vy: -Math.sin(angle)*1.2,
+        r:10, color:'#7ec8e3', homing:true, homingStr:.04, life:5000};
+    },
+    domainSpawn: (t)=>{
+      // Wave of orbs + hollow purple beam
+      const bullets = [];
+      for(let i=0;i<8;i++){
+        const angle = (i/8)*Math.PI*2;
+        bullets.push({type:'orb',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(angle)*2.5,vy:Math.sin(angle)*2.5,r:14,color:'#bb8fce',homing:false,life:4000});
+      }
+      bullets.push({type:'beam',x:0,y:DODGE_H/2-8,w:DODGE_W,h:18,color:'#9b59b6',life:800,delay:1200});
+      return bullets;
+    }
+  },
+  'Shrine': {
+    color: '#e74c3c', title: 'MALEVOLENT SHRINE', sub: 'Cleave and Dismantle — nowhere to hide...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(80,0,0,${.07+Math.sin(t*.003)*.03})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 900,
+    spawn: (t)=>{
+      // Diagonal slashes from edges
+      const fromSide = Math.floor(Math.random()*4);
+      const slashes = [];
+      if(fromSide===0){ // top — slash diagonally down
+        const x = Math.random()*DODGE_W;
+        slashes.push({type:'slash',x,y:0,vx:(Math.random()-.5)*2,vy:4,len:80,angle:Math.PI/4,color:'#e74c3c',life:1200});
+      } else if(fromSide===1){ // bottom
+        const x = Math.random()*DODGE_W;
+        slashes.push({type:'slash',x,y:DODGE_H,vx:(Math.random()-.5)*2,vy:-4,len:80,angle:-Math.PI/4,color:'#c0392b',life:1200});
+      } else if(fromSide===2){ // left
+        const y = Math.random()*DODGE_H;
+        slashes.push({type:'slash',x:0,y,vx:5,vy:(Math.random()-.5)*2,len:80,angle:0,color:'#ff6b5b',life:1000});
+      } else { // right
+        const y = Math.random()*DODGE_H;
+        slashes.push({type:'slash',x:DODGE_W,y,vx:-5,vy:(Math.random()-.5)*2,len:80,angle:Math.PI,color:'#e74c3c',life:1000});
+      }
+      return slashes;
+    },
+    domainSpawn: ()=>{
+      // Cross-pattern slashes covering whole arena
+      const bullets = [];
+      for(let i=0;i<5;i++){
+        bullets.push({type:'slash',x:0,y:(i+.5)*(DODGE_H/5),vx:6,vy:0,len:120,angle:0,color:'#e74c3c',life:900,delay:i*150});
+        bullets.push({type:'slash',x:DODGE_W,y:(i+.5)*(DODGE_H/5),vx:-6,vy:0,len:120,angle:Math.PI,color:'#c0392b',life:900,delay:i*150+80});
+      }
+      for(let i=0;i<4;i++){
+        bullets.push({type:'slash',x:(i+.5)*(DODGE_W/4),y:0,vx:0,vy:5,len:100,angle:Math.PI/2,color:'#ff4444',life:900,delay:800+i*100});
+      }
+      return bullets;
+    }
+  },
+  'Black Sparks': {
+    color: '#f1c40f', title: 'BLACK SPARKS', sub: 'Lightning strikes randomly!',
+    bgEffect: (ctx,t)=>{ if(Math.random()<.02){ctx.fillStyle='rgba(241,196,15,.08)';ctx.fillRect(0,0,DODGE_W,DODGE_H);} },
+    spawnRate: 700,
+    spawn: ()=>{
+      // Lightning bolts from random positions at top
+      const x = Math.random()*DODGE_W;
+      return {type:'lightning',x,y:0,targetX:x+(Math.random()-.5)*60,color:'#f1c40f',life:500,w:6};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      for(let i=0;i<8;i++)
+        bullets.push({type:'lightning',x:Math.random()*DODGE_W,y:0,targetX:Math.random()*DODGE_W,color:'#ffd700',life:600,w:8,delay:i*120});
+      // Horizontal sweep
+      bullets.push({type:'beam',x:0,y:DODGE_H*.3,w:DODGE_W,h:20,color:'#f1c40f',life:700,delay:1000});
+      bullets.push({type:'beam',x:0,y:DODGE_H*.6,w:DODGE_W,h:20,color:'#f1c40f',life:700,delay:1200});
+      return bullets;
+    }
+  },
+  'Flame Manipulation': {
+    color: '#e67e22', title: 'FLAME MANIPULATION', sub: 'The scorching inferno approaches!',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(80,20,0,${.05+Math.sin(t*.004)*.03})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 800,
+    spawn: ()=>{
+      // Fireballs in sine wave
+      const side = Math.random()<.5;
+      return {type:'fireball',x:side?-15:DODGE_W+15,y:Math.random()*DODGE_H,vx:side?3.5:-3.5,vy:0,r:14,color:'#e67e22',waving:true,waveAmp:60,waveFreq:.05,wavePhase:Math.random()*Math.PI*2,life:4000};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      // Ring of fireballs + spiral
+      for(let i=0;i<12;i++){
+        const angle=(i/12)*Math.PI*2;
+        bullets.push({type:'fireball',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(angle)*3,vy:Math.sin(angle)*3,r:12,color:'#e74c3c',life:3500,delay:0});
+      }
+      for(let i=0;i<20;i++)
+        bullets.push({type:'fireball',x:-15,y:DODGE_H*(i/20),vx:4,vy:0,r:10,color:'#e67e22',waving:true,waveAmp:40,waveFreq:.08,wavePhase:i*.3,life:3000,delay:i*80});
+      return bullets;
+    }
+  },
+  'Piercing Blood': {
+    color: '#e74c3c', title: 'PIERCING BLOOD', sub: 'Blood needles from all directions!',
+    bgEffect: (ctx,t)=>{ if(Math.random()<.015){ctx.fillStyle='rgba(192,57,43,.12)';ctx.fillRect(0,0,DODGE_W,DODGE_H);} },
+    spawnRate: 600,
+    spawn: ()=>{
+      // Thin fast needles from all sides
+      const side=Math.floor(Math.random()*4);
+      if(side===0) return {type:'needle',x:Math.random()*DODGE_W,y:-8,vx:(Math.random()-.5)*.5,vy:5.5,len:22,color:'#c0392b',life:2000};
+      if(side===1) return {type:'needle',x:Math.random()*DODGE_W,y:DODGE_H+8,vx:(Math.random()-.5)*.5,vy:-5.5,len:22,color:'#e74c3c',life:2000};
+      if(side===2) return {type:'needle',x:-8,y:Math.random()*DODGE_H,vx:5.5,vy:(Math.random()-.5)*.5,len:22,color:'#ff4444',life:2000};
+      return {type:'needle',x:DODGE_W+8,y:Math.random()*DODGE_H,vx:-5.5,vy:(Math.random()-.5)*.5,len:22,color:'#c0392b',life:2000};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      // Needle wall closing in
+      for(let i=0;i<6;i++){
+        for(let j=0;j<4;j++){
+          const x=(i+.5)*(DODGE_W/6);
+          bullets.push({type:'needle',x,y:-10,vx:0,vy:4+j*.5,len:20,color:'#e74c3c',life:3000,delay:j*200+i*30});
+        }
+      }
+      // Blood spiral
+      for(let i=0;i<16;i++){
+        const a=(i/16)*Math.PI*2;
+        bullets.push({type:'needle',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(a)*4,vy:Math.sin(a)*4,len:18,color:'#c0392b',life:2000,delay:1500});
+      }
+      return bullets;
+    }
+  },
+  'Cursed Speech': {
+    color: '#9b59b6', title: 'CURSED SPEECH', sub: 'Words that cannot be ignored...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(50,0,80,${.05+Math.sin(t*.003)*.025})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 1400,
+    spawn: ()=>{
+      // Purple orbs that explode into smaller ones
+      return {type:'orb',x:Math.random()*DODGE_W,y:-15,vx:(Math.random()-.5)*1.5,vy:2.8,r:18,color:'#9b59b6',homing:false,explodes:true,life:3000};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      // Words appear as beams
+      for(let i=0;i<3;i++)
+        bullets.push({type:'beam',x:0,y:DODGE_H*(.25+i*.25),w:DODGE_W,h:16,color:'#9b59b6',life:600,delay:i*300});
+      for(let i=0;i<4;i++)
+        bullets.push({type:'orb',x:DODGE_W/2+(i%2===0?-1:1)*120,y:DODGE_H/2,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,r:20,color:'#bb8fce',homing:true,homingStr:.05,life:4000,delay:1000+i*200});
+      return bullets;
+    }
+  },
+  'Ten Shadows': {
+    color: '#bb8fce', title: 'TEN SHADOWS TECHNIQUE', sub: 'The shadows hunt you down...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(10,0,20,${.06+Math.sin(t*.002)*.03})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 1200,
+    spawn: ()=>{
+      // Shadow creatures rising from bottom
+      const x=Math.random()*DODGE_W;
+      return {type:'shadow',x,y:DODGE_H+10,vx:(Math.random()-.5)*.8,vy:-3,size:20,color:'#8e44ad',life:4000,homing:true,homingStr:.02};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      for(let i=0;i<10;i++)
+        bullets.push({type:'shadow',x:Math.random()*DODGE_W,y:DODGE_H+10,vx:(Math.random()-.5)*1.5,vy:-2.5,size:24,color:'#6c3483',homing:true,homingStr:.03,life:5000,delay:i*200});
+      return bullets;
+    }
+  },
+  'Shadow Monarch': {
+    color: '#85929e', title: 'SHADOW DOMAIN', sub: 'The army of death approaches...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(5,5,10,${.08+Math.sin(t*.001)*.04})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 700,
+    spawn: ()=>{
+      // Shadow soldiers marching
+      const y=Math.random()*DODGE_H;
+      return {type:'shadow',x:-15,y,vx:3.5,vy:(Math.random()-.5)*.3,size:16,color:'#566573',life:3000,homing:false};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      // Army formation
+      for(let row=0;row<4;row++)
+        for(let col=0;col<5;col++)
+          bullets.push({type:'shadow',x:-15-col*40,y:DODGE_H*.15+row*(DODGE_H*.18),vx:4,vy:0,size:18,color:'#2c3e50',life:3500,delay:col*100+row*50,homing:false});
+      return bullets;
+    }
+  },
+  'Boogie Woogie': {
+    color: '#5dade2', title: 'BOOGIE WOOGIE', sub: 'Clap! Everything swaps positions!',
+    bgEffect: ()=>{},
+    spawnRate: 1200,
+    spawn: (t,soulX,soulY)=>{
+      // Appears near player suddenly (swap effect)
+      const offset=60+Math.random()*80;
+      const angle=Math.random()*Math.PI*2;
+      return {type:'orb',x:soulX+Math.cos(angle)*offset,y:soulY+Math.sin(angle)*offset,vx:Math.cos(angle+Math.PI)*2,vy:Math.sin(angle+Math.PI)*2,r:12,color:'#5dade2',life:1500,homing:false,teleport:true};
+    },
+    domainSpawn: (t,sx,sy)=>{
+      const bullets=[];
+      for(let i=0;i<12;i++){
+        const a=(i/12)*Math.PI*2;
+        const offset=30+Math.random()*120;
+        bullets.push({type:'orb',x:sx+Math.cos(a)*offset,y:sy+Math.sin(a)*offset,vx:-Math.cos(a)*3,vy:-Math.sin(a)*3,r:14,color:'#85c1e9',life:2000,delay:i*80});
+      }
+      return bullets;
+    }
+  },
+  'Private Pure Love Train': {
+    color: '#ff69b4', title: '🚂 PURE LOVE TRAIN 🚂', sub: 'The hearts never stop chasing you...',
+    bgEffect: (ctx,t)=>{ ctx.fillStyle=`rgba(80,0,40,${.04+Math.sin(t*.003)*.02})`; ctx.fillRect(0,0,DODGE_W,DODGE_H); },
+    spawnRate: 1000,
+    spawn: ()=>{
+      // Homing hearts
+      const side=Math.floor(Math.random()*4);
+      const x=side===2?-15:side===3?DODGE_W+15:Math.random()*DODGE_W;
+      const y=side===0?-15:side===1?DODGE_H+15:Math.random()*DODGE_H;
+      return {type:'heart',x,y,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,r:12,color:'#ff69b4',homing:true,homingStr:.045,life:5000};
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      for(let i=0;i<16;i++){
+        const a=(i/16)*Math.PI*2;
+        bullets.push({type:'heart',x:DODGE_W/2+Math.cos(a)*200,y:DODGE_H/2+Math.sin(a)*160,vx:-Math.cos(a)*2,vy:-Math.sin(a)*2,r:14,color:'#ff1493',homing:true,homingStr:.05,life:6000,delay:i*100});
+      }
+      return bullets;
+    }
+  },
+  'Ratio Technique': {
+    color: '#e8b84b', title: 'RATIO TECHNIQUE', sub: '7:3 — The ratio is unavoidable',
+    bgEffect: ()=>{},
+    spawnRate: 1100,
+    spawn: ()=>{
+      // Grid of bullets that leaves exactly 3/10 safe space
+      const row=Math.floor(Math.random()*3);
+      const bullets=[];
+      for(let i=0;i<10;i++){
+        if(i===3||i===6||i===9) continue; // safe spots = 3/10
+        bullets.push({type:'orb',x:-15,y:DODGE_H*.1+row*(DODGE_H*.35)+(Math.random()-0.5)*20,vx:4.5,vy:0,r:11,color:'#e8b84b',life:2000,delay:i*60});
+      }
+      return bullets;
+    },
+    domainSpawn: ()=>{
+      const bullets=[];
+      for(let r=0;r<3;r++)
+        for(let i=0;i<10;i++){
+          if(i===3||i===7) continue;
+          bullets.push({type:'orb',x:-15,y:DODGE_H*.1+r*(DODGE_H*.35),vx:5,vy:0,r:12,color:'#f1c40f',life:2000,delay:r*300+i*50});
+        }
+      return bullets;
+    }
+  },
+  'Divergent Fist': {
+    color: '#e67e22', title: 'DIVERGENT FIST', sub: 'Delayed impact waves!',
+    bgEffect: ()=>{},
+    spawnRate: 900,
+    spawn: (t,sx,sy)=>{
+      // Shockwave rings expanding from player position
+      return {type:'ring',x:sx,y:sy,r:20,maxR:200,growSpeed:4,color:'#e67e22',life:1500};
+    },
+    domainSpawn: (t,sx,sy)=>{
+      const bullets=[];
+      for(let i=0;i<5;i++)
+        bullets.push({type:'ring',x:sx,y:sy,r:10+i*20,maxR:220,growSpeed:5,color:'#d35400',life:1800,delay:i*250});
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI*2;
+        bullets.push({type:'orb',x:sx,y:sy,vx:Math.cos(a)*4,vy:Math.sin(a)*4,r:10,color:'#f39c12',homing:false,life:2000,delay:800});
+      }
+      return bullets;
+    }
+  },
+  'Lightning Rod':{color:'#f1c40f',title:'LIGHTNING ROD',sub:'Static shock everywhere!',bgEffect:(ctx,t)=>{if(Math.random()<.03){ctx.fillStyle='rgba(241,196,15,.06)';ctx.fillRect(0,0,DODGE_W,DODGE_H);}},spawnRate:650,spawn:()=>({type:'lightning',x:Math.random()*DODGE_W,y:0,targetX:Math.random()*DODGE_W,color:'#ffd700',life:450,w:5}),domainSpawn:()=>{const b=[];for(let i=0;i<12;i++)b.push({type:'lightning',x:Math.random()*DODGE_W,y:0,targetX:Math.random()*DODGE_W,color:'#f1c40f',life:550,w:7,delay:i*100});return b;}},
+  'Ice Formation':{color:'#7ec8e3',title:'ICE FORMATION',sub:'Frozen projectiles closing in!',bgEffect:(ctx,t)=>{ctx.fillStyle=`rgba(0,20,40,${.04+Math.sin(t*.002)*.02})`;ctx.fillRect(0,0,DODGE_W,DODGE_H);},spawnRate:850,spawn:()=>{const a=Math.random()*Math.PI*2;return {type:'orb',x:DODGE_W/2+Math.cos(a)*260,y:DODGE_H/2+Math.sin(a)*200,vx:-Math.cos(a)*2.8,vy:-Math.sin(a)*2.8,r:13,color:'#aed6f1',homing:false,life:3000};},domainSpawn:()=>{const b=[];for(let i=0;i<20;i++){const a=(i/20)*Math.PI*2;b.push({type:'orb',x:DODGE_W/2+Math.cos(a)*240,y:DODGE_H/2+Math.sin(a)*180,vx:-Math.cos(a)*3.5,vy:-Math.sin(a)*3.5,r:14,color:'#7ec8e3',life:4000,delay:i*80});}return b;}},
+  'Puppet Master':{color:'#e8b84b',title:'PUPPET MASTER',sub:"You're just another puppet...",bgEffect:()=>{},spawnRate:1000,spawn:(t,sx,sy)=>{const a=Math.atan2(sy-DODGE_H/2,sx-DODGE_W/2)+Math.PI+(Math.random()-.5)*.8;return {type:'needle',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(a)*4.5,vy:Math.sin(a)*4.5,len:20,color:'#d4ac0d',life:2500};},domainSpawn:(t,sx,sy)=>{const b=[];for(let i=0;i<20;i++){const a=(i/20)*Math.PI*2;b.push({type:'needle',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(a)*4,vy:Math.sin(a)*4,len:18,color:'#e8b84b',life:2500,delay:i*60});}return b;}},
+  'Straw Doll':{color:'#a569bd',title:'STRAW DOLL TECHNIQUE',sub:'Hairpins from everywhere!',bgEffect:()=>{},spawnRate:600,spawn:()=>{const s=Math.floor(Math.random()*4);return s===0?{type:'needle',x:Math.random()*DODGE_W,y:-8,vx:(Math.random()-.5),vy:5,len:16,color:'#a569bd',life:1800}:s===1?{type:'needle',x:Math.random()*DODGE_W,y:DODGE_H+8,vx:(Math.random()-.5),vy:-5,len:16,color:'#8e44ad',life:1800}:s===2?{type:'needle',x:-8,y:Math.random()*DODGE_H,vx:5,vy:(Math.random()-.5),len:16,color:'#d7bde2',life:1800}:{type:'needle',x:DODGE_W+8,y:Math.random()*DODGE_H,vx:-5,vy:(Math.random()-.5),len:16,color:'#a569bd',life:1800};},domainSpawn:()=>{const b=[];for(let i=0;i<6;i++){for(let j=0;j<5;j++)b.push({type:'needle',x:Math.random()*DODGE_W,y:-8,vx:(Math.random()-.5)*2,vy:4+j*.5,len:14,color:'#a569bd',life:2000,delay:i*150+j*80});}return b;}},
+};
+
+// Fallback pattern for techniques without one
+const DEFAULT_PATTERN = {
+  color:'#c9a227',title:'TECHNIQUE ATTACK',sub:'Dodge the cursed energy!',
+  bgEffect:()=>{},spawnRate:900,
+  spawn:()=>({type:'orb',x:Math.random()<.5?-15:DODGE_W+15,y:Math.random()*DODGE_H,vx:Math.random()<.5?3:-3,vy:(Math.random()-.5)*2,r:12,color:'#c9a227',homing:false,life:3000}),
+  domainSpawn:()=>{const b=[];for(let i=0;i<10;i++){const a=(i/10)*Math.PI*2;b.push({type:'orb',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(a)*3.5,vy:Math.sin(a)*3.5,r:13,color:'#c9a227',life:3000,delay:i*100});}return b;}
+};
+
+// ── GAME STATE ──
+let dodgeActive = false;
+let dodgeResolve = null;
+let dodgeAnimId = null;
+let dodgeKeys = {};
+let dodgeSoul = {x:DODGE_W/2, y:DODGE_H*0.75};
+let dodgeBullets = [];
+let dodgeHp = 100;
+let dodgeStartTime = 0;
+let dodgeDuration = 0;
+let dodgePattern = null;
+let dodgeIsDomain = false;
+let dodgeSpawnTimer = 0;
+let dodgeMobileDir = {up:false,down:false,left:false,right:false};
+let dodgeCanvas = null, dodgeCtx = null;
+
+function getDodgePattern(techName){
+  return TECH_PATTERNS[techName] || DEFAULT_PATTERN;
+}
+
+// Main entry: opens dodge game, returns {result, dmgMultiplier}
+function openDodgeGame(attackerName, techName, skillName, isDomain){
+  return new Promise(resolve=>{
+    dodgeResolve = resolve;
+    dodgeActive = true;
+    dodgeHp = 100;
+    dodgeBullets = [];
+    dodgeSoul = {x: DODGE_W/2, y: DODGE_H*0.75};
+    dodgeKeys = {};
+    dodgeMobileDir = {up:false,down:false,left:false,right:false};
+    dodgeIsDomain = isDomain;
+    dodgeDuration = isDomain ? 7000 : 4500;
+    dodgePattern = getDodgePattern(techName);
+
+    // Setup UI
+    document.getElementById('dodge-attacker-label').textContent = `${attackerName} uses ${skillName||techName}`;
+    document.getElementById('dodge-title').textContent = dodgePattern.title;
+    document.getElementById('dodge-title').style.color = dodgePattern.color;
+    document.getElementById('dodge-sub').textContent = dodgePattern.sub;
+    document.getElementById('dodge-hp-bar').style.width='100%';
+    document.getElementById('dodge-hp-label').textContent='100%';
+    document.getElementById('dodge-spectate-label').style.display='none';
+    document.getElementById('dodge-keys-hint').style.display='block';
+
+    // Mobile detection
+    const isMobile = window.innerWidth < 700 || ('ontouchstart' in window);
+    document.getElementById('dodge-dpad-zone').style.display = isMobile ? 'flex' : 'none';
+    if(isMobile) setupDpadListeners();
+
+    // Canvas
+    dodgeCanvas = document.getElementById('dodge-canvas');
+    dodgeCtx = dodgeCanvas.getContext('2d');
+    dodgeCanvas.style.borderColor = dodgePattern.color;
+    dodgeCanvas.style.boxShadow = `0 0 40px ${dodgePattern.color}`;
+
+    document.getElementById('dodge-overlay').style.display='flex';
+    dodgeStartTime = performance.now();
+
+    // Spawn initial bullets if domain
+    if(isDomain && dodgePattern.domainSpawn){
+      const spawned = dodgePattern.domainSpawn(0, dodgeSoul.x, dodgeSoul.y);
+      const arr = Array.isArray(spawned) ? spawned : [spawned];
+      arr.forEach(b=>{ if(b.delay) b.spawnAt=dodgeStartTime+b.delay; else b.born=dodgeStartTime; dodgeBullets.push(b); });
+    }
+    dodgeSpawnTimer = dodgeStartTime + dodgePattern.spawnRate;
+
+    // Keyboard
+    const onKey = e=>{
+      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)){
+        e.preventDefault();dodgeKeys[e.key]=true;
+      }
+    };
+    const offKey = e=>{ dodgeKeys[e.key]=false; };
+    window.addEventListener('keydown',onKey);
+    window.addEventListener('keyup',offKey);
+
+    // Run loop
+    dodgeAnimId = requestAnimationFrame(function loop(now){
+      if(!dodgeActive){window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',offKey);return;}
+      dodgeUpdate(now);
+      dodgeAnimId = requestAnimationFrame(loop);
+    });
+  });
+}
+
+function setupDpadListeners(){
+  ['up','down','left','right'].forEach(dir=>{
+    const btn=document.getElementById(`dpad-${dir}`);
+    if(!btn)return;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();dodgeMobileDir[dir]=true;},{passive:false});
+    btn.addEventListener('touchend',e=>{e.preventDefault();dodgeMobileDir[dir]=false;},{passive:false});
+    btn.addEventListener('mousedown',()=>dodgeMobileDir[dir]=true);
+    btn.addEventListener('mouseup',()=>dodgeMobileDir[dir]=false);
+  });
+}
+
+function dodgeUpdate(now){
+  const elapsed = now - dodgeStartTime;
+  const ctx = dodgeCtx;
+  const W=DODGE_W, H=DODGE_H;
+
+  // Clear
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  // Background effect
+  dodgePattern.bgEffect(ctx, now);
+
+  // Timer bar
+  const timeLeft = Math.max(0, 1 - elapsed/dodgeDuration);
+  document.getElementById('dodge-timer-bar').style.width=(timeLeft*100)+'%';
+
+  // Move soul
+  const spd = SOUL_SPEED;
+  const up = dodgeKeys['ArrowUp']||dodgeKeys['w']||dodgeKeys['W']||dodgeMobileDir.up;
+  const dn = dodgeKeys['ArrowDown']||dodgeKeys['s']||dodgeKeys['S']||dodgeMobileDir.down;
+  const lt = dodgeKeys['ArrowLeft']||dodgeKeys['a']||dodgeKeys['A']||dodgeMobileDir.left;
+  const rt = dodgeKeys['ArrowRight']||dodgeKeys['d']||dodgeKeys['D']||dodgeMobileDir.right;
+  if(up) dodgeSoul.y=Math.max(SOUL_SIZE,dodgeSoul.y-spd);
+  if(dn) dodgeSoul.y=Math.min(H-SOUL_SIZE,dodgeSoul.y+spd);
+  if(lt) dodgeSoul.x=Math.max(SOUL_SIZE,dodgeSoul.x-spd);
+  if(rt) dodgeSoul.x=Math.min(W-SOUL_SIZE,dodgeSoul.x+spd);
+
+  // Spawn bullets
+  if(now > dodgeSpawnTimer && !dodgeIsDomain){
+    const spawned = dodgePattern.spawn(now, dodgeSoul.x, dodgeSoul.y);
+    const arr=Array.isArray(spawned)?spawned:[spawned];
+    arr.forEach(b=>{b.born=now;dodgeBullets.push(b);});
+    dodgeSpawnTimer = now + dodgePattern.spawnRate * (.7+Math.random()*.6);
+  }
+  // Activate delayed bullets
+  dodgeBullets.forEach(b=>{if(b.spawnAt&&!b.born&&now>=b.spawnAt)b.born=now;});
+
+  // Update + draw bullets
+  const toRemove=[];
+  dodgeBullets.forEach((b,i)=>{
+    if(!b.born)return; // not spawned yet
+    const age=now-b.born;
+    if(age>b.life){toRemove.push(i);return;}
+
+    // Homing
+    if(b.homing){
+      const dx=dodgeSoul.x-b.x, dy=dodgeSoul.y-b.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      b.vx+=(dx/dist)*b.homingStr; b.vy+=(dy/dist)*b.homingStr;
+      const spd2=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+      const maxSpd=3.5; if(spd2>maxSpd){b.vx=b.vx/spd2*maxSpd;b.vy=b.vy/spd2*maxSpd;}
+    }
+    // Wave
+    if(b.waving){ b.vy=Math.sin((now*b.waveFreq)+b.wavePhase)*b.waveAmp*.05; }
+
+    const alpha=Math.min(1,1-(age/b.life)*.3);
+    ctx.globalAlpha=alpha;
+
+    if(b.type==='orb'||b.type==='fireball'||b.type==='heart'||b.type==='shadow'){
+      b.x+=b.vx; b.y+=b.vy;
+      // Draw
+      ctx.beginPath();
+      if(b.type==='heart'){
+        drawHeart(ctx,b.x,b.y,b.r,b.color);
+      } else if(b.type==='shadow'){
+        ctx.shadowBlur=12;ctx.shadowColor=b.color;
+        ctx.fillStyle=b.color;ctx.arc(b.x,b.y,b.size/2,0,Math.PI*2);ctx.fill();
+        ctx.shadowBlur=0;
+      } else if(b.type==='fireball'){
+        const grad=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+        grad.addColorStop(0,'#fff');grad.addColorStop(.4,'#e67e22');grad.addColorStop(1,'rgba(231,76,60,0)');
+        ctx.fillStyle=grad;ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+      } else {
+        ctx.shadowBlur=10;ctx.shadowColor=b.color;
+        ctx.fillStyle=b.color;ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // Collision
+      const dx=dodgeSoul.x-b.x,dy=dodgeSoul.y-b.y;
+      const hitR=(b.r||b.size/2||10)+SOUL_SIZE/2-2;
+      if(dx*dx+dy*dy<hitR*hitR){dodgeHit(8+Math.floor(Math.random()*6));toRemove.push(i);}
+    }
+
+    if(b.type==='needle'){
+      b.x+=b.vx; b.y+=b.vy;
+      ctx.strokeStyle=b.color;ctx.lineWidth=3;ctx.shadowBlur=6;ctx.shadowColor=b.color;
+      ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.vx/Math.sqrt(b.vx*b.vx+b.vy*b.vy)*b.len,b.y+b.vy/Math.sqrt(b.vx*b.vx+b.vy*b.vy)*b.len);ctx.stroke();
+      ctx.shadowBlur=0;
+      // Collision (thin needle = tight box)
+      const dx=dodgeSoul.x-b.x,dy=dodgeSoul.y-b.y;
+      if(Math.abs(dx)<12&&Math.abs(dy)<12){dodgeHit(6+Math.floor(Math.random()*5));toRemove.push(i);}
+    }
+
+    if(b.type==='slash'){
+      b.x+=b.vx; b.y+=b.vy;
+      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);
+      const grad=ctx.createLinearGradient(0,0,b.len,0);
+      grad.addColorStop(0,b.color+'ff');grad.addColorStop(.5,b.color+'cc');grad.addColorStop(1,b.color+'00');
+      ctx.fillStyle=grad;ctx.fillRect(0,-4,b.len,8);
+      ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.globalAlpha=alpha*.4;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(b.len,0);ctx.stroke();
+      ctx.restore();
+      // Collision
+      const dx=dodgeSoul.x-b.x,dy=dodgeSoul.y-b.y;
+      const proj=dx*Math.cos(b.angle)+dy*Math.sin(b.angle);
+      const perp=Math.abs(-dx*Math.sin(b.angle)+dy*Math.cos(b.angle));
+      if(proj>=0&&proj<=b.len&&perp<12){dodgeHit(10+Math.floor(Math.random()*8));toRemove.push(i);}
+    }
+
+    if(b.type==='lightning'){
+      // Lightning bolt from top to bottom of screen at x
+      if(!b.drawn||age<500){
+        b.drawn=true;
+        const segments=8,x1=b.x,y1=0,x2=b.targetX,y2=H;
+        ctx.strokeStyle=b.color;ctx.lineWidth=b.w||4;ctx.shadowBlur=15;ctx.shadowColor=b.color;
+        ctx.beginPath();ctx.moveTo(x1,y1);
+        for(let s=1;s<segments;s++){
+          const t2=s/segments;
+          const lx=x1+(x2-x1)*t2+(Math.random()-.5)*30;
+          const ly=y1+(y2-y1)*t2;
+          ctx.lineTo(lx,ly);
+        }
+        ctx.lineTo(x2,y2);ctx.stroke();ctx.shadowBlur=0;
+        // Collision: are we near the bolt line?
+        const tx2=dodgeSoul.x,ty2=dodgeSoul.y;
+        const t3=Math.max(0,Math.min(1,((tx2-x1)*(x2-x1)+(ty2-y1)*(y2-y1))/((x2-x1)**2+(y2-y1)**2)));
+        const closestX=x1+(x2-x1)*t3, closestY=y1+(y2-y1)*t3;
+        if((tx2-closestX)**2+(ty2-closestY)**2<(b.w*4)**2) dodgeHit(14);
+      }
+      if(age>=500) toRemove.push(i);
+    }
+
+    if(b.type==='beam'){
+      ctx.fillStyle=b.color;ctx.shadowBlur=12;ctx.shadowColor=b.color;
+      ctx.fillRect(b.x,b.y,b.w,b.h);ctx.shadowBlur=0;
+      // Collision
+      if(dodgeSoul.x>=b.x&&dodgeSoul.x<=b.x+b.w&&dodgeSoul.y>=b.y&&dodgeSoul.y<=b.y+b.h)
+        dodgeHit(12);
+    }
+
+    if(b.type==='ring'){
+      b.r+=b.growSpeed;
+      ctx.strokeStyle=b.color;ctx.lineWidth=3;ctx.shadowBlur=8;ctx.shadowColor=b.color;
+      ctx.globalAlpha=alpha*(1-b.r/b.maxR);
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+      // Ring collision
+      const dx=dodgeSoul.x-b.x,dy=dodgeSoul.y-b.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(Math.abs(dist-b.r)<10) dodgeHit(7);
+      if(b.r>=b.maxR)toRemove.push(i);
+    }
+
+    ctx.globalAlpha=1;
+  });
+  // Remove dead bullets (reverse to preserve indices)
+  toRemove.reverse().forEach(i=>dodgeBullets.splice(i,1));
+
+  // Draw soul ❤
+  drawSoul(ctx, dodgeSoul.x, dodgeSoul.y, dodgePattern.color);
+
+  // HP bar
+  document.getElementById('dodge-hp-bar').style.width=dodgeHp+'%';
+  document.getElementById('dodge-hp-label').textContent=dodgeHp+'%';
+  const hpBar=document.getElementById('dodge-hp-bar');
+  hpBar.style.background=dodgeHp>60?'linear-gradient(90deg,#1e8449,#27ae60)':dodgeHp>30?'linear-gradient(90deg,#7d6608,#c9a227)':'linear-gradient(90deg,#7b241c,#c0392b)';
+
+  // End conditions
+  if(dodgeHp<=0){ dodgeEnd('hit'); return; }
+  if(elapsed>=dodgeDuration){ dodgeEnd('survived'); return; }
+}
+
+function drawHeart(ctx,x,y,r,color){
+  ctx.save();ctx.fillStyle=color;ctx.shadowBlur=8;ctx.shadowColor=color;
+  ctx.beginPath();ctx.moveTo(x,y+r*.4);
+  ctx.bezierCurveTo(x,y-r*.4,x-r,y-r*.4,x-r,y);
+  ctx.bezierCurveTo(x-r,y+r*.5,x,y+r*.9,x,y+r);
+  ctx.bezierCurveTo(x,y+r*.9,x+r,y+r*.5,x+r,y);
+  ctx.bezierCurveTo(x+r,y-r*.4,x,y-r*.4,x,y+r*.4);
+  ctx.fill();ctx.restore();
+}
+
+function drawSoul(ctx,x,y,color){
+  ctx.save();ctx.shadowBlur=14;ctx.shadowColor='#fff';
+  // Outer glow
+  ctx.fillStyle=color+'44';ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.fill();
+  // Heart soul
+  drawHeart(ctx,x,y,6,'#fff');
+  ctx.restore();
+}
+
+let lastHitTime=0;
+function dodgeHit(dmg){
+  const now=performance.now();
+  if(now-lastHitTime<200)return; // invincibility frames
+  lastHitTime=now;
+  dodgeHp=Math.max(0,dodgeHp-dmg);
+  // Flash red
+  const ctx=dodgeCtx;
+  ctx.fillStyle='rgba(192,57,43,.3)';ctx.fillRect(0,0,DODGE_W,DODGE_H);
+}
+
+function dodgeEnd(outcome){
+  dodgeActive=false;
+  if(dodgeAnimId){cancelAnimationFrame(dodgeAnimId);dodgeAnimId=null;}
+
+  const ctx=dodgeCtx;
+  let resultText,resultColor,dmgMult,result;
+  if(outcome==='survived'&&dodgeHp>=80){
+    resultText='PERFECT DODGE!';resultColor='#27ae60';dmgMult=0;result='perfect';
+  } else if(outcome==='survived'&&dodgeHp>=40){
+    resultText='DODGED!';resultColor='#c9a227';dmgMult=0.3;result='dodge';
+  } else if(outcome==='survived'){
+    resultText='BARELY SURVIVED';resultColor='#e67e22';dmgMult=0.6;result='partial';
+  } else {
+    resultText='DIRECT HIT!';resultColor='#e74c3c';dmgMult=1.0;result='hit';
+  }
+
+  // Draw result
+  ctx.fillStyle='rgba(0,0,0,.85)';ctx.fillRect(0,0,DODGE_W,DODGE_H);
+  ctx.font=`bold 36px Cinzel,serif`;ctx.fillStyle=resultColor;ctx.textAlign='center';ctx.shadowBlur=20;ctx.shadowColor=resultColor;
+  ctx.fillText(resultText,DODGE_W/2,DODGE_H/2-20);
+  ctx.font='14px Cinzel,serif';ctx.fillStyle='#aaa';ctx.shadowBlur=0;
+  const subText=result==='perfect'?'Counter attack activated!':result==='dodge'?`${Math.round(dmgMult*100)}% damage taken`:result==='partial'?`${Math.round(dmgMult*100)}% damage taken`:'Full damage taken!';
+  ctx.fillText(subText,DODGE_W/2,DODGE_H/2+20);
+  ctx.textAlign='left';
+
+  setTimeout(()=>{
+    document.getElementById('dodge-overlay').style.display='none';
+    if(dodgeResolve){dodgeResolve({result,dmgMult,hp:dodgeHp});dodgeResolve=null;}
+  },1800);
+}
+
+// ══════════════════════════════════════════════════════
+// HOOK INTO GAME — replace doSkill & doAttack to trigger dodge
+// ══════════════════════════════════════════════════════
+
+// In PvP we send skill use over WS so defender sees the dodge game
+// For solo combat vs enemies — enemy skills trigger dodge for player
+
+// Wrap doSkill to use dodge system in solo combat
+const _origDoSkill = doSkill;
+doSkill = async function(idx){
+  if(!curEnemy||player.hp<=0)return;
+  const p=player;
+  if(!p.skills||!p.skills[idx])return;
+  const sk=p.skills[idx];
+  const key=`${p.tech}:${idx}`;
+  if(skillCds[key]>0)return;
+  if(p.ce<sk.cost){logLine('Not enough CE!','var(--red2)');return;}
+
+  // Trigger dodge for the ENEMY's counter skill occasionally (adds tension)
+  // Actually: player uses skill → dodge game fires showing the skill's pattern
+  // Player is the ATTACKER, the soul represents the ENEMY dodging
+  // But we flip it: when PLAYER uses a skill, briefly show their own attack as flavor VFX only
+  // More fun: Enemy "retaliates" with a technique attack that player must dodge
+  // Let's make it: every skill use = dodge minigame for the player (the enemy is defending with its own cursed energy)
+
+  _origDoSkill(idx);
+};
+
+// The real hook: When player uses Domain, trigger dodge game on defender side (in PvP via WS)
+// In solo: domain already calls activateDomain which we extend below
+
+// Override activateDomain to add dodge game for ENEMY (solo combat)
+const _origActivateDomain2 = window.activateDomain || activateDomain;
+activateDomain = async function(){
+  const p=player;
+  if(!p.tech){logLine('No technique equipped!','var(--red2)');return;}
+  if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
+
+  // Pure Love Train uses slot machine
+  if(p.tech==='Private Pure Love Train'){
+    const cost=Math.floor(p.maxCe*.6);
+    if(p.ce<cost){logLine(`Need ${cost} CE!`,'var(--red2)');return;}
+    p.ce-=cost;p.domainUsed=true;
+    logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN!','#ff69b4');
+    const result=await openPLT(p.name,'Enemy',null,true);
+    handlePLTResult(result,true);
+    return;
+  }
+
+  const cost=Math.floor(p.maxCe*.6);
+  if(p.ce<cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
+  p.ce-=cost;p.domainUsed=true;domainActive=true;
+
+  const DNAMES={'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden','Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace','Shadow Monarch':'Shadow Domain','Black Sparks':'Thunderclap Domain','Flame Manipulation':'Meteor Shower','Piercing Blood':'Flowing Red Scale','Cursed Speech':'Long Throw Domain','Lightning Rod':'Zeus Domain','Ice Formation':'Absolute Zero Domain','Puppet Master':'Puppet Theater','Private Pure Love Train':'Pure Love Train Domain','Boogie Woogie':'Boogie Woogie Domain','Divergent Fist':'Divergent Fist Domain','Straw Doll':'Straw Doll Domain','Construction':'Earthen Prison'};
+  const dn=DNAMES[p.tech]||`${p.tech}: Domain`;
+
+  logLine(`🌀 DOMAIN EXPANSION: ${dn.toUpperCase()}!`,'rainbow');
+  domainVFX();shakeScreen();
+
+  // Trigger dodge game — player is ATTACKER, but we show what dodging the domain is like
+  logLine(`⚔ ${curEnemy.label||ENEMIES[curEnemy.id]?.name} must dodge your domain!`,'var(--pur3)');
+  const dodgeResult = await openDodgeGame(p.name, p.tech, dn, true);
+
+  // Apply domain damage based on dodge result
+  const baseDmg = Math.floor((p.str*6+ri(80,150))*(1+(p.ascensions||0)*.1));
+  const finalDmg = Math.floor(baseDmg * (dodgeResult.dmgMult > 0 ? (2-dodgeResult.dmgMult) : 2.5));
+
+  if(dodgeResult.result==='perfect'){
+    logLine(`💥 Domain: Full ${finalDmg} damage! Enemy had no escape!`,'rainbow');
+    // Counter bonus: player also gets a free hit
+    curEnemy.hp=Math.max(0,curEnemy.hp-finalDmg);
+    const bonus=Math.floor(baseDmg*.5);
+    curEnemy.hp=Math.max(0,curEnemy.hp-bonus);
+    logLine(`↩ Counter hit for bonus ${bonus} damage!`,'var(--grn3)');
+  } else {
+    logLine(`💥 Domain hits for ${finalDmg}!`,'var(--pur3)');
+    curEnemy.hp=Math.max(0,curEnemy.hp-finalDmg);
+  }
+
+  applyStatus('enemy','curse',3,4);
+  if(domainTimer)clearTimeout(domainTimer);
+  domainTimer=setTimeout(()=>domainActive=false,10000);
+  if(curEnemy.hp<=0){killEnemy();return;}
+  renderAll();schedSave();checkAch();
+};
+
+// Hook into PvP fightAction to trigger dodge game when opponent uses a skill
+// We patch renderFight to show dodge game when we receive a skill_used WS event
+
+// Override handleWS to detect incoming skill attacks and trigger dodge
+const _origHandleWS = handleWS;
+handleWS = function(msg){
+  _origHandleWS(msg);
+
+  // When opponent uses a skill in PvP and we're in an active fight
+  if(msg.type==='pvp_skill_dodge'&&msg.fightId===activeFight){
+    const isDefender = msg.targetId===player.playerId;
+    if(isDefender&&!dodgeActive){
+      openDodgeGame(msg.attackerName, msg.tech, msg.skillName, msg.isDomain).then(result=>{
+        // Send dodge result back to server
+        fetch(`/api/fights/${activeFight}/dodge`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({playerId:player.playerId,result:result.result,dmgMult:result.dmgMult})
+        });
+      });
+    }
+  }
+};
+
+// Patch fightAction to include dodge minigame for domain in PvP
+const _origFightAction = fightAction;
+fightAction = async function(action, si){
+  // If using domain in PvP, show dodge game to BOTH players
+  if(action==='domain'&&activeFight&&player.tech!=='Private Pure Love Train'){
+    // Show attacker a "your domain is active" view
+    // And signal defender via WS (server sends pvp_skill_dodge event)
+    // For now we just call original which triggers QTE if clash
+  }
+  return _origFightAction(action, si);
+};
+
+// Solo combat: when player clicks attack, enemy occasionally counters with a technique dodge event
+// We add a chance that enemy uses a "cursed technique" that player must dodge
+const _origDoAttackD = doAttack;
+doAttack = async function(){
+  if(!curEnemy||player.hp<=0)return;
+  // 15% chance: after player attacks, enemy uses a technique move that player must dodge
+  const techName=player.tech;
+  const roll=Math.random();
+  if(techName&&roll<0.15&&!dodgeActive){
+    _origDoAttackD();
+    if(!curEnemy||player.hp<=0)return;
+    // Enemy counters with YOUR technique (fun: you see your own bullets)
+    logLine(`⚠ ${ENEMIES[curEnemy.id]?.name} mimics your ${techName}! DODGE!`,'var(--red2)');
+    const dodgeResult=await openDodgeGame(ENEMIES[curEnemy.id]?.name||'Enemy',techName,techName,false);
+    const eDmg=Math.floor(ENEMIES[curEnemy.id]?.dmg*1.5*(dodgeResult.dmgMult));
+    if(eDmg>0){
+      player.hp=Math.max(0,player.hp-eDmg);
+      logLine(`💢 Mimic hit you for ${eDmg}!`,'var(--red2)');
+      if(player.hp<=0){logLine('💀 Defeated!','var(--red)');curEnemy=null;waveMode=false;dungeonMode=false;}
+    } else {
+      logLine('✨ Perfect dodge! No damage taken!','var(--grn3)');
+    }
+    if(dodgeResult.result==='perfect'){
+      // Counter attack bonus
+      const bonus=Math.floor((player.str||5)*3);
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-bonus);
+      logLine(`↩ Counter! +${bonus} bonus damage!`,'var(--grn3)');
+    }
+    renderAll();
+    return;
+  }
+  _origDoAttackD();
+};
+</script>
 </body>
 </html>
