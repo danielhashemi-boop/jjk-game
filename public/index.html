@@ -294,7 +294,46 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .domain-overlay{position:fixed;inset:0;pointer-events:none;z-index:32;animation:domainAura 1s ease forwards}
 @keyframes domainAura{0%{background:radial-gradient(ellipse,rgba(155,89,182,.4) 0%,transparent 60%);opacity:0}50%{opacity:1}100%{opacity:0}}
 
-/* ── TOASTS ── */
+/* ── PURE LOVE TRAIN SLOT MACHINE ── */
+.plt-overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.97);animation:pltFadeIn .5s ease}
+@keyframes pltFadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.plt-wrap{position:relative;width:700px;max-width:96vw;padding:40px;border:2px solid #ff69b4;background:radial-gradient(ellipse at center,#1a0010 0%,#060008 100%);box-shadow:0 0 80px rgba(255,105,180,.4),inset 0 0 40px rgba(255,105,180,.05)}
+.plt-wrap::before{content:'❤ PRIVATE PURE LOVE TRAIN ❤';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:11px;letter-spacing:4px;color:#ff69b4;background:#060008;padding:0 16px;white-space:nowrap;text-shadow:0 0 20px rgba(255,105,180,.8)}
+.plt-wrap::after{content:'';position:absolute;inset:-2px;border:1px solid rgba(255,105,180,.2);pointer-events:none;animation:pltBorderGlow 2s infinite}
+@keyframes pltBorderGlow{0%,100%{box-shadow:inset 0 0 20px rgba(255,105,180,.1)}50%{box-shadow:inset 0 0 40px rgba(255,105,180,.25)}}
+.plt-title{font-family:'Cinzel',serif;font-size:26px;color:#ff69b4;letter-spacing:6px;text-align:center;margin-bottom:6px;font-weight:900;text-shadow:0 0 30px rgba(255,105,180,.8);animation:pltTitlePulse 1.5s infinite}
+@keyframes pltTitlePulse{0%,100%{text-shadow:0 0 30px rgba(255,105,180,.8)}50%{text-shadow:0 0 60px rgba(255,105,180,1),0 0 100px rgba(255,105,180,.5)}}
+.plt-sub{text-align:center;font-size:12px;color:#ff69b4;opacity:.6;letter-spacing:3px;margin-bottom:28px;font-style:italic}
+.plt-machine{background:linear-gradient(180deg,#0d0008,#1a0010);border:2px solid #ff1493;border-radius:8px;padding:20px;position:relative;box-shadow:0 0 30px rgba(255,20,147,.3)}
+.plt-machine::before{content:'';position:absolute;top:4px;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,#ff69b4,transparent)}
+.plt-reels{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.plt-reel{width:110px;height:130px;background:#000;border:2px solid #ff1493;border-radius:4px;overflow:hidden;position:relative;box-shadow:inset 0 0 20px rgba(255,20,147,.2)}
+.plt-reel::before,.plt-reel::after{content:'';position:absolute;left:0;right:0;height:30px;z-index:2;pointer-events:none}
+.plt-reel::before{top:0;background:linear-gradient(180deg,rgba(0,0,0,.9),transparent)}
+.plt-reel::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}
+.plt-reel-inner{display:flex;flex-direction:column;align-items:center;transition:transform .1s linear}
+.plt-reel-inner.spinning{animation:none}
+.plt-symbol{width:100%;height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;flex-shrink:0;position:relative}
+.plt-win-line{position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#ff69b4,#fff,#ff69b4,transparent);transform:translateY(-50%);z-index:3;animation:winLinePulse .5s infinite;pointer-events:none}
+@keyframes winLinePulse{0%,100%{opacity:.6}50%{opacity:1;box-shadow:0 0 10px #ff69b4}}
+.plt-spin-btn{width:100%;padding:14px;margin-top:6px;font-family:'Cinzel',serif;font-size:14px;letter-spacing:4px;cursor:pointer;transition:all .2s;font-weight:900;border:2px solid #ff69b4;color:#ff69b4;background:rgba(255,105,180,.1);position:relative;overflow:hidden}
+.plt-spin-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,105,180,.15),transparent);transform:translateX(-100%);transition:transform .4s}
+.plt-spin-btn:hover::before{transform:translateX(100%)}
+.plt-spin-btn:hover{box-shadow:0 0 30px rgba(255,105,180,.5);background:rgba(255,105,180,.2)}
+.plt-spin-btn:disabled{opacity:.4;cursor:not-allowed}
+.plt-result{text-align:center;font-family:'Cinzel',serif;font-size:18px;margin-top:12px;min-height:30px;letter-spacing:2px;transition:all .3s}
+.plt-result.win777{color:#ffd700;font-size:24px;animation:jackpotAnim 1s infinite;text-shadow:0 0 30px #ffd700}
+@keyframes jackpotAnim{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.plt-result.lose{color:#ff4444}
+.plt-result.partial{color:#ff69b4}
+.plt-hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.plt-heart{position:absolute;bottom:-20px;font-size:18px;animation:heartFloat linear forwards}
+@keyframes heartFloat{0%{transform:translateY(0) rotate(0deg);opacity:.8}100%{transform:translateY(-110vh) rotate(360deg);opacity:0}}
+.plt-player-badges{display:flex;justify-content:space-between;margin-bottom:16px;gap:10px}
+.plt-badge{flex:1;padding:8px;border:1px solid rgba(255,105,180,.3);background:rgba(255,105,180,.05);text-align:center;font-family:'Cinzel',serif;font-size:11px;color:#ff69b4}
+.plt-badge-name{font-size:13px;color:#ffb6c1;margin-bottom:3px;font-weight:700}
+.plt-immortal-badge{display:inline-block;padding:3px 10px;background:rgba(255,215,0,.15);border:1px solid #ffd700;color:#ffd700;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;animation:immortalGlow 1s infinite}
+@keyframes immortalGlow{0%,100%{box-shadow:0 0 5px rgba(255,215,0,.3)}50%{box-shadow:0 0 20px rgba(255,215,0,.8)}}
 #toasts{position:fixed;top:56px;right:14px;z-index:100;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .toast{background:var(--s2);border:1px solid var(--acc);padding:9px 14px;display:flex;gap:9px;align-items:center;min-width:200px;animation:slideIn .4s ease, fadeOut .4s ease 3.6s forwards;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 .t-ic{font-size:18px}.t-l{font-family:'Cinzel',serif;font-size:8px;color:var(--mut);letter-spacing:2px}.t-t{font-family:'Cinzel',serif;font-size:11px;color:var(--acc)}
@@ -542,9 +581,273 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
   <div class="qte-result" id="qte-result"></div>
 </div>
 
+<!-- PURE LOVE TRAIN SLOT MACHINE -->
+<div id="plt-overlay" class="plt-overlay" style="display:none">
+  <div class="plt-wrap">
+    <div class="plt-hearts" id="plt-hearts"></div>
+    <div class="plt-title">🚂 DOMAIN EXPANSION 🚂</div>
+    <div class="plt-sub">PRIVATE PURE LOVE TRAIN</div>
+    <div class="plt-player-badges">
+      <div class="plt-badge"><div class="plt-badge-name" id="plt-p1name">—</div><div id="plt-p1status">Challenger</div></div>
+      <div style="display:flex;align-items:center;font-family:'Cinzel',serif;font-size:18px;color:#ff69b4;text-shadow:0 0 20px rgba(255,105,180,.8)">VS</div>
+      <div class="plt-badge"><div class="plt-badge-name" id="plt-p2name">—</div><div id="plt-p2status">Defender</div></div>
+    </div>
+    <div class="plt-machine">
+      <div class="plt-win-line"></div>
+      <div class="plt-reels">
+        <div class="plt-reel" id="plt-reel-0"><div class="plt-reel-inner" id="plt-inner-0"></div></div>
+        <div class="plt-reel" id="plt-reel-1"><div class="plt-reel-inner" id="plt-inner-1"></div></div>
+        <div class="plt-reel" id="plt-reel-2"><div class="plt-reel-inner" id="plt-inner-2"></div></div>
+      </div>
+      <button class="plt-spin-btn" id="plt-spin-btn" onclick="pltSpin()">🎰 SPIN THE REELS 🎰</button>
+    </div>
+    <div class="plt-result" id="plt-result"></div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════
-// PARTICLES
+// PRIVATE PURE LOVE TRAIN — SLOT MACHINE
+// ══════════════════════════════════════════════════════
+const PLT_SYMBOLS = ['7️⃣','❤️','💕','🌸','💋','⭐','🎰','💫','🔥'];
+const PLT_WEIGHTS = [3, 15, 18, 20, 18, 15, 8, 12, 10]; // 7 is rare!
+let pltResolve = null;
+let pltSpinning = false;
+let pltFightId = null;
+let pltIsP1 = false;
+let pltSpunResult = null;
+
+function pltWeightedSymbol(){
+  const tot = PLT_WEIGHTS.reduce((a,b)=>a+b,0);
+  let r = Math.random()*tot;
+  for(let i=0;i<PLT_SYMBOLS.length;i++){r-=PLT_WEIGHTS[i];if(r<=0)return PLT_SYMBOLS[i];}
+  return PLT_SYMBOLS[PLT_SYMBOLS.length-1];
+}
+
+function spawnHearts(){
+  const wrap = document.getElementById('plt-hearts');
+  for(let i=0;i<20;i++){
+    const h = document.createElement('div');
+    h.className='plt-heart';
+    h.textContent = Math.random()<.5?'❤️':'💕';
+    h.style.left = Math.random()*100+'%';
+    h.style.animationDuration = (3+Math.random()*4)+'s';
+    h.style.animationDelay = Math.random()*2+'s';
+    h.style.fontSize = (12+Math.random()*20)+'px';
+    wrap.appendChild(h);
+    setTimeout(()=>h.remove(), 7000);
+  }
+}
+
+function buildReelStrip(reelIdx, finalSymbol){
+  const inner = document.getElementById(`plt-inner-${reelIdx}`);
+  inner.innerHTML = '';
+  // Build a long strip ending on finalSymbol
+  const strip = [];
+  for(let i=0;i<20;i++) strip.push(pltWeightedSymbol());
+  strip.push(finalSymbol); // always ends on target
+  strip.forEach(sym=>{
+    const el = document.createElement('div');
+    el.className='plt-symbol';
+    el.textContent=sym;
+    inner.appendChild(el);
+  });
+  return strip.length;
+}
+
+async function spinReel(reelIdx, finalSymbol, delay){
+  return new Promise(resolve=>{
+    const inner = document.getElementById(`plt-inner-${reelIdx}`);
+    const totalSyms = buildReelStrip(reelIdx, finalSymbol);
+    const symbolH = 110;
+    let pos = 0;
+    const target = (totalSyms - 2) * symbolH; // show last symbol centered
+    const duration = 2000 + delay;
+    const startTime = performance.now();
+    // Fast scroll phase then ease to target
+    function frame(now){
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed/duration);
+      // Easing: fast then slow
+      const eased = progress < .8
+        ? progress / .8 * .85
+        : .85 + (progress-.8)/.2 * .15;
+      pos = eased * target;
+      inner.style.transform = `translateY(-${pos}px)`;
+      if(progress < 1) requestAnimationFrame(frame);
+      else{ inner.style.transform = `translateY(-${target}px)`; resolve(); }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+async function pltSpin(){
+  if(pltSpinning) return;
+  pltSpinning = true;
+  const btn = document.getElementById('plt-spin-btn');
+  btn.disabled = true;
+  btn.textContent = '🎰 SPINNING... 🎰';
+  const resEl = document.getElementById('plt-result');
+  resEl.textContent = '';
+  resEl.className = 'plt-result';
+
+  spawnHearts();
+
+  // Determine result
+  const roll = Math.random();
+  let r0, r1, r2;
+  if(roll < 0.03){ // 3% jackpot 777
+    r0 = r1 = r2 = '7️⃣';
+  } else if(roll < 0.25){ // 22% any match
+    const s = PLT_SYMBOLS[1+Math.floor(Math.random()*(PLT_SYMBOLS.length-1))];
+    r0 = r1 = r2 = s;
+  } else if(roll < 0.55){ // 30% two match
+    const s = PLT_SYMBOLS[1+Math.floor(Math.random()*(PLT_SYMBOLS.length-1))];
+    r0 = s; r1 = s; r2 = pltWeightedSymbol();
+    if(r2===s) r2 = PLT_SYMBOLS[(PLT_SYMBOLS.indexOf(s)+1)%PLT_SYMBOLS.length];
+  } else { // miss
+    r0 = pltWeightedSymbol(); r1 = pltWeightedSymbol(); r2 = pltWeightedSymbol();
+    if(r0===r1&&r1===r2) r2='💫'; // prevent accidental jackpot
+  }
+
+  pltSpunResult = [r0, r1, r2];
+
+  // Spin reels with staggered delays
+  await Promise.all([
+    spinReel(0, r0, 0),
+    spinReel(1, r1, 600),
+    spinReel(2, r2, 1200),
+  ]);
+
+  // Flash win line
+  const isJackpot = r0==='7️⃣'&&r1==='7️⃣'&&r2==='7️⃣';
+  const isTriple = r0===r1&&r1===r2;
+  const isDouble = r0===r1||r1===r2||r0===r2;
+
+  if(isJackpot){
+    resEl.textContent = '🎰 7 7 7 — JACKPOT!!! 🎰 IMMORTAL FOR 4 TURNS! 🎰';
+    resEl.className = 'plt-result win777';
+    spawnHearts(); spawnHearts();
+    // Screen flash
+    for(let i=0;i<5;i++){
+      setTimeout(()=>{
+        document.getElementById('plt-overlay').style.background=`rgba(255,215,0,${.1+i*.05})`;
+        setTimeout(()=>document.getElementById('plt-overlay').style.background='rgba(0,0,0,.97)',150);
+      },i*200);
+    }
+  } else if(isTriple){
+    resEl.textContent = `${r0}${r1}${r2} — TRIPLE! Heavy damage!`;
+    resEl.className = 'plt-result partial';
+    spawnHearts();
+  } else if(isDouble){
+    resEl.textContent = `${r0}${r1}${r2} — Partial hit... some damage`;
+    resEl.className = 'plt-result partial';
+  } else {
+    resEl.textContent = `${r0}${r1}${r2} — Miss... no effect`;
+    resEl.className = 'plt-result lose';
+  }
+
+  btn.textContent = '✓ DONE';
+  pltSpinning = false;
+
+  setTimeout(()=>{
+    if(pltResolve){
+      pltResolve({result: isJackpot?'777': isTriple?'triple': isDouble?'double':'miss', symbols:[r0,r1,r2]});
+      pltResolve = null;
+    }
+    setTimeout(()=>{ document.getElementById('plt-overlay').style.display='none'; }, 1200);
+  }, 2000);
+}
+
+function openPLT(p1Name, p2Name, fightId, isP1){
+  return new Promise(resolve=>{
+    pltResolve = resolve;
+    pltFightId = fightId;
+    pltIsP1 = isP1;
+    pltSpinning = false;
+    pltSpunResult = null;
+    document.getElementById('plt-p1name').textContent = p1Name;
+    document.getElementById('plt-p2name').textContent = p2Name;
+    document.getElementById('plt-p1status').textContent = 'Challenger';
+    document.getElementById('plt-p2status').textContent = 'Defender';
+    document.getElementById('plt-result').textContent = '';
+    document.getElementById('plt-result').className = 'plt-result';
+    document.getElementById('plt-spin-btn').disabled = false;
+    document.getElementById('plt-spin-btn').textContent = '🎰 SPIN THE REELS 🎰';
+    // Clear reels
+    for(let i=0;i<3;i++){
+      const inner = document.getElementById(`plt-inner-${i}`);
+      inner.innerHTML='';
+      inner.style.transform='translateY(0)';
+      const el=document.createElement('div');el.className='plt-symbol';el.textContent='❤️';
+      inner.appendChild(el);
+    }
+    spawnHearts();
+    document.getElementById('plt-overlay').style.display='flex';
+  });
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════
+// PURE LOVE TRAIN — DOMAIN OVERRIDE
+// ══════════════════════════════════════════════════════
+// Patch activateDomain to intercept Pure Love Train
+const _origActivateDomain = activateDomain;
+activateDomain = async function(){
+  const p = player;
+  if(p.tech === 'Private Pure Love Train'){
+    if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
+    const cost = Math.floor(p.maxCe*.6);
+    if(p.ce < cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
+    p.ce -= cost;
+    p.domainUsed = true;
+    logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN! 🚂','#ff69b4');
+    // Open slot machine
+    const result = await openPLT(p.name, curEnemy.label||'Enemy', null, true);
+    handlePLTResult(result, true);
+    return;
+  }
+  _origActivateDomain();
+};
+
+function handlePLTResult(result, isPvE){
+  const p = player;
+  if(result.result === '777'){
+    p.pltImmune = 4;
+    logLine('🎰 7-7-7 JACKPOT! YOU ARE IMMORTAL FOR 4 TURNS!','#ffd700');
+    toast('🎰','777 JACKPOT — IMMORTAL FOR 4 TURNS!');
+    // Also deal massive domain damage
+    if(curEnemy){
+      const d = Math.floor((p.str*10+200)*(1+(p.ascensions||0)*.1));
+      curEnemy.hp = Math.max(0, curEnemy.hp - d);
+      logLine(`💥 Pure Love hits for ${d}!`,'#ff69b4');
+      if(curEnemy.hp<=0){killEnemy();return;}
+    }
+  } else if(result.result === 'triple'){
+    const d = Math.floor((p.str*7+150)*(1+(p.ascensions||0)*.1));
+    if(curEnemy){curEnemy.hp=Math.max(0,curEnemy.hp-d);logLine(`💕 Triple hit! ${d} damage!`,'#ff69b4');applyStatus('enemy','curse',3,4);if(curEnemy.hp<=0){killEnemy();return;}}
+  } else if(result.result === 'double'){
+    const d = Math.floor((p.str*4+80)*(1+(p.ascensions||0)*.1));
+    if(curEnemy){curEnemy.hp=Math.max(0,curEnemy.hp-d);logLine(`💋 Partial hit! ${d} damage!`,'#ffb6c1');if(curEnemy.hp<=0){killEnemy();return;}}
+  } else {
+    logLine('💔 Pure Love Train missed... no effect','#ff4444');
+  }
+  renderAll();schedSave();checkAch();
+}
+
+// Patch enemyCounter to check PLT immortality
+const _origEnemyCounter = enemyCounter;
+enemyCounter = function(dmgMult=1){
+  if(player.pltImmune > 0){
+    player.pltImmune--;
+    logLine(`✨ IMMORTAL! Attack blocked! (${player.pltImmune} turns left)`,'#ffd700');
+    if(player.pltImmune<=0) logLine('💔 Immortality faded...','#ff69b4');
+    return;
+  }
+  _origEnemyCounter(dmgMult);
+};
+</script>
 // ══════════════════════════════════════════════════════
 (function(){
   const c=document.getElementById('particles'),ctx=c.getContext('2d');
@@ -685,6 +988,12 @@ const TECHS=[
     {name:'Puppet Army',dmg:92,cost:55,cd:6,color:'#f1c40f'},
     {name:'Body Snatch',dmg:125,cost:80,cd:10,status:'stun',color:'#ffd700'},
   ],w:6},
+  {name:'Private Pure Love Train',r:'SS',color:'#ff69b4',skills:[
+    {name:'Love Rush',dmg:95,cost:45,cd:3,color:'#ff69b4'},
+    {name:'Tender Crush',dmg:115,cost:60,cd:5,status:'curse',color:'#ff1493'},
+    {name:'Heart Breaker',dmg:140,cost:75,cd:7,status:'stun',color:'#ff69b4'},
+    {name:'Pure Love Barrage',dmg:170,cost:95,cd:10,color:'#ffb6c1',isPureLoveDomain:true},
+  ],w:2,specialDomain:true},
 ];
 
 const ENEMIES=[
@@ -942,6 +1251,7 @@ function renderAll(){
   if((p.coinMult||1)>1)mr.innerHTML+=`<span class="mult-badge" style="color:var(--acc);border-color:var(--acc)">💰 Coin ×${p.coinMult.toFixed(1)}</span>`;
   if(p.comboCharm)mr.innerHTML+=`<span class="mult-badge" style="color:var(--red2);border-color:var(--red2)">🔥 Combo ×1.5</span>`;
   if(p.critCharm)mr.innerHTML+=`<span class="mult-badge" style="color:var(--ra);border-color:var(--ra)">💥 Crit +8%</span>`;
+  if((p.pltImmune||0)>0)mr.innerHTML+=`<span class="plt-immortal-badge">🎰 IMMORTAL ×${p.pltImmune}</span>`;
   mr.style.display=mr.innerHTML?'flex':'none';
   if(p.tech){
     document.getElementById('tech-foot').style.display='flex';
@@ -1548,17 +1858,37 @@ function renderFight(fight){
 
 async function fightAction(action,si){
   if(!activeFight||myMoveLocked)return;
-  // Check for domain clash QTE
-  if(action==='domain'){
+
+  // Pure Love Train PvP domain
+  if(action==='domain' && player.tech==='Private Pure Love Train'){
+    const r=await fetch(`/api/fights/${activeFight}`);const f=await r.json();
+    const isP1=f.p1Id===player.playerId;
+    const p1n=f.type==='boss'?player.name:(f.p1Name||'P1');
+    const p2n=f.type==='boss'?(f.boss?.name||'Boss'):(f.p2Name||'P2');
+    logLine('🚂 PRIVATE PURE LOVE TRAIN DOMAIN!','#ff69b4');
+    const result = await openPLT(p1n, p2n, activeFight, isP1);
+    // Use result to modify action
+    if(result.result==='777'){
+      player.pltImmune=4;
+      logLine('🎰 777 JACKPOT IN PVP! IMMORTAL FOR 4 TURNS!','#ffd700');
+      toast('🎰','777 — IMMORTAL IN PVP! 4 TURNS!');
+    }
+    // Send the domain action with slot result metadata
+    action = result.result==='miss'?'block':'domain'; // miss = wasted domain
+  }
+
+  // QTE for non-PLT domain clashes
+  if(action==='domain' && player.tech!=='Private Pure Love Train'){
     const r=await fetch(`/api/fights/${activeFight}`);const f=await r.json();
     const isP1=f.p1Id===player.playerId;
     const oppMove=isP1?f.p2Move:f.p1Move;
     if(oppMove&&oppMove.action==='domain'){
       logLine('💥 DOMAIN CLASH! Quick time event!','rainbow');
       const won=await startQTE(activeFight);
-      action=won?'domain':'block'; // lost QTE = domain fails, forced block
+      action=won?'domain':'block';
     }
   }
+
   myMoveLocked=true;
   const mn={attack:'⚔ Attack',heavy:'💢 Heavy',dodge:'💨 Dodge',block:'🛡 Block',taunt:'😤 Taunt',domain:'🌀 Domain',skill:player.skills?.[si]?.name||'Skill'};
   document.getElementById('fact').innerHTML=`<div class="move-locked"><div style="color:var(--grn3);font-size:12px;letter-spacing:2px">✓ ${mn[action]||action} LOCKED</div><div style="color:var(--mut);font-size:10px;margin-top:5px;font-style:italic">Waiting for opponent...</div></div>`;
