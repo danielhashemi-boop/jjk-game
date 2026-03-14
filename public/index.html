@@ -1168,8 +1168,8 @@ async function joinGame(){
     player={...data.player};
     const saved=localStorage.getItem('jjk_save_'+name);
     if(saved){try{const s=JSON.parse(saved);player={...s,playerId:player.playerId,roomCode,name};}catch{}}
-    initGame();
-  }catch{showErr('Server error.');}
+    try{initGame();}catch(e2){showErr('Game error: '+e2.message);console.error(e2);}
+  }catch(e){showErr('Cannot reach server. Is the game deployed?');console.error(e);}
 }
 function showErr(m){const e=document.getElementById('lerr');e.textContent=m;e.style.display='block';}
 
@@ -2790,133 +2790,100 @@ doSkill = async function(idx){
   _origDoSkill(idx);
 };
 
-// The real hook: When player uses Domain, trigger dodge game on defender side (in PvP via WS)
-// In solo: domain already calls activateDomain which we extend below
+// ── ALL PATCHES wrapped in setTimeout so they run after everything is defined ──
+setTimeout(function(){
 
-// Override activateDomain to add dodge game for ENEMY (solo combat)
-const _origActivateDomain2 = window.activateDomain || activateDomain;
+// Patch activateDomain
+const _baseDomain = activateDomain;
 activateDomain = async function(){
   const p=player;
-  if(!p.tech){logLine('No technique equipped!','var(--red2)');return;}
+  if(!p||!p.tech){logLine('No technique equipped!','var(--red2)');return;}
   if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
-
-  // Pure Love Train uses slot machine
   if(p.tech==='Private Pure Love Train'){
     const cost=Math.floor(p.maxCe*.6);
     if(p.ce<cost){logLine(`Need ${cost} CE!`,'var(--red2)');return;}
     p.ce-=cost;p.domainUsed=true;
     logLine('🚂 DOMAIN EXPANSION: PRIVATE PURE LOVE TRAIN!','#ff69b4');
-    const result=await openPLT(p.name,'Enemy',null,true);
-    handlePLTResult(result,true);
+    try{const result=await openPLT(p.name,'Enemy',null,true);handlePLTResult(result,true);}catch(e){console.error(e);}
     return;
   }
-
   const cost=Math.floor(p.maxCe*.6);
-  if(p.ce<cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
+  if(p.ce<cost){logLine(`Need ${cost} CE!`,'var(--red2)');return;}
   p.ce-=cost;p.domainUsed=true;domainActive=true;
-
-  const DNAMES={'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden','Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace','Shadow Monarch':'Shadow Domain','Black Sparks':'Thunderclap Domain','Flame Manipulation':'Meteor Shower','Piercing Blood':'Flowing Red Scale','Cursed Speech':'Long Throw Domain','Lightning Rod':'Zeus Domain','Ice Formation':'Absolute Zero Domain','Puppet Master':'Puppet Theater','Private Pure Love Train':'Pure Love Train Domain','Boogie Woogie':'Boogie Woogie Domain','Divergent Fist':'Divergent Fist Domain','Straw Doll':'Straw Doll Domain','Construction':'Earthen Prison'};
+  const DNAMES={'Infinity':'Unlimited Void','Ten Shadows':'Chimera Shadow Garden','Shrine':'Malevolent Shrine','Ratio Technique':'Time Cell Moon Palace','Shadow Monarch':'Shadow Domain','Black Sparks':'Thunderclap Domain','Flame Manipulation':'Meteor Shower','Piercing Blood':'Flowing Red Scale','Cursed Speech':'Long Throw Domain','Lightning Rod':'Zeus Domain','Ice Formation':'Absolute Zero Domain','Puppet Master':'Puppet Theater','Boogie Woogie':'Boogie Woogie Domain','Divergent Fist':'Divergent Fist Domain','Straw Doll':'Straw Doll Domain','Construction':'Earthen Prison'};
   const dn=DNAMES[p.tech]||`${p.tech}: Domain`;
-
   logLine(`🌀 DOMAIN EXPANSION: ${dn.toUpperCase()}!`,'rainbow');
   domainVFX();shakeScreen();
-
-  // Trigger dodge game — player is ATTACKER, but we show what dodging the domain is like
-  logLine(`⚔ ${curEnemy.label||ENEMIES[curEnemy.id]?.name} must dodge your domain!`,'var(--pur3)');
-  const dodgeResult = await openDodgeGame(p.name, p.tech, dn, true);
-
-  // Apply domain damage based on dodge result
-  const baseDmg = Math.floor((p.str*6+ri(80,150))*(1+(p.ascensions||0)*.1));
-  const finalDmg = Math.floor(baseDmg * (dodgeResult.dmgMult > 0 ? (2-dodgeResult.dmgMult) : 2.5));
-
-  if(dodgeResult.result==='perfect'){
-    logLine(`💥 Domain: Full ${finalDmg} damage! Enemy had no escape!`,'rainbow');
-    // Counter bonus: player also gets a free hit
-    curEnemy.hp=Math.max(0,curEnemy.hp-finalDmg);
-    const bonus=Math.floor(baseDmg*.5);
-    curEnemy.hp=Math.max(0,curEnemy.hp-bonus);
-    logLine(`↩ Counter hit for bonus ${bonus} damage!`,'var(--grn3)');
-  } else {
-    logLine(`💥 Domain hits for ${finalDmg}!`,'var(--pur3)');
-    curEnemy.hp=Math.max(0,curEnemy.hp-finalDmg);
-  }
-
-  applyStatus('enemy','curse',3,4);
-  if(domainTimer)clearTimeout(domainTimer);
-  domainTimer=setTimeout(()=>domainActive=false,10000);
-  if(curEnemy.hp<=0){killEnemy();return;}
+  logLine(`⚔ ${curEnemy?.label||ENEMIES[curEnemy?.id]?.name||'Enemy'} must dodge your domain!`,'var(--pur3)');
+  try{
+    const dr=await openDodgeGame(p.name,p.tech,dn,true);
+    const base=Math.floor((p.str*6+ri(80,150))*(1+(p.ascensions||0)*.1));
+    const final=Math.floor(base*(dr.dmgMult>0?(2-dr.dmgMult):2.5));
+    if(dr.result==='perfect'){
+      logLine(`💥 Domain: ${final} damage! No escape!`,'rainbow');
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
+      const bon=Math.floor(base*.5);
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-bon);
+      logLine(`↩ Counter bonus ${bon}!`,'var(--grn3)');
+    } else {
+      logLine(`💥 Domain hits for ${final}!`,'var(--pur3)');
+      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-final);
+    }
+    applyStatus('enemy','curse',3,4);
+    if(domainTimer)clearTimeout(domainTimer);
+    domainTimer=setTimeout(()=>domainActive=false,10000);
+    if(curEnemy&&curEnemy.hp<=0){killEnemy();return;}
+  }catch(e){console.error('Domain error:',e);}
   renderAll();schedSave();checkAch();
 };
 
-// Hook into PvP fightAction to trigger dodge game when opponent uses a skill
-// We patch renderFight to show dodge game when we receive a skill_used WS event
-
-// Override handleWS to detect incoming skill attacks and trigger dodge
-const _origHandleWS = handleWS;
-handleWS = function(msg){
-  _origHandleWS(msg);
-
-  // When opponent uses a skill in PvP and we're in an active fight
-  if(msg.type==='pvp_skill_dodge'&&msg.fightId===activeFight){
-    const isDefender = msg.targetId===player.playerId;
-    if(isDefender&&!dodgeActive){
-      openDodgeGame(msg.attackerName, msg.tech, msg.skillName, msg.isDomain).then(result=>{
-        // Send dodge result back to server
-        fetch(`/api/fights/${activeFight}/dodge`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({playerId:player.playerId,result:result.result,dmgMult:result.dmgMult})
-        });
-      });
-    }
-  }
-};
-
-// Patch fightAction to include dodge minigame for domain in PvP
-const _origFightAction = fightAction;
-fightAction = async function(action, si){
-  // If using domain in PvP, show dodge game to BOTH players
-  if(action==='domain'&&activeFight&&player.tech!=='Private Pure Love Train'){
-    // Show attacker a "your domain is active" view
-    // And signal defender via WS (server sends pvp_skill_dodge event)
-    // For now we just call original which triggers QTE if clash
-  }
-  return _origFightAction(action, si);
-};
-
-// Solo combat: when player clicks attack, enemy occasionally counters with a technique dodge event
-// We add a chance that enemy uses a "cursed technique" that player must dodge
-const _origDoAttackD = doAttack;
+// Patch doAttack — 15% chance enemy mimics your technique
+const _baseAttack = doAttack;
 doAttack = async function(){
-  if(!curEnemy||player.hp<=0)return;
-  // 15% chance: after player attacks, enemy uses a technique move that player must dodge
+  if(!curEnemy||!player||player.hp<=0)return;
   const techName=player.tech;
-  const roll=Math.random();
-  if(techName&&roll<0.15&&!dodgeActive){
-    _origDoAttackD();
+  if(techName&&Math.random()<0.15&&!dodgeActive){
+    _baseAttack();
     if(!curEnemy||player.hp<=0)return;
-    // Enemy counters with YOUR technique (fun: you see your own bullets)
-    logLine(`⚠ ${ENEMIES[curEnemy.id]?.name} mimics your ${techName}! DODGE!`,'var(--red2)');
-    const dodgeResult=await openDodgeGame(ENEMIES[curEnemy.id]?.name||'Enemy',techName,techName,false);
-    const eDmg=Math.floor(ENEMIES[curEnemy.id]?.dmg*1.5*(dodgeResult.dmgMult));
-    if(eDmg>0){
-      player.hp=Math.max(0,player.hp-eDmg);
-      logLine(`💢 Mimic hit you for ${eDmg}!`,'var(--red2)');
-      if(player.hp<=0){logLine('💀 Defeated!','var(--red)');curEnemy=null;waveMode=false;dungeonMode=false;}
-    } else {
-      logLine('✨ Perfect dodge! No damage taken!','var(--grn3)');
-    }
-    if(dodgeResult.result==='perfect'){
-      // Counter attack bonus
-      const bonus=Math.floor((player.str||5)*3);
-      if(curEnemy)curEnemy.hp=Math.max(0,curEnemy.hp-bonus);
-      logLine(`↩ Counter! +${bonus} bonus damage!`,'var(--grn3)');
-    }
-    renderAll();
+    logLine(`⚠ ${ENEMIES[curEnemy.id]?.name||'Enemy'} mimics your ${techName}! DODGE!`,'var(--red2)');
+    try{
+      const dr=await openDodgeGame(ENEMIES[curEnemy.id]?.name||'Enemy',techName,techName,false);
+      const eDmg=Math.floor((ENEMIES[curEnemy.id]?.dmg||10)*1.5*(dr.dmgMult));
+      if(eDmg>0){
+        player.hp=Math.max(0,player.hp-eDmg);
+        logLine(`💢 Mimic hit for ${eDmg}!`,'var(--red2)');
+        if(player.hp<=0){logLine('💀 Defeated!','var(--red)');curEnemy=null;waveMode=false;dungeonMode=false;}
+      } else {
+        logLine('✨ Perfect dodge! No damage!','var(--grn3)');
+      }
+      if(dr.result==='perfect'&&curEnemy){
+        const bon=Math.floor((player.str||5)*3);
+        curEnemy.hp=Math.max(0,curEnemy.hp-bon);
+        logLine(`↩ Counter! +${bon} damage!`,'var(--grn3)');
+        if(curEnemy.hp<=0){killEnemy();return;}
+      }
+      renderAll();
+    }catch(e){console.error('Dodge error:',e);}
     return;
   }
-  _origDoAttackD();
+  _baseAttack();
 };
+
+// Patch handleWS for PvP dodge signals
+const _baseWS = handleWS;
+handleWS = function(msg){
+  _baseWS(msg);
+  if(msg.type==='pvp_skill_dodge'&&msg.fightId===activeFight){
+    const isDefender=msg.targetId===player?.playerId;
+    if(isDefender&&!dodgeActive){
+      openDodgeGame(msg.attackerName,msg.tech,msg.skillName,msg.isDomain).then(result=>{
+        fetch(`/api/fights/${activeFight}/dodge`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId:player.playerId,result:result.result,dmgMult:result.dmgMult})}).catch(()=>{});
+      }).catch(()=>{});
+    }
+  }
+};
+
+},100); // end setTimeout
 </script>
 </body>
 </html>
