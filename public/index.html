@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jujutsu Kaisen Incremental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #080608;
+  --surface: #0f0d10;
+  --surface2: #161318;
+  --border: #2a2030;
+  --border2: #3d3050;
+  --accent: #c9a227;
+  --accent2: #e8b84b;
+  --red: #c0392b;
+  --red2: #e74c3c;
+  --blue: #2980b9;
+  --blue2: #5dade2;
+  --purple: #8e44ad;
+  --purple2: #bb8fce;
+  --green: #27ae60;
+  --green2: #58d68d;
+  --text: #e8dfc4;
+  --muted: #7a6e5a;
+  --gold: #c9a227;
+  --r-d: #8a8a8a; --r-c: #58d68d; --r-b: #5dade2; --r-a: #bb8fce; --r-s: #e8b84b; --r-ss: #e74c3c;
+  --r-ss-plus: #fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Crimson Pro',serif}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── SCREENS ── */
+#login-screen, #game-screen { position:fixed; inset:0; }
+#login-screen { display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:10; }
+#game-screen { display:none; flex-direction:column; overflow:hidden; }
+
+/* ── LOGIN ── */
+.login-wrap {
+  width:420px; padding:48px 40px;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  box-shadow: 0 0 80px rgba(201,162,39,0.08), inset 0 1px 0 rgba(201,162,39,0.1);
+  position:relative;
+}
+.login-wrap::before {
+  content:''; position:absolute; inset:-1px;
+  background:linear-gradient(135deg, rgba(201,162,39,0.3), transparent 40%, rgba(201,162,39,0.1));
+  pointer-events:none; border-radius:inherit;
+}
+.login-logo { font-family:'Cinzel',serif; font-size:22px; color:var(--accent); letter-spacing:4px; text-align:center; margin-bottom:6px; font-weight:900; }
+.login-sub { text-align:center; color:var(--muted); font-size:13px; letter-spacing:2px; margin-bottom:36px; font-style:italic; }
+.login-field { margin-bottom:16px; }
+.login-field label { display:block; font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; color:var(--muted); margin-bottom:6px; }
+.login-field input {
+  width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--border2); color:var(--text);
+  padding:10px 14px; font-family:'Crimson Pro',serif; font-size:15px;
+  outline:none; transition:border-color .2s;
+}
+.login-field input:focus { border-color:var(--accent); }
+.login-btn {
+  width:100%; padding:12px; margin-top:8px;
+  background:linear-gradient(135deg, rgba(201,162,39,0.15), rgba(201,162,39,0.05));
+  border:1px solid var(--accent); color:var(--accent2);
+  font-family:'Cinzel',serif; font-size:13px; letter-spacing:3px; cursor:pointer;
+  transition:all .2s; font-weight:700;
+}
+.login-btn:hover { background:rgba(201,162,39,0.2); box-shadow:0 0 20px rgba(201,162,39,0.2); }
+.login-divider { text-align:center; color:var(--muted); font-size:11px; margin:14px 0; }
+.login-rooms { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+.room-tag { background:rgba(201,162,39,0.08); border:1px solid var(--border); color:var(--muted); padding:4px 10px; font-size:11px; font-family:'Cinzel',serif; cursor:pointer; letter-spacing:1px; transition:all .2s; }
+.room-tag:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── TOP BAR ── */
+#topbar {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:0 18px; height:50px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  box-shadow:0 2px 20px rgba(0,0,0,0.5);
+}
+.topbar-logo { font-family:'Cinzel',serif; font-size:14px; color:var(--accent); letter-spacing:3px; font-weight:900; }
+.topbar-info { display:flex; align-items:center; gap:14px; font-family:'Cinzel',serif; font-size:10px; color:var(--muted); letter-spacing:1px; }
+.topbar-info .val { color:var(--text); }
+.topbar-info .gold { color:var(--accent); font-weight:600; }
+.topbar-btn {
+  background:transparent; border:1px solid var(--border2); color:var(--muted);
+  padding:4px 10px; font-family:'Cinzel',serif; font-size:10px; cursor:pointer; letter-spacing:1px; transition:all .2s;
+}
+.topbar-btn:hover { border-color:var(--accent); color:var(--accent); }
+.save-dot { width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:4px; }
+
+/* ── TABS ── */
+#tab-nav {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  display:flex; padding:0 18px; flex-shrink:0;
+}
+.tab-btn {
+  background:transparent; border:none; border-bottom:2px solid transparent;
+  color:var(--muted); padding:10px 18px; font-family:'Cinzel',serif; font-size:11px;
+  letter-spacing:2px; cursor:pointer; transition:all .2s;
+}
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-btn:hover { color:var(--text); }
+
+/* ── MAIN LAYOUT ── */
+#tab-content { flex:1; overflow:hidden; padding:14px; }
+.tab-pane { display:none; height:100%; }
+.tab-pane.active { display:flex; }
+
+/* ── PANELS ── */
+.panel {
+  background:var(--surface); border:1px solid var(--border);
+  padding:14px; border-radius:2px;
+  box-shadow:inset 0 1px 0 rgba(201,162,39,0.04);
+}
+.panel-title {
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:var(--accent);
+  border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px; text-transform:uppercase;
+}
+.scroll { overflow-y:auto; }
+
+/* ── SORCERER TAB ── */
+#pane-sorcerer { gap:14px; overflow-y:auto; flex-direction:column; }
+.stat-strip { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.stat-card { background:var(--surface2); border:1px solid var(--border); padding:8px 14px; text-align:center; min-width:70px; }
+.stat-card-label { font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--muted); margin-bottom:2px; }
+.stat-card-value { font-size:18px; font-weight:600; color:var(--text); }
+.bars-wrap { flex:1; display:flex; flex-direction:column; gap:5px; justify-content:center; }
+.bar-row { position:relative; background:rgba(0,0,0,0.5); border:1px solid var(--border); height:18px; overflow:hidden; }
+.bar-fill { height:100%; transition:width .4s ease; }
+.bar-fill.ce { background:linear-gradient(90deg,#2980b9,#8e44ad); }
+.bar-fill.hp { background:linear-gradient(90deg,#922b21,#c0392b); }
+.bar-fill.xp { background:linear-gradient(90deg,#7d6608,#c9a227); }
+.bar-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:10px; color:var(--text); letter-spacing:1px; }
+.train-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.train-card {
+  background:var(--surface2); border:1px solid var(--border); padding:12px 10px; text-align:center; cursor:pointer;
+  transition:all .15s; position:relative; overflow:hidden;
+}
+.train-card:hover { border-color:var(--accent); background:rgba(201,162,39,0.04); }
+.train-card.auto-active { border-color:var(--green); box-shadow:0 0 12px rgba(39,174,96,0.2); }
+.train-card-title { font-family:'Cinzel',serif; font-size:12px; color:var(--text); letter-spacing:1px; margin-bottom:3px; }
+.train-card-sub { font-size:11px; color:var(--muted); font-style:italic; margin-bottom:4px; }
+.train-card-gain { font-size:11px; color:var(--green2); font-family:'Share Tech Mono',monospace; }
+.auto-btn {
+  position:absolute; bottom:4px; right:4px;
+  background:transparent; border:1px solid var(--border); color:var(--muted);
+  font-family:'Cinzel',serif; font-size:8px; padding:2px 5px; cursor:pointer; letter-spacing:1px; transition:all .15s;
+}
+.auto-btn:hover,.auto-btn.on { border-color:var(--green); color:var(--green); }
+.auto-badge { background:var(--green); color:#000; font-family:'Cinzel',serif; font-size:8px; padding:1px 5px; margin-right:4px; }
+.roll-area { padding:8px 0; }
+.rarity-row { display:flex; gap:6px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
+.rarity-tag { font-family:'Cinzel',serif; font-size:10px; padding:2px 8px; border:1px solid currentColor; border-radius:2px; }
+.roll-result-box {
+  background:rgba(0,0,0,0.4); border:1px solid var(--border); min-height:50px;
+  display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:12px;
+  font-size:15px; text-align:center;
+}
+.roll-btns { display:flex; gap:8px; }
+.roll-btn {
+  flex:1; padding:10px; background:rgba(201,162,39,0.08); border:1px solid var(--accent);
+  color:var(--accent); font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; cursor:pointer; transition:all .2s;
+}
+.roll-btn:hover { background:rgba(201,162,39,0.15); box-shadow:0 0 15px rgba(201,162,39,0.15); }
+
+/* ── COMBAT TAB ── */
+#pane-combat { gap:14px; overflow:hidden; }
+.combat-left { flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+.combat-right { width:260px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+.enemy-display {
+  background:rgba(0,0,0,0.4); border:1px solid var(--border); padding:20px; text-align:center;
+  margin-bottom:10px; position:relative; min-height:90px;
+}
+.enemy-name { font-family:'Cinzel',serif; font-size:22px; font-weight:700; margin-bottom:4px; }
+.enemy-grade { color:var(--muted); font-size:12px; font-style:italic; margin-bottom:10px; }
+.enemy-hp-bar { background:rgba(0,0,0,0.6); border:1px solid var(--border); height:12px; position:relative; overflow:hidden; }
+.enemy-hp-fill { height:100%; background:linear-gradient(90deg,#7b241c,#c0392b); transition:width .3s ease; }
+.enemy-hp-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:9px; color:var(--text); letter-spacing:1px; }
+.skill-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
+.skill-btn {
+  background:rgba(0,0,0,0.35); border:1px solid var(--border); padding:8px 4px; cursor:pointer;
+  transition:all .15s; position:relative; overflow:hidden;
+}
+.skill-btn:hover:not(:disabled) { border-color:var(--purple2); }
+.skill-btn:disabled { opacity:.4; cursor:not-allowed; }
+.skill-btn-name { font-family:'Cinzel',serif; font-size:10px; letter-spacing:.5px; margin-bottom:3px; }
+.skill-btn-info { font-size:10px; color:var(--muted); }
+.skill-cd { position:absolute; bottom:0; left:0; height:2px; background:var(--purple); transition:width .1s linear; }
+.attack-btn {
+  width:100%; padding:11px; background:rgba(192,57,43,0.12); border:1px solid var(--red);
+  color:#e07060; font-family:'Cinzel',serif; font-size:13px; letter-spacing:3px; cursor:pointer; transition:all .2s; margin-bottom:10px;
+}
+.attack-btn:hover:not(:disabled) { background:rgba(192,57,43,0.2); box-shadow:0 0 20px rgba(192,57,43,0.2); }
+.attack-btn:disabled { opacity:.4; cursor:not-allowed; }
+.log-box { background:rgba(0,0,0,0.35); border:1px solid var(--border); padding:8px; height:140px; overflow-y:auto; font-size:12px; font-style:italic; }
+.log-line { padding:1px 0; }
+.combo-badge {
+  display:inline-flex; align-items:center; gap:6px; background:rgba(201,162,39,0.1);
+  border:1px solid var(--accent); padding:4px 12px; margin-bottom:8px; font-family:'Cinzel',serif; font-size:12px;
+}
+.combo-x { font-size:20px; color:var(--accent); font-weight:900; }
+.enemy-list-item {
+  display:flex; justify-content:space-between; align-items:center; padding:8px 10px;
+  background:rgba(0,0,0,0.3); border:1px solid var(--border); cursor:pointer; transition:all .15s; margin-bottom:5px;
+}
+.enemy-list-item:hover { border-color:var(--accent); }
+.enemy-list-item.selected { border-color:var(--accent); background:rgba(201,162,39,0.05); }
+
+/* ── WORLD TAB ── */
+#pane-world { gap:14px; overflow:hidden; }
+.world-left { width:280px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+.world-right { flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+.player-card { background:rgba(0,0,0,0.3); border:1px solid var(--border); padding:8px 10px; margin-bottom:6px; }
+.player-card.me { border-color:var(--accent); }
+.player-name { font-family:'Cinzel',serif; font-size:13px; }
+.player-stats { font-size:11px; color:var(--muted); margin-top:3px; font-style:italic; }
+.pvp-btn {
+  background:rgba(192,57,43,0.1); border:1px solid var(--red); color:#e07060;
+  font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; cursor:pointer; letter-spacing:1px; transition:all .15s;
+}
+.pvp-btn:hover { background:rgba(192,57,43,0.2); }
+.boss-btn {
+  width:100%; padding:10px; margin-bottom:8px;
+  background:rgba(201,162,39,0.08); border:1px solid var(--accent);
+  color:var(--accent); font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; cursor:pointer; transition:all .2s;
+}
+.boss-btn.sukuna { background:rgba(192,57,43,0.08); border-color:var(--red2); color:var(--red2); }
+.boss-btn:hover:not(:disabled) { box-shadow:0 0 20px rgba(201,162,39,0.2); }
+.boss-btn.sukuna:hover:not(:disabled) { box-shadow:0 0 20px rgba(231,76,60,0.2); }
+.boss-btn:disabled { opacity:.5; cursor:not-allowed; }
+.chat-box { flex:1; background:rgba(0,0,0,0.35); border:1px solid var(--border); padding:8px; overflow-y:auto; font-size:12px; font-style:italic; min-height:200px; }
+.chat-row { display:flex; gap:8px; margin-top:8px; }
+.chat-input {
+  flex:1; background:rgba(0,0,0,0.4); border:1px solid var(--border); color:var(--text);
+  padding:8px 10px; font-family:'Crimson Pro',serif; font-size:13px; outline:none; transition:border-color .2s;
+}
+.chat-input:focus { border-color:var(--accent); }
+.chat-send {
+  background:rgba(201,162,39,0.1); border:1px solid var(--accent); color:var(--accent);
+  padding:8px 14px; font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; cursor:pointer; transition:all .2s;
+}
+.chat-send:hover { background:rgba(201,162,39,0.2); }
+.live-fight-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.4);
+  padding:6px 10px; margin-bottom:6px; font-size:12px; font-family:'Cinzel',serif;
+}
+.watch-btn { background:transparent; border:1px solid var(--accent); color:var(--accent); font-family:'Cinzel',serif; font-size:9px; padding:2px 7px; cursor:pointer; letter-spacing:1px; }
+
+/* ── PRESTIGE / MISSIONS ── */
+.prestige-panel { margin-top:12px; }
+.prestige-panel .panel-title { color:var(--purple2); }
+.ascend-btn {
+  width:100%; padding:10px;
+  background:linear-gradient(135deg, rgba(74,10,106,0.3), rgba(155,89,182,0.2));
+  border:1px solid var(--purple); color:var(--purple2);
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px; cursor:pointer; transition:all .2s;
+}
+.ascend-btn:hover:not(:disabled) { box-shadow:0 0 20px rgba(142,68,173,0.3); }
+.ascend-btn:disabled { opacity:.4; }
+.mission-item { background:rgba(0,0,0,0.25); border:1px solid var(--border); padding:8px 10px; margin-bottom:6px; }
+.mission-title { font-family:'Cinzel',serif; font-size:11px; color:var(--gold); margin-bottom:3px; }
+.mission-desc { font-size:11px; color:var(--muted); font-style:italic; margin-bottom:5px; }
+.mission-bar { background:rgba(0,0,0,0.5); border:1px solid var(--border); height:5px; margin-bottom:5px; }
+.mission-bar-fill { height:100%; background:var(--blue); transition:width .4s; }
+.claim-btn {
+  width:100%; padding:5px; background:rgba(39,174,96,0.1); border:1px solid var(--green);
+  color:var(--green2); font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; cursor:pointer; transition:all .2s;
+}
+.claim-btn:hover { background:rgba(39,174,96,0.2); }
+.ach-item { display:flex; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid rgba(42,32,48,0.5); }
+.ach-icon { font-size:20px; flex-shrink:0; }
+.ach-title { font-family:'Cinzel',serif; font-size:11px; color:var(--muted); }
+.ach-title.done { color:var(--gold); }
+.ach-desc { font-size:11px; color:var(--muted); font-style:italic; }
+
+/* ── OVERLAYS ── */
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100;
+  display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);
+}
+.overlay-box {
+  background:var(--surface); border:1px solid var(--border2); padding:28px 32px;
+  width:500px; max-width:95vw; max-height:85vh; overflow-y:auto; position:relative;
+}
+.overlay-title { font-family:'Cinzel',serif; font-size:16px; color:var(--accent); letter-spacing:3px; margin-bottom:16px; }
+.overlay-close {
+  position:absolute; top:14px; right:14px; background:transparent; border:1px solid var(--border);
+  color:var(--muted); width:24px; height:24px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.overlay-close:hover { border-color:var(--red); color:var(--red); }
+
+/* CUTSCENE */
+.cutscene {
+  position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.95); flex-direction:column; gap:24px;
+  animation:fadeIn .3s ease;
+}
+.cutscene.fading { animation:fadeOut .6s ease forwards; }
+.cutscene-img {
+  width:340px; height:340px; object-fit:cover; border:2px solid var(--accent);
+  box-shadow:0 0 60px rgba(201,162,39,0.3);
+  animation:scaleIn .4s ease;
+}
+.cutscene-name { font-family:'Cinzel',serif; font-size:32px; color:var(--accent); letter-spacing:8px; font-weight:900; text-align:center; }
+.cutscene-sub { font-family:'Crimson Pro',serif; font-style:italic; color:var(--text); font-size:16px; text-align:center; opacity:.8; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeOut { from{opacity:1} to{opacity:0} }
+@keyframes scaleIn { from{transform:scale(1.05);opacity:0} to{transform:scale(1);opacity:1} }
+
+/* FIGHT MODAL */
+.fight-modal { width:600px; }
+.fight-vs { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:10px; }
+.fight-side { flex:1; text-align:center; }
+.fight-name { font-family:'Cinzel',serif; font-size:16px; margin-bottom:8px; }
+.fight-hp-bar { background:rgba(0,0,0,0.5); border:1px solid var(--border); height:14px; position:relative; overflow:hidden; }
+.fight-hp-fill { height:100%; background:linear-gradient(90deg,#7b241c,#c0392b); transition:width .4s; }
+.fight-hp-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:9px; color:var(--text); }
+.vs-text { font-family:'Cinzel',serif; font-size:24px; color:var(--accent); font-weight:900; flex-shrink:0; }
+.fight-log { background:rgba(0,0,0,0.4); border:1px solid var(--border); padding:10px; height:140px; overflow-y:auto; font-size:12px; font-style:italic; margin-bottom:12px; }
+.fight-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.fight-action-btn {
+  flex:1; padding:8px; background:rgba(192,57,43,0.1); border:1px solid var(--red);
+  color:#e07060; font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; cursor:pointer; transition:all .15s;
+}
+.fight-action-btn:hover { background:rgba(192,57,43,0.2); }
+.fight-action-btn.skill { background:rgba(142,68,173,0.1); border-color:var(--purple); color:var(--purple2); }
+.fight-action-btn.skill:hover { background:rgba(142,68,173,0.2); }
+
+/* SHOP */
+.shop-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.shop-item { background:rgba(0,0,0,0.3); border:1px solid var(--border); padding:12px; text-align:center; cursor:pointer; transition:all .15s; }
+.shop-item:hover { border-color:var(--accent); }
+.shop-item-name { font-family:'Cinzel',serif; font-size:12px; color:var(--text); margin-bottom:4px; }
+.shop-item-desc { font-size:11px; color:var(--muted); font-style:italic; margin-bottom:8px; }
+.shop-item-price { font-family:'Cinzel',serif; font-size:12px; color:var(--accent); }
+.shop-buy { width:100%; padding:6px; margin-top:6px; background:rgba(201,162,39,0.08); border:1px solid var(--accent); color:var(--accent); font-family:'Cinzel',serif; font-size:10px; cursor:pointer; }
+
+/* LEADERBOARD */
+.lb-row { display:flex; gap:10px; align-items:center; padding:7px 10px; border-bottom:1px solid rgba(42,32,48,0.5); font-size:13px; }
+.lb-rank { font-family:'Cinzel',serif; font-size:11px; color:var(--muted); width:24px; text-align:right; }
+.lb-name { font-family:'Cinzel',serif; flex:1; }
+.lb-kills { color:var(--red2); font-size:12px; font-family:'Share Tech Mono',monospace; }
+
+/* TOASTS */
+#toast-stack { position:fixed; top:60px; right:16px; z-index:300; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast {
+  background:var(--surface2); border:1px solid var(--accent); padding:10px 16px;
+  display:flex; gap:10px; align-items:center; min-width:220px;
+  animation:slideIn .4s ease, fadeOut .4s ease 3.6s forwards;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+.toast-icon { font-size:20px; }
+.toast-label { font-family:'Cinzel',serif; font-size:9px; color:var(--muted); letter-spacing:2px; }
+.toast-title { font-family:'Cinzel',serif; font-size:12px; color:var(--accent); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* RAINBOW */
+.rainbow { background:linear-gradient(90deg,#ff0,#f0f,#0ff,#ff0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:rainbowShift 2s linear infinite; background-size:200% auto; }
+@keyframes rainbowShift { to{background-position:200% center} }
+
+/* SAVE PANEL */
+.save-code-box { background:rgba(0,0,0,0.4); border:1px solid var(--border); padding:12px; font-family:'Share Tech Mono',monospace; font-size:12px; word-break:break-all; color:var(--accent); margin-bottom:10px; }
+.save-input { width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--border); color:var(--text); padding:8px 10px; font-family:'Share Tech Mono',monospace; font-size:11px; outline:none; margin-bottom:8px; }
+.save-action-btn { width:100%; padding:8px; background:rgba(201,162,39,0.08); border:1px solid var(--accent); color:var(--accent); font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; cursor:pointer; margin-bottom:6px; transition:all .2s; }
+.save-action-btn:hover { background:rgba(201,162,39,0.15); }
+
+/* TECHNIQUE FOOTER */
+.tech-footer { background:var(--surface2); border:1px solid var(--border); padding:8px 14px; display:flex; align-items:center; gap:12px; margin-top:10px; }
+.tech-label { font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--muted); white-space:nowrap; }
+.tech-value { font-size:13px; }
+.tech-skills { font-size:11px; color:var(--muted); font-style:italic; }
+
+.idle-note { text-align:center; font-size:11px; color:var(--muted); font-style:italic; margin-top:6px; }
+
+/* Sub-tabs */
+.sub-tabs { display:flex; gap:6px; margin-bottom:12px; }
+.sub-tab { background:transparent; border:1px solid var(--border); color:var(--muted); padding:5px 12px; font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; cursor:pointer; transition:all .2s; }
+.sub-tab.active { border-color:var(--accent); color:var(--accent); }
+
+.text-center { text-align:center; }
+.text-muted { color:var(--muted); }
+.text-gold { color:var(--accent); }
+.text-green { color:var(--green2); }
+.text-red { color:var(--red2); }
+.text-blue { color:var(--blue2); }
+.text-purple { color:var(--purple2); }
+.mt-8 { margin-top:8px; }
+.cinzel { font-family:'Cinzel',serif; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-logo">✦ JUJUTSU KAISEN</div>
+    <div class="login-sub">INCREMENTAL · CURSED ENERGY RPG</div>
+    <div class="login-field">
+      <label>YOUR NAME</label>
+      <input id="inp-name" type="text" placeholder="Enter sorcerer name..." maxlength="20"/>
+    </div>
+    <div class="login-field">
+      <label>ROOM CODE</label>
+      <input id="inp-room" type="text" placeholder="Enter or create a room..." maxlength="8" style="text-transform:uppercase"/>
+    </div>
+    <button class="login-btn" onclick="joinGame()">⚡ ENTER THE JUJUTSU WORLD</button>
+    <div class="login-divider">— or join a popular room —</div>
+    <div class="login-rooms">
+      <span class="room-tag" onclick="setRoom('GLOBAL')">GLOBAL</span>
+      <span class="room-tag" onclick="setRoom('PVP')">PVP</span>
+      <span class="room-tag" onclick="setRoom('GRIND')">GRIND</span>
+    </div>
+    <div id="login-err" style="color:var(--red2);text-align:center;font-size:12px;margin-top:10px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<div id="game-screen">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="topbar-logo">✦ JUJUTSU KAISEN INCREMENTAL</div>
+    <div class="topbar-info">
+      <span>ROOM: <span class="val" id="tb-room">—</span></span>
+      <span>RANK: <span class="val text-gold" id="tb-rank">—</span></span>
+      <span>SPINS: <span class="gold" id="tb-spins">0</span></span>
+      <span>COINS: <span class="gold" id="tb-coins">0</span></span>
+      <button class="topbar-btn" onclick="openShop()">Shop</button>
+      <button class="topbar-btn" onclick="openLeaderboard()">🏆 Top</button>
+      <button class="topbar-btn" onclick="openSave()">💾 Save</button>
+      <span><span class="save-dot" id="save-dot" style="background:var(--green)"></span><span id="save-status" style="font-size:10px;color:var(--green)">Saved</span></span>
+    </div>
+  </div>
+  <!-- TAB NAV -->
+  <div id="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('sorcerer')">⚡ YOUR SORCERER</button>
+    <button class="tab-btn" onclick="switchTab('combat')">⚔ COMBAT ARENA</button>
+    <button class="tab-btn" onclick="switchTab('world')">🌐 WORLD</button>
+  </div>
+  <!-- CONTENT -->
+  <div id="tab-content">
+
+    <!-- SORCERER TAB -->
+    <div id="pane-sorcerer" class="tab-pane active">
+      <!-- Stats -->
+      <div class="stat-strip">
+        <div class="stat-card"><div class="stat-card-label">STR</div><div class="stat-card-value" id="st-str">5</div></div>
+        <div class="stat-card"><div class="stat-card-label">AGI</div><div class="stat-card-value" id="st-agi">5</div></div>
+        <div class="stat-card"><div class="stat-card-label">END</div><div class="stat-card-value" id="st-end">5</div></div>
+        <div class="stat-card"><div class="stat-card-label">LEVEL</div><div class="stat-card-value text-blue" id="st-level">1</div></div>
+        <div class="stat-card"><div class="stat-card-label">CLAN</div><div class="stat-card-value text-gold" id="st-clan" style="font-size:13px">None</div></div>
+        <div class="bars-wrap">
+          <div class="bar-row"><div class="bar-fill ce" id="bar-ce" style="width:100%"></div><div class="bar-label" id="bar-ce-txt">CE: 100/100</div></div>
+          <div class="bar-row"><div class="bar-fill hp" id="bar-hp" style="width:100%"></div><div class="bar-label" id="bar-hp-txt">HP: 100/100</div></div>
+          <div class="bar-row"><div class="bar-fill xp" id="bar-xp" style="width:0%"></div><div class="bar-label" id="bar-xp-txt">XP: 0/100</div></div>
+        </div>
+      </div>
+
+      <!-- Multiplier badges -->
+      <div id="mult-badges" style="display:none;gap:8px;margin-bottom:10px;flex-wrap:wrap;display:flex"></div>
+
+      <!-- Training panel -->
+      <div class="panel">
+        <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+          Training <span id="auto-header-badge" style="display:none" class="auto-badge">AUTO</span>
+          <div class="sub-tabs" style="margin-left:auto;margin-bottom:0">
+            <button class="sub-tab active" onclick="setTrainTab('train')">Train</button>
+            <button class="sub-tab" onclick="setTrainTab('rolls')">Rolls</button>
+          </div>
+        </div>
+        <div id="train-pane">
+          <div class="train-grid">
+            <div class="train-card" id="tc-ce" onclick="doTrain('ce')">
+              <div class="train-card-title">CE Train</div>
+              <div class="train-card-sub">Refine cursed output</div>
+              <div class="train-card-gain">+CE</div>
+              <button class="auto-btn" id="auto-ce" onclick="toggleAuto(event,'ce')">AUTO</button>
+            </div>
+            <div class="train-card" id="tc-str" onclick="doTrain('str')">
+              <div class="train-card-title">Body Training</div>
+              <div class="train-card-sub">Physical combat</div>
+              <div class="train-card-gain">+STR/END</div>
+              <button class="auto-btn" id="auto-str" onclick="toggleAuto(event,'str')">AUTO</button>
+            </div>
+            <div class="train-card" id="tc-agi" onclick="doTrain('agi')">
+              <div class="train-card-title">Agility Drills</div>
+              <div class="train-card-sub">Speed training</div>
+              <div class="train-card-gain">+AGI</div>
+              <button class="auto-btn" id="auto-agi" onclick="toggleAuto(event,'agi')">AUTO</button>
+            </div>
+            <div class="train-card" id="tc-med" onclick="doTrain('med')">
+              <div class="train-card-title">Meditate</div>
+              <div class="train-card-sub">Expand CE capacity</div>
+              <div class="train-card-gain">+Max CE</div>
+              <button class="auto-btn" id="auto-med" onclick="toggleAuto(event,'med')">AUTO</button>
+            </div>
+          </div>
+          <div class="idle-note">💤 Idle: +1 CE every 2s</div>
+        </div>
+        <div id="rolls-pane" style="display:none">
+          <div class="rarity-row">
+            <span class="rarity-tag" style="color:var(--r-d)">D</span>
+            <span class="rarity-tag" style="color:var(--r-c)">C</span>
+            <span class="rarity-tag" style="color:var(--r-b)">B</span>
+            <span class="rarity-tag" style="color:var(--r-a)">A</span>
+            <span class="rarity-tag" style="color:var(--r-s)">S</span>
+            <span class="rarity-tag" style="color:var(--r-ss)">SS</span>
+            <span class="rarity-tag rainbow" style="-webkit-text-fill-color:unset">SS+</span>
+          </div>
+          <div class="roll-result-box" id="roll-result">Roll to unlock your powers...</div>
+          <div class="roll-btns">
+            <button class="roll-btn" onclick="doRoll('clan')">🎲 Roll Clan</button>
+            <button class="roll-btn" onclick="doRoll('tech')">✦ Roll Technique</button>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;font-style:italic">Costs 1 spin per roll</div>
+        </div>
+      </div>
+
+      <!-- Tech footer -->
+      <div class="tech-footer" id="tech-footer" style="display:none">
+        <span class="tech-label">TECHNIQUE</span>
+        <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+        <span class="tech-value" id="tech-display">—</span>
+        <span class="tech-skills" id="skills-display"></span>
+      </div>
+
+      <!-- Prestige -->
+      <div class="panel prestige-panel">
+        <div class="panel-title" style="color:var(--purple2)">🌀 Prestige Ascension</div>
+        <div id="ascend-info" style="text-align:center;font-size:12px;color:var(--gold);margin-bottom:8px;display:none"></div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;font-style:italic">
+          Ascend at Level 25 to reset and gain permanent multipliers.<br>Keep your clan, technique and coins.
+        </div>
+        <div id="ascend-msg" style="text-align:center;font-size:13px;margin-bottom:8px;display:none"></div>
+        <button class="ascend-btn" id="ascend-btn" onclick="doAscend()">🌀 Ascend (Lv.1/25)</button>
+      </div>
+
+      <!-- Daily Missions -->
+      <div class="panel" style="margin-top:12px">
+        <div class="panel-title" style="color:var(--blue2)">📋 Daily Missions</div>
+        <div id="missions-list"></div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="panel" style="margin-top:12px">
+        <div class="panel-title" style="color:var(--purple2)">🏆 Achievements</div>
+        <div id="ach-list"></div>
+      </div>
+    </div>
+
+    <!-- COMBAT TAB -->
+    <div id="pane-combat" class="tab-pane">
+      <div class="combat-left">
+        <div class="panel" style="flex:0 0 auto">
+          <div class="panel-title">Combat Arena</div>
+          <div class="enemy-display" id="enemy-display">
+            <div style="color:var(--muted);font-style:italic">No enemy selected</div>
+          </div>
+          <div class="panel-title" style="border:none;font-size:11px;margin-bottom:8px">ACTIVE SKILLS</div>
+          <div class="skill-grid" id="skill-grid">
+            <div style="grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;font-size:12px;padding:8px">Roll a technique to unlock skills</div>
+          </div>
+          <div id="combo-display" style="display:none" class="combo-badge">
+            <span class="combo-x" id="combo-x">×1</span>
+            <span class="cinzel" style="font-size:12px;letter-spacing:2px">COMBO!</span>
+            <span id="combo-bonus" style="font-size:11px;color:var(--accent)"></span>
+          </div>
+          <button class="attack-btn" id="attack-btn" onclick="doAttack()">⚔ BASIC ATTACK</button>
+          <div class="log-box" id="combat-log"></div>
+        </div>
+      </div>
+      <div class="combat-right">
+        <div class="panel">
+          <div class="panel-title">Choose Enemy</div>
+          <div id="enemy-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORLD TAB -->
+    <div id="pane-world" class="tab-pane">
+      <div class="world-left">
+        <div class="panel">
+          <div class="panel-title">Online Players</div>
+          <button class="boss-btn" id="toji-btn" onclick="startBossFight('toji')">⚔ Boss Fight: Toji Zenin</button>
+          <button class="boss-btn sukuna" id="sukuna-btn" onclick="startBossFight('sukuna')">👁 Boss: KING OF CURSES</button>
+          <div id="live-fights"></div>
+          <div id="player-list"></div>
+        </div>
+      </div>
+      <div class="world-right">
+        <div class="panel" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="panel-title">World Chat</div>
+          <div class="chat-box" id="chat-box"></div>
+          <div class="chat-row">
+            <input class="chat-input" id="chat-input" placeholder="Say something..." onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="chat-send cinzel" onclick="sendChat()">SEND</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST STACK -->
+<div id="toast-stack"></div>
+
+<!-- ── OVERLAYS ── -->
+<div id="cutscene" class="cutscene" style="display:none" onclick="skipCutscene()">
+  <img id="cutscene-img" class="cutscene-img" src="" alt=""/>
+  <div class="cutscene-name" id="cutscene-name"></div>
+  <div class="cutscene-sub" id="cutscene-sub"></div>
+</div>
+
+<div id="fight-overlay" class="overlay" style="display:none">
+  <div class="overlay-box fight-modal">
+    <div class="overlay-title" id="fight-title">— BATTLE —</div>
+    <button class="overlay-close" onclick="closeFight()">✕</button>
+    <div class="fight-vs">
+      <div class="fight-side">
+        <div class="fight-name" id="fight-p1-name">—</div>
+        <div class="fight-hp-bar"><div class="fight-hp-fill" id="fight-p1-hp" style="width:100%"></div><div class="fight-hp-label" id="fight-p1-hp-txt">HP: —</div></div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="fight-side">
+        <div class="fight-name" id="fight-p2-name">—</div>
+        <div class="fight-hp-bar"><div class="fight-hp-fill" id="fight-p2-hp" style="width:100%"></div><div class="fight-hp-label" id="fight-p2-hp-txt">HP: —</div></div>
+      </div>
+    </div>
+    <div class="fight-log" id="fight-log"></div>
+    <div class="fight-actions" id="fight-actions"></div>
+    <div id="fight-result" style="text-align:center;padding:10px;font-family:'Cinzel',serif;font-size:14px;display:none"></div>
+  </div>
+</div>
+
+<div id="shop-overlay" class="overlay" style="display:none">
+  <div class="overlay-box">
+    <div class="overlay-title">⚡ SHOP</div>
+    <button class="overlay-close" onclick="closeShop()">✕</button>
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+</div>
+
+<div id="lb-overlay" class="overlay" style="display:none">
+  <div class="overlay-box">
+    <div class="overlay-title">🏆 LEADERBOARD</div>
+    <button class="overlay-close" onclick="closeLb()">✕</button>
+    <div id="lb-list"></div>
+  </div>
+</div>
+
+<div id="save-overlay" class="overlay" style="display:none">
+  <div class="overlay-box">
+    <div class="overlay-title">💾 SAVE & LOAD</div>
+    <button class="overlay-close" onclick="closeSave()">✕</button>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic">Your game auto-saves to the server. Use the code below to load on another device.</p>
+    <div class="panel-title">EXPORT SAVE CODE</div>
+    <div class="save-code-box" id="save-export-box">—</div>
+    <button class="save-action-btn" onclick="exportSave()">📋 Copy Save Code</button>
+    <div class="panel-title" style="margin-top:12px">IMPORT SAVE CODE</div>
+    <input class="save-input" id="save-import-input" placeholder="Paste save code here..."/>
+    <button class="save-action-btn" onclick="importSave()">📥 Load Save</button>
+    <div id="save-msg" style="text-align:center;font-size:12px;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+const RANKS = ['Grade 4','Grade 3','Grade 2','Grade 1','Semi-Special','Special Grade','Legendary'];
+const RANK_THRESHOLDS = [0,10,25,50,100,200,500];
+
+const CLANS = [
+  {name:'Zenin',rarity:'A',color:'--r-a',bonus:'STR +10%'},
+  {name:'Gojo',rarity:'SS',color:'--r-ss',bonus:'CE +25%'},
+  {name:'Kamo',rarity:'B',color:'--r-b',bonus:'END +8%'},
+  {name:'Inumaki',rarity:'S',color:'--r-s',bonus:'Skills +15% DMG'},
+  {name:'Fushiguro',rarity:'A',color:'--r-a',bonus:'AGI +10%'},
+  {name:'Itadori',rarity:'SS+',color:'--r-ss-plus',bonus:'All stats +5%, Sukuna power'},
+  {name:'Haibara',rarity:'C',color:'--r-c',bonus:'HP +10%'},
+  {name:'Nanami',rarity:'B',color:'--r-b',bonus:'Ratio technique bonus'},
+  {name:'Yuta',rarity:'SS',color:'--r-ss',bonus:'CE regen +50%'},
+  {name:'Commoner',rarity:'D',color:'--r-d',bonus:'None'},
+];
+const CLAN_WEIGHTS = [18,2,22,5,18,1,25,20,3,50];
+
+const TECHNIQUES = [
+  {name:'Infinity',rarity:'SS+',skills:[{name:'Hollow Purple',dmg:120,cost:80,cd:8},{name:'Blue',dmg:55,cost:30,cd:3},{name:'Red',dmg:70,cost:40,cd:4},{name:'Infinity Veil',dmg:0,cost:20,cd:5,heal:40}]},
+  {name:'Divergent Fist',rarity:'B',skills:[{name:'Divergent Fist',dmg:40,cost:20,cd:2},{name:'Impact Wave',dmg:55,cost:30,cd:3},{name:'Rapid Jabs',dmg:25,cost:10,cd:1},{name:'Black Flash',dmg:90,cost:50,cd:6}]},
+  {name:'Ten Shadows',rarity:'A',skills:[{name:'Divine Dogs',dmg:50,cost:25,cd:2},{name:'Nue',dmg:60,cost:35,cd:3},{name:'Great Serpent',dmg:80,cost:50,cd:5},{name:'Eight-Handled Sword',dmg:100,cost:65,cd:7}]},
+  {name:'Boogie Woogie',rarity:'C',skills:[{name:'Clap Exchange',dmg:35,cost:15,cd:2},{name:'Phantom Swap',dmg:45,cost:20,cd:2},{name:'Combo Clap',dmg:55,cost:30,cd:3},{name:'Double Boogie',dmg:70,cost:45,cd:5}]},
+  {name:'Ratio Technique',rarity:'B',skills:[{name:'Overtime',dmg:45,cost:20,cd:2},{name:'Nanami Chop',dmg:60,cost:30,cd:3},{name:'Blade Works',dmg:75,cost:40,cd:4},{name:'Breakdown',dmg:95,cost:55,cd:6}]},
+  {name:'Cursed Speech',rarity:'S',skills:[{name:'Gnaw',dmg:40,cost:20,cd:2},{name:'Blast',dmg:65,cost:35,cd:3},{name:'Squeeze',dmg:80,cost:45,cd:4},{name:'Explode',dmg:110,cost:70,cd:7}]},
+  {name:'Shadow Monarch',rarity:'SS+',skills:[{name:'Arise',dmg:80,cost:50,cd:5},{name:'Shadow Exchange',dmg:60,cost:35,cd:3},{name:'Sovereign\'s Domain',dmg:140,cost:90,cd:10},{name:'Army of Death',dmg:200,cost:120,cd:15}]},
+  {name:'Straw Doll',rarity:'C',skills:[{name:'Hairpin',dmg:30,cost:15,cd:2},{name:'Resonance',dmg:50,cost:25,cd:3},{name:'Nail Cannon',dmg:65,cost:35,cd:4},{name:'Full Body Pin',dmg:80,cost:50,cd:5}]},
+  {name:'Construction',rarity:'D',skills:[{name:'Stone Wall',dmg:20,cost:10,cd:1},{name:'Rock Spike',dmg:35,cost:20,cd:2},{name:'Boulder Crush',dmg:50,cost:30,cd:3},{name:'Fortress',dmg:70,cost:45,cd:5}]},
+  {name:'Flame Arrow',rarity:'A',skills:[{name:'Fire Shot',dmg:55,cost:25,cd:2},{name:'Flame Wave',dmg:75,cost:40,cd:4},{name:'Inferno',dmg:95,cost:55,cd:5},{name:'Solar Flare',dmg:130,cost:80,cd:8}]},
+  {name:'Piercing Blood',rarity:'S',skills:[{name:'Blood Shot',dmg:50,cost:25,cd:2},{name:'Blood Mania',dmg:70,cost:40,cd:3},{name:'Crimson Flow',dmg:90,cost:55,cd:5},{name:'Blood Flood',dmg:120,cost:75,cd:7}]},
+  {name:'Cursed Tool',rarity:'D',skills:[{name:'Slash',dmg:25,cost:10,cd:1},{name:'Heavy Strike',dmg:40,cost:20,cd:2},{name:'Dual Slash',dmg:55,cost:30,cd:3},{name:'Fatal Cut',dmg:75,cost:45,cd:5}]},
+];
+const TECH_WEIGHTS = [1,30,10,40,25,8,1,35,60,12,7,55];
+
+const ENEMIES = [
+  {name:'Cursed Spirit',grade:'Grade 4',maxHp:50,dmg:6,xp:15,coins:10,spins:0,color:'#8a8a8a'},
+  {name:'Transfigured Human',grade:'Grade 3',maxHp:120,dmg:12,xp:35,coins:25,spins:1,color:'var(--green2)'},
+  {name:'Special Grade Cursed Womb',grade:'Grade 2',maxHp:300,dmg:25,xp:80,coins:60,spins:2,color:'var(--blue2)'},
+  {name:'Vengeful Spirit',grade:'Grade 1',maxHp:600,dmg:45,xp:180,coins:120,spins:3,color:'var(--purple2)'},
+  {name:'Mahito',grade:'Special Grade',maxHp:1200,dmg:80,xp:400,coins:300,spins:6,color:'#e74c3c'},
+  {name:'Jogo',grade:'Special Grade',maxHp:2000,dmg:120,xp:800,coins:600,spins:10,color:'#e67e22'},
+  {name:'Dagon',grade:'Special Grade',maxHp:3500,dmg:180,xp:1500,coins:1000,spins:15,color:'#1abc9c'},
+  {name:'Sukuna Finger',grade:'King Fragment',maxHp:6000,dmg:280,xp:3000,coins:2000,spins:25,color:'#c0392b'},
+];
+
+const SHOP_ITEMS = [
+  {id:'xp_boost',name:'XP Booster',desc:'×2 XP for 5 min',price:300,type:'boost',value:2,stat:'xp',dur:300000},
+  {id:'coin_boost',name:'Coin Booster',desc:'×2 Coins for 5 min',price:300,type:'boost',value:2,stat:'coin',dur:300000},
+  {id:'hp_potion',name:'HP Potion',desc:'Restore all HP',price:150,type:'heal'},
+  {id:'ce_potion',name:'CE Potion',desc:'Restore all CE',price:100,type:'restore_ce'},
+  {id:'extra_spin',name:'Extra Spin',desc:'Get 5 spins',price:500,type:'spins',value:5},
+  {id:'level_up',name:'Instant Level',desc:'Gain 1 level',price:1000,type:'level'},
+  {id:'outfit_red',name:'Crimson Uniform',desc:'Red sorcerer uniform',price:800,type:'outfit',outfitFilter:'hue-rotate(0deg) saturate(2)'},
+  {id:'outfit_blue',name:'Azure Uniform',desc:'Blue sorcerer uniform',price:800,type:'outfit',outfitFilter:'hue-rotate(200deg) saturate(1.5)'},
+];
+
+const DAILY_POOL = [
+  {id:'d_train20',title:'Daily Training',desc:'Train 20 times',type:'trainCount',target:20,rewards:{spins:3,coins:100}},
+  {id:'d_train50',title:'Intense Session',desc:'Train 50 times',type:'trainCount',target:50,rewards:{spins:6,coins:250}},
+  {id:'d_kill5',title:'Daily Hunt',desc:'Defeat 5 enemies',type:'kills',target:5,rewards:{spins:4,coins:150}},
+  {id:'d_kill15',title:'Cursed Hunt',desc:'Defeat 15 enemies',type:'kills',target:15,rewards:{spins:8,coins:300}},
+  {id:'d_level',title:'Level Up',desc:'Gain a level',type:'level',target:1,rewards:{spins:5,coins:200}},
+  {id:'d_roll3',title:'Gacha Session',desc:'Roll 3 times',type:'rolls',target:3,rewards:{spins:2,coins:80}},
+  {id:'d_coins',title:'Coin Grind',desc:'Earn 500 coins',type:'coins',target:500,rewards:{spins:4,coins:0}},
+];
+
+const ACHIEVEMENTS = [
+  {id:'first_kill',title:'First Blood',desc:'Defeat your first enemy',icon:'⚔',check:p=>p.kills>=1},
+  {id:'kills10',title:'Curse Hunter',desc:'Defeat 10 enemies',icon:'💀',check:p=>p.kills>=10},
+  {id:'kills100',title:'Sorcerer',desc:'Defeat 100 enemies',icon:'🗡️',check:p=>p.kills>=100},
+  {id:'level10',title:'Grade 3 Sorcerer',desc:'Reach level 10',icon:'⭐',check:p=>p.level>=10},
+  {id:'level25',title:'Grade 1 Sorcerer',desc:'Reach level 25',icon:'🌟',check:p=>p.level>=25},
+  {id:'got_clan',title:'Bloodline',desc:'Get a clan',icon:'👑',check:p=>!!p.clan},
+  {id:'got_tech',title:'Awakened',desc:'Unlock a technique',icon:'✦',check:p=>!!p.tech},
+  {id:'rare_tech',title:'Talented Sorcerer',desc:'Get an S or SS technique',icon:'💎',check:p=>['S','SS','SS+'].includes(p.techRarity)},
+  {id:'ascend1',title:'Ascended',desc:'Prestige for the first time',icon:'🌀',check:p=>(p.ascensions||0)>=1},
+  {id:'coins1000',title:'Rich Sorcerer',desc:'Earn 1000 coins',icon:'💰',check:p=>p.coins>=1000},
+];
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let player = null;
+let ws = null;
+let otherPlayers = {};
+let combatLog = [];
+let currentEnemy = null;
+let combo = 0;
+let autoTrainAction = null;
+let autoInterval = null;
+let skillCooldowns = {};
+let activeFightId = null;
+let liveFights = {};
+let dailyData = null;
+let rollCount = 0;
+let prevKills = 0, prevCoins = 0, prevLevel = 0, prevTrains = 0;
+let saveTimeout = null;
+let idleInterval = null;
+let boostTimers = {};
+
+// ══════════════════════════════════════════════════════
+// UTILITY
+// ══════════════════════════════════════════════════════
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function weightedRand(items,weights){
+  const total=weights.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(let i=0;i<items.length;i++){r-=weights[i];if(r<=0)return items[i];}
+  return items[items.length-1];
+}
+function rarityColor(r){
+  const map={'D':'var(--r-d)','C':'var(--r-c)','B':'var(--r-b)','A':'var(--r-a)','S':'var(--r-s)','SS':'var(--r-ss)','SS+':'rainbow'};
+  return map[r]||'var(--text)';
+}
+function raritySpan(r,text){
+  if(r==='SS+') return `<span class="rainbow">${text}</span>`;
+  return `<span style="color:${rarityColor(r)}">${text}</span>`;
+}
+function logLine(text,color='var(--text)'){
+  combatLog.push({text,color});
+  if(combatLog.length>80)combatLog.shift();
+  renderCombatLog();
+}
+function renderCombatLog(){
+  const el=document.getElementById('combat-log');
+  el.innerHTML=combatLog.map(l=>{
+    if(l.color==='rainbow')return`<div class="log-line"><span class="rainbow">${l.text}</span></div>`;
+    return`<div class="log-line" style="color:${l.color}">${l.text}</div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function toast(icon,title){
+  const s=document.getElementById('toast-stack');
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<span class="toast-icon">${icon}</span><div><div class="toast-label">Achievement Unlocked!</div><div class="toast-title">${title}</div></div>`;
+  s.appendChild(el);
+  setTimeout(()=>el.remove(),4200);
+}
+function chatLine(text,color='var(--text)'){
+  const el=document.getElementById('chat-box');
+  const d=document.createElement('div');
+  d.className='log-line';
+  if(color==='rainbow')d.innerHTML=`<span class="rainbow">${text}</span>`;
+  else{d.style.color=color;d.textContent=text;}
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+function setRoom(code){document.getElementById('inp-room').value=code;}
+
+async function joinGame(){
+  const name=document.getElementById('inp-name').value.trim();
+  const roomCode=document.getElementById('inp-room').value.trim().toUpperCase();
+  if(!name){showLoginErr('Enter a name!');return;}
+  if(!roomCode){showLoginErr('Enter a room code!');return;}
+  try{
+    const res=await fetch('/api/rooms/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,roomCode})});
+    const data=await res.json();
+    if(data.error){showLoginErr(data.error);return;}
+    player={...data.player};
+    // Try to load from localStorage
+    const saved=localStorage.getItem('jjk_save_'+name);
+    if(saved){try{const s=JSON.parse(saved);player={...s,playerId:player.playerId,roomCode,name};}catch{}}
+    initGame();
+  }catch(e){showLoginErr('Server error. Is the game running?');}
+}
+function showLoginErr(msg){const e=document.getElementById('login-err');e.textContent=msg;e.style.display='block';}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+function initGame(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  loadDailyMissions();
+  renderAll();
+  connectWS();
+  startIdleRegen();
+  setInterval(()=>savePlayer(),30000);
+  savePlayer();
+  renderAchievements();
+  renderMissions();
+  renderEnemyList();
+  renderShopItems();
+  prevKills=player.kills; prevCoins=player.coins; prevLevel=player.level; prevTrains=player.trainCount||0;
+}
+
+function connectWS(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(`${proto}://${location.host}`);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode}));
+    setSaveStatus('saved');
+  };
+  ws.onmessage=(e)=>{
+    try{handleWS(JSON.parse(e.data));}catch{}
+  };
+  ws.onclose=()=>{setSaveStatus('offline');setTimeout(connectWS,3000);};
+  ws.onerror=()=>setSaveStatus('offline');
+}
+
+function handleWS(msg){
+  if(msg.type==='init'){
+    otherPlayers={};
+    for(const p of msg.players) otherPlayers[p.playerId]=p;
+    renderPlayers();
+  }
+  if(msg.type==='join'){
+    chatLine(`⚡ ${msg.name} joined the room!`,'var(--blue2)');
+  }
+  if(msg.type==='leave'){
+    delete otherPlayers[msg.playerId];
+    renderPlayers();
+    chatLine(`🚪 ${msg.name} left the room.`,'var(--muted)');
+  }
+  if(msg.type==='player_update'){
+    if(msg.player.playerId!==player.playerId){
+      otherPlayers[msg.player.playerId]=msg.player;
+      renderPlayers();
+    }
+  }
+  if(msg.type==='chat'){
+    chatLine(`<${msg.name}> ${msg.msg}`,'var(--text)');
+  }
+  if(msg.type==='pvp_start'){
+    liveFights[msg.fightId]={p1Name:msg.p1Name,p2Name:msg.p2Name};
+    renderLiveFights();
+    chatLine(`⚔ ${msg.p1Name} vs ${msg.p2Name}!`,'var(--gold)');
+    if(msg.p1Name===player.name||msg.p2Name===player.name){
+      if(!activeFightId) openFight(msg.fightId);
+    }
+  }
+  if(msg.type==='pvp'){
+    const fi=msg.fightId;
+    if(fi&&liveFights[fi]){delete liveFights[fi];renderLiveFights();}
+    chatLine(`⚔ ${msg.summary}`,'var(--red2)');
+    if(activeFightId===fi) pollFight();
+  }
+  if(msg.type==='fight_update'){
+    if(activeFightId===msg.fight?.fightId) renderFight(msg.fight);
+  }
+}
+
+function setSaveStatus(s){
+  const dot=document.getElementById('save-dot');
+  const txt=document.getElementById('save-status');
+  if(s==='saved'){dot.style.background='var(--green)';txt.style.color='var(--green)';txt.textContent='Saved';}
+  else if(s==='saving'){dot.style.background='var(--accent)';txt.style.color='var(--accent)';txt.textContent='Saving...';}
+  else{dot.style.background='var(--red)';txt.style.color='var(--red)';txt.textContent='Offline';}
+}
+
+async function savePlayer(){
+  if(!player)return;
+  setSaveStatus('saving');
+  try{
+    localStorage.setItem('jjk_save_'+player.name,JSON.stringify(player));
+    await fetch(`/api/rooms/${player.roomCode}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({player})});
+    setSaveStatus('saved');
+    if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'player_update',player}));
+  }catch{setSaveStatus('offline');}
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function renderAll(){
+  const p=player;
+  document.getElementById('tb-room').textContent=p.roomCode;
+  document.getElementById('tb-rank').textContent=RANKS[p.rankIdx||0];
+  document.getElementById('tb-spins').textContent=p.spins;
+  document.getElementById('tb-coins').textContent=p.coins;
+  document.getElementById('st-str').textContent=p.str;
+  document.getElementById('st-agi').textContent=p.agi;
+  document.getElementById('st-end').textContent=p.end;
+  document.getElementById('st-level').textContent=p.level;
+  document.getElementById('st-clan').innerHTML=p.clan?raritySpan(p.clanRarity||'D',p.clan):'None';
+  document.getElementById('bar-ce').style.width=`${Math.min(100,(p.ce/p.maxCe)*100)}%`;
+  document.getElementById('bar-ce-txt').textContent=`CE: ${p.ce}/${p.maxCe}`;
+  document.getElementById('bar-hp').style.width=`${Math.min(100,(p.hp/p.maxHp)*100)}%`;
+  document.getElementById('bar-hp-txt').textContent=`HP: ${p.hp}/${p.maxHp}`;
+  document.getElementById('bar-xp').style.width=`${Math.min(100,(p.xp/p.maxXp)*100)}%`;
+  document.getElementById('bar-xp-txt').textContent=`XP: ${p.xp}/${p.maxXp}`;
+  // Multipliers
+  const mb=document.getElementById('mult-badges');
+  mb.innerHTML='';
+  if((p.xpMult||1)>1) mb.innerHTML+=`<span style="font-size:11px;color:var(--blue2);background:rgba(74,158,255,0.1);padding:2px 8px;font-family:'Cinzel',serif">⚡ XP ×${p.xpMult.toFixed(1)}</span>`;
+  if((p.coinMult||1)>1) mb.innerHTML+=`<span style="font-size:11px;color:var(--gold);background:rgba(201,162,39,0.1);padding:2px 8px;font-family:'Cinzel',serif">⚡ Coins ×${p.coinMult.toFixed(1)}</span>`;
+  mb.style.display=(mb.innerHTML?'flex':'none');
+  // Tech footer
+  if(p.tech){
+    document.getElementById('tech-footer').style.display='flex';
+    document.getElementById('tech-display').innerHTML=raritySpan(p.techRarity||'D',`[${p.techRarity}] ${p.tech}`);
+    document.getElementById('skills-display').textContent=p.skills?`— ${p.skills.map(s=>s.name).join(', ')}`:'';
+  } else {
+    document.getElementById('tech-footer').style.display='none';
+  }
+  // Ascend
+  const ainfo=document.getElementById('ascend-info');
+  if((p.ascensions||0)>0){ainfo.style.display='block';ainfo.textContent=`Ascension ${p.ascensions} — XP/Coin ×${(1+(p.ascensions||0)*0.2).toFixed(1)}`;}
+  else ainfo.style.display='none';
+  document.getElementById('ascend-btn').textContent=p.level>=25?'🌀 Ascend Now':`🌀 Ascend (Lv.${p.level}/25)`;
+  document.getElementById('ascend-btn').disabled=p.level<25;
+  renderSkillGrid();
+  renderEnemyDisplay();
+}
+
+function renderSkillGrid(){
+  const p=player;
+  const sg=document.getElementById('skill-grid');
+  if(!p.tech||!p.skills||!p.skills.length){
+    sg.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;font-size:12px;padding:8px">Roll a technique to unlock skills</div>`;
+    return;
+  }
+  sg.innerHTML=p.skills.map((sk,i)=>{
+    const key=`${p.tech}:${i}`;
+    const cd=skillCooldowns[key]||0;
+    const disabled=!currentEnemy||p.hp<=0||p.ce<sk.cost||cd>0;
+    const pct=cd>0?Math.min(100,(cd/(sk.cd*1000))*100):0;
+    return `<button class="skill-btn" ${disabled?'disabled':''} onclick="doSkill(${i})" title="${sk.desc||''}">
+      <div class="skill-btn-name" style="color:${rarityColor(p.techRarity||'D')}">${sk.name}</div>
+      <div class="skill-btn-info">DMG: ${sk.dmg||0} | CE: ${sk.cost}</div>
+      ${pct>0?`<div class="skill-cd" style="width:${pct}%"></div>`:''}
+    </button>`;
+  }).join('');
+}
+
+function renderEnemyDisplay(){
+  const el=document.getElementById('enemy-display');
+  if(!currentEnemy){el.innerHTML=`<div style="color:var(--muted);font-style:italic">No enemy selected</div>`;return;}
+  const e=ENEMIES[currentEnemy.id];
+  const pct=Math.max(0,Math.min(100,(currentEnemy.hp/e.maxHp)*100));
+  el.innerHTML=`
+    <div class="enemy-name" style="color:${e.color}">${e.name}</div>
+    <div class="enemy-grade">${e.grade}</div>
+    <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${pct}%"></div><div class="enemy-hp-label">HP: ${currentEnemy.hp}/${e.maxHp}</div></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic">ATK: ${e.dmg} per turn</div>
+  `;
+}
+
+function renderEnemyList(){
+  const el=document.getElementById('enemy-list');
+  el.innerHTML=ENEMIES.map((e,i)=>`
+    <div class="enemy-list-item ${currentEnemy?.id===i?'selected':''}" onclick="selectEnemy(${i})">
+      <div>
+        <div class="cinzel" style="font-size:12px;color:${e.color}">${e.name}</div>
+        <div class="text-muted" style="font-size:11px;font-style:italic">${e.grade}</div>
+      </div>
+      <div style="text-align:right;font-size:12px">
+        <div class="text-red">HP: ${e.maxHp} | DMG: ${e.dmg}</div>
+        <div class="text-muted">XP: ${e.xp} | Coins: ${e.coins}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPlayers(){
+  const el=document.getElementById('player-list');
+  const me=player;
+  let html=`<div class="player-card me">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="player-name text-gold"><span style="color:var(--green);margin-right:4px">●</span>${me.name} <span style="font-size:10px;color:var(--muted)">YOU</span></span>
+      <span class="text-muted" style="font-size:12px">Lv.${me.level}</span>
+    </div>
+    <div class="player-stats">HP: ${me.hp}/${me.maxHp} | Kills: ${me.kills}</div>
+    ${me.tech?`<div style="font-size:11px;margin-top:2px">${raritySpan(me.techRarity||'D',me.tech)}</div>`:''}
+  </div>`;
+  for(const pid in otherPlayers){
+    const op=otherPlayers[pid];
+    html+=`<div class="player-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="player-name"><span style="color:var(--green);margin-right:4px">●</span>${op.name}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="text-muted" style="font-size:12px">Lv.${op.level}</span>
+          <button class="pvp-btn" onclick="startPvp('${pid}')">⚔ Duel</button>
+        </div>
+      </div>
+      <div class="player-stats">HP: ${op.hp}/${op.maxHp} | Kills: ${op.kills||0}</div>
+      ${op.tech?`<div style="font-size:11px;margin-top:2px">${op.tech}</div>`:''}
+    </div>`;
+  }
+  if(Object.keys(otherPlayers).length===0){
+    html+=`<div class="text-muted" style="font-size:12px;text-align:center;padding:12px;font-style:italic">Share your room code to play with others</div>`;
+  }
+  el.innerHTML=html;
+}
+
+function renderLiveFights(){
+  const el=document.getElementById('live-fights');
+  el.innerHTML=Object.entries(liveFights).map(([fid,f])=>`
+    <div class="live-fight-bar">
+      <span>⚔ ${f.p1Name} vs ${f.p2Name}</span>
+      <button class="watch-btn" onclick="openFight('${fid}')">Watch</button>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// TRAINING
+// ══════════════════════════════════════════════════════
+function doTrain(type){
+  const p=player;
+  const mult=(p.ascensions||0)*0.1+1;
+  if(type==='ce'){p.ce=Math.min(p.maxCe,p.ce+randInt(3,8));}
+  else if(type==='str'){p.str+=0.1;p.end+=0.05;p.str=+p.str.toFixed(2);p.end=+p.end.toFixed(2);p.maxHp=Math.floor(100+p.end*10);}
+  else if(type==='agi'){p.agi+=0.1;p.agi=+p.agi.toFixed(2);}
+  else if(type==='med'){p.maxCe=Math.floor(p.maxCe+0.5);p.ce=Math.min(p.maxCe,p.ce+2);}
+  p.trainCount=(p.trainCount||0)+1;
+  updateDailyProgress('trainCount',1);
+  renderAll();
+  scheduleSave();
+}
+
+function toggleAuto(e,type){
+  e.stopPropagation();
+  if(autoTrainAction===type){stopAuto();return;}
+  stopAuto();
+  autoTrainAction=type;
+  document.getElementById(`auto-${type}`).classList.add('on');
+  document.getElementById(`tc-${type}`).classList.add('auto-active');
+  document.getElementById('auto-header-badge').style.display='inline';
+  doTrain(type);
+  autoInterval=setInterval(()=>doTrain(type),1000);
+}
+function stopAuto(){
+  if(autoInterval){clearInterval(autoInterval);autoInterval=null;}
+  if(autoTrainAction){
+    document.getElementById(`auto-${autoTrainAction}`).classList.remove('on');
+    document.getElementById(`tc-${autoTrainAction}`).classList.remove('auto-active');
+  }
+  autoTrainAction=null;
+  document.getElementById('auto-header-badge').style.display='none';
+}
+
+function startIdleRegen(){
+  if(idleInterval)clearInterval(idleInterval);
+  idleInterval=setInterval(()=>{
+    if(!player)return;
+    player.ce=Math.min(player.maxCe,player.ce+1);
+    renderAll();
+  },2000);
+}
+
+// ══════════════════════════════════════════════════════
+// GACHA
+// ══════════════════════════════════════════════════════
+function doRoll(type){
+  const p=player;
+  if(p.spins<=0){showRollResult('No spins left!','var(--red2)');return;}
+  p.spins--;
+  rollCount++;
+  updateDailyProgress('rolls',1);
+  if(type==='clan'){
+    const clan=weightedRand(CLANS,CLAN_WEIGHTS);
+    p.clan=clan.name; p.clanRarity=clan.rarity;
+    const html=raritySpan(clan.rarity,`[${clan.rarity}] ${clan.name}`)+`<br><span style="font-size:12px;color:var(--muted)">${clan.bonus}</span>`;
+    document.getElementById('roll-result').innerHTML=html;
+    if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'chat',msg:''})); // trigger player_update
+    broadcastRoll(clan.rarity,`Clan: ${clan.name}`);
+  } else {
+    const tech=weightedRand(TECHNIQUES,TECH_WEIGHTS);
+    p.tech=tech.name; p.techRarity=tech.rarity; p.skills=tech.skills;
+    const html=raritySpan(tech.rarity,`[${tech.rarity}] ${tech.name}`);
+    document.getElementById('roll-result').innerHTML=html;
+    broadcastRoll(tech.rarity,`Technique: ${tech.name}`);
+  }
+  renderAll();
+  scheduleSave();
+}
+function showRollResult(html,color){document.getElementById('roll-result').innerHTML=`<span style="color:${color}">${html}</span>`;}
+function broadcastRoll(rarity,what){
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'broadcast_roll',rarity,what,name:player.name}));
+  chatLine(`🎲 ${player.name} rolled ${raritySpan(rarity,`[${rarity}] ${what}`)}!`,rarity==='SS+'?'rainbow':'var(--text)');
+}
+
+// ══════════════════════════════════════════════════════
+// COMBAT
+// ══════════════════════════════════════════════════════
+function selectEnemy(idx){
+  if(player.hp<=0){logLine('You are dead! Use an HP potion.','var(--red2)');return;}
+  const e=ENEMIES[idx];
+  currentEnemy={id:idx,hp:e.maxHp};
+  combo=0;
+  stopAuto();
+  logLine(`▶ Engaging ${e.name}...`,'var(--accent)');
+  renderAll();
+  renderEnemyList();
+}
+
+function doAttack(){
+  if(!currentEnemy||player.hp<=0)return;
+  const p=player;
+  const e=ENEMIES[currentEnemy.id];
+  // Player attacks
+  let dmg=Math.max(1,Math.floor(p.str*2+randInt(1,10)));
+  if(combo>=5)dmg=Math.floor(dmg*(1+Math.min(50,combo*5)/100));
+  const crit=Math.random()<0.1;
+  if(crit)dmg=Math.floor(dmg*1.5);
+  currentEnemy.hp=Math.max(0,currentEnemy.hp-dmg);
+  combo++;
+  if(crit)logLine(`💥 CRITICAL! You hit ${e.name} for ${dmg}!`,'#ff8c00');
+  else logLine(`⚔ You hit ${e.name} for ${dmg}!`,'var(--text)');
+  updateComboDisplay();
+  if(currentEnemy.hp<=0){killEnemy();return;}
+  // Enemy attacks back
+  const eDmg=Math.max(1,e.dmg-Math.floor(p.end*0.3)+randInt(-3,3));
+  p.hp=Math.max(0,p.hp-eDmg);
+  logLine(`👁 ${e.name} hits you for ${eDmg}!`,'var(--red2)');
+  if(p.hp<=0){logLine(`💀 You were defeated!`,'var(--red)');combo=0;currentEnemy=null;}
+  renderAll();
+}
+
+function doSkill(idx){
+  if(!currentEnemy||player.hp<=0)return;
+  const p=player;
+  const sk=p.skills[idx];
+  const key=`${p.tech}:${idx}`;
+  if(skillCooldowns[key]>0)return;
+  if(p.ce<sk.cost){logLine('Not enough CE!','var(--red2)');return;}
+  const e=ENEMIES[currentEnemy.id];
+  p.ce-=sk.cost;
+  let dmg=sk.dmg+randInt(0,Math.floor(sk.dmg*0.2));
+  const crit=Math.random()<0.12;
+  if(crit)dmg=Math.floor(dmg*1.6);
+  currentEnemy.hp=Math.max(0,currentEnemy.hp-dmg);
+  if(sk.heal)p.hp=Math.min(p.maxHp,p.hp+(sk.heal||0));
+  combo+=2;
+  const col=rarityColor(p.techRarity||'D');
+  if(crit)logLine(`💥 CRIT! ${sk.name} hits ${e.name} for ${dmg}!`,'#ff8c00');
+  else logLine(`✦ ${sk.name} hits ${e.name} for ${dmg}!`,col==='rainbow'?'var(--purple2)':col);
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'skill_used',name:p.name,skill:sk.name,enemy:e.name,dmg}));
+  // Cooldown
+  skillCooldowns[key]=sk.cd*1000;
+  const cdInterval=setInterval(()=>{
+    skillCooldowns[key]=Math.max(0,(skillCooldowns[key]||0)-100);
+    if(skillCooldowns[key]<=0){clearInterval(cdInterval);}
+    renderSkillGrid();
+  },100);
+  updateComboDisplay();
+  if(currentEnemy.hp<=0){killEnemy();return;}
+  // Enemy counter
+  const eDmg=Math.max(1,e.dmg-Math.floor(p.end*0.3)+randInt(-3,3));
+  p.hp=Math.max(0,p.hp-eDmg);
+  logLine(`👁 ${e.name} hits you for ${eDmg}!`,'var(--red2)');
+  if(p.hp<=0){logLine('💀 You were defeated!','var(--red)');combo=0;currentEnemy=null;}
+  renderAll();
+}
+
+function killEnemy(){
+  const p=player;
+  const e=ENEMIES[currentEnemy.id];
+  const xpMult=p.xpMult||1;
+  const coinMult=p.coinMult||1;
+  const xp=Math.floor(e.xp*xpMult);
+  const coins=Math.floor(e.coins*coinMult);
+  p.kills++;
+  p.xp+=xp;
+  p.coins+=coins;
+  if(e.spins>0)p.spins+=e.spins;
+  updateDailyProgress('kills',1);
+  updateDailyProgress('coins',coins);
+  logLine(`🏆 ${e.name} defeated! +${xp} XP +${coins} Coins${e.spins>0?` +${e.spins} Spins`:''}!`,'var(--accent)');
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'kill',name:p.name,enemy:e.name,xp}));
+  // Check level up
+  while(p.xp>=p.maxXp){
+    p.xp-=p.maxXp;
+    p.level++;
+    p.maxXp=Math.floor(100*Math.pow(1.15,p.level-1));
+    p.maxHp=Math.floor(100+p.end*10+p.level*5);
+    p.hp=p.maxHp;
+    p.maxCe=Math.floor(100+p.level*8);
+    p.ce=p.maxCe;
+    // Update rank
+    for(let i=RANK_THRESHOLDS.length-1;i>=0;i--){if(p.level>=RANK_THRESHOLDS[i]){p.rankIdx=i;break;}}
+    logLine(`🔥 LEVEL UP! You are now Level ${p.level}!`,'var(--gold)');
+    updateDailyProgress('level',1);
+    if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'levelup',name:p.name,level:p.level}));
+  }
+  currentEnemy=null;
+  combo=0;
+  updateComboDisplay();
+  checkAchievements();
+  renderAll();
+  scheduleSave();
+}
+
+function updateComboDisplay(){
+  const el=document.getElementById('combo-display');
+  if(combo>1){
+    el.style.display='flex';
+    document.getElementById('combo-x').textContent=`×${combo}`;
+    const bonus=combo>=5?`+${Math.min(50,combo*5)}% DMG`:'';
+    document.getElementById('combo-bonus').textContent=bonus;
+  } else {
+    el.style.display='none';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ASCEND
+// ══════════════════════════════════════════════════════
+function doAscend(){
+  const p=player;
+  if(p.level<25){showAscendMsg('You need Level 25 to ascend!','var(--red2)');return;}
+  p.ascensions=(p.ascensions||0)+1;
+  const mult=1+p.ascensions*0.2;
+  p.xpMult=mult; p.coinMult=mult;
+  const savedCoins=p.coins, savedClan=p.clan, savedClanRarity=p.clanRarity, savedTech=p.tech, savedTechRarity=p.techRarity, savedSkills=p.skills;
+  p.level=1; p.xp=0; p.maxXp=100;
+  p.str=5; p.agi=5; p.end=5;
+  p.hp=100; p.maxHp=100; p.ce=100; p.maxCe=100;
+  p.rankIdx=0; p.kills=0; p.trainCount=0;
+  p.coins=savedCoins; p.clan=savedClan; p.clanRarity=savedClanRarity;
+  p.tech=savedTech; p.techRarity=savedTechRarity; p.skills=savedSkills;
+  showAscendMsg(`🌀 Ascension ${p.ascensions}! XP/Coins ×${mult.toFixed(1)}`,'var(--purple2)');
+  renderAll();
+  scheduleSave();
+  checkAchievements();
+}
+function showAscendMsg(msg,color){
+  const el=document.getElementById('ascend-msg');
+  el.textContent=msg; el.style.color=color; el.style.display='block';
+  setTimeout(()=>el.style.display='none',4000);
+}
+
+// ══════════════════════════════════════════════════════
+// BOSS / PVP
+// ══════════════════════════════════════════════════════
+async function startBossFight(type){
+  const p=player;
+  if(activeFightId)return;
+  const btn=document.getElementById(type==='toji'?'toji-btn':'sukuna-btn');
+  btn.disabled=true;
+  btn.textContent=type==='toji'?'Summoning...':'Awakening...';
+  try{
+    const url=type==='toji'?`/api/rooms/${p.roomCode}/pvp/boss`:`/api/rooms/${p.roomCode}/pvp/boss/sukuna`;
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId:p.playerId})});
+    const data=await res.json();
+    if(data.fightId){
+      showCutscene(type,()=>openFight(data.fightId));
+    }
+  }catch{}
+  btn.disabled=false;
+  btn.textContent=type==='toji'?'⚔ Boss Fight: Toji Zenin':'👁 Boss: KING OF CURSES';
+}
+
+async function startPvp(targetId){
+  if(activeFightId)return;
+  try{
+    const res=await fetch(`/api/rooms/${player.roomCode}/pvp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId})});
+    const data=await res.json();
+    if(data.fightId) openFight(data.fightId);
+  }catch{}
+}
+
+function showCutscene(type,cb){
+  const cs=document.getElementById('cutscene');
+  const img=document.getElementById('cutscene-img');
+  const name=document.getElementById('cutscene-name');
+  const sub=document.getElementById('cutscene-sub');
+  if(type==='toji'){
+    img.src='https://i.imgur.com/placeholder.jpg'; // placeholder
+    name.textContent='TOJI ZENIN';
+    name.style.color='var(--accent)';
+    sub.textContent='The Sorcerer Killer approaches...';
+    sub.style.color='var(--text)';
+    cs.style.background='rgba(0,0,0,0.95)';
+  } else {
+    img.src='https://i.imgur.com/placeholder2.jpg';
+    name.textContent='RYOMEN SUKUNA';
+    name.style.color='var(--red2)';
+    sub.textContent='KING OF CURSES... The most feared sorcerer awakens.';
+    sub.style.color='#ffaaaa';
+    cs.style.background='rgba(60,0,0,0.95)';
+  }
+  cs.style.display='flex';
+  cs.classList.remove('fading');
+  pendingCutsceneCb=cb;
+  setTimeout(()=>{cs.classList.add('fading');},2500);
+  setTimeout(()=>{cs.style.display='none';cs.classList.remove('fading');if(pendingCutsceneCb){pendingCutsceneCb();pendingCutsceneCb=null;}},3200);
+}
+let pendingCutsceneCb=null;
+function skipCutscene(){
+  document.getElementById('cutscene').style.display='none';
+  if(pendingCutsceneCb){pendingCutsceneCb();pendingCutsceneCb=null;}
+}
+
+async function openFight(fightId){
+  activeFightId=fightId;
+  document.getElementById('fight-overlay').style.display='flex';
+  await pollFight();
+}
+function closeFight(){
+  activeFightId=null;
+  document.getElementById('fight-overlay').style.display='none';
+}
+
+async function pollFight(){
+  if(!activeFightId)return;
+  try{
+    const res=await fetch(`/api/fights/${activeFightId}`);
+    const fight=await res.json();
+    renderFight(fight);
+  }catch{}
+}
+
+function renderFight(fight){
+  if(!fight)return;
+  const p=player;
+  document.getElementById('fight-title').textContent=fight.type==='boss'?`— ${fight.boss?.name||'BOSS'} —`:'— DUEL —';
+  // Names
+  const p1name=fight.type==='boss'?p.name:(fight.p1Name||'Player 1');
+  const p2name=fight.type==='boss'?(fight.boss?.name||'Boss'):(fight.p2Name||'Player 2');
+  document.getElementById('fight-p1-name').textContent=p1name;
+  document.getElementById('fight-p2-name').textContent=p2name;
+  // HP bars
+  let p1hp,p1max,p2hp,p2max;
+  if(fight.type==='boss'){
+    p1hp=fight.playerHp??p.hp; p1max=fight.playerMaxHp??p.maxHp;
+    p2hp=fight.boss?.hp??0; p2max=fight.boss?.maxHp??1;
+  } else {
+    p1hp=fight.p1Hp??0; p1max=fight.p1MaxHp??1;
+    p2hp=fight.p2Hp??0; p2max=fight.p2MaxHp??1;
+  }
+  const p1pct=Math.max(0,Math.min(100,(p1hp/p1max)*100));
+  const p2pct=Math.max(0,Math.min(100,(p2hp/p2max)*100));
+  document.getElementById('fight-p1-hp').style.width=p1pct+'%';
+  document.getElementById('fight-p1-hp-txt').textContent=`HP: ${p1hp}/${p1max}`;
+  document.getElementById('fight-p2-hp').style.width=p2pct+'%';
+  document.getElementById('fight-p2-hp-txt').textContent=`HP: ${p2hp}/${p2max}`;
+  // Log
+  const logEl=document.getElementById('fight-log');
+  logEl.innerHTML=(fight.log||[]).map(l=>`<div style="color:${l.color||'var(--text)'}">${l.text}</div>`).join('');
+  logEl.scrollTop=logEl.scrollHeight;
+  // Actions / result
+  const actEl=document.getElementById('fight-actions');
+  const resEl=document.getElementById('fight-result');
+  if(fight.over){
+    actEl.innerHTML='';
+    resEl.style.display='block';
+    const iWon=(fight.winner===p.playerId)||(fight.type==='boss'&&fight.winner==='player');
+    if(iWon){
+      resEl.style.color='var(--accent)';
+      resEl.textContent='🏆 VICTORY!';
+      // Apply rewards
+      if(fight.type==='boss'&&fight.boss?.rewards&&!fight.rewardApplied){
+        fight.rewardApplied=true;
+        const r=fight.boss.rewards;
+        p.xp+=Math.floor(r.xp*(p.xpMult||1));
+        p.coins+=Math.floor(r.coins*(p.coinMult||1));
+        p.spins+=r.spins;
+        checkLevelUp();
+        renderAll();
+        scheduleSave();
+      }
+    } else {
+      resEl.style.color='var(--red2)';
+      resEl.textContent='💀 DEFEATED';
+    }
+  } else {
+    resEl.style.display='none';
+    const isMyTurn=(fight.type==='boss')||(fight.turn==='p1'&&fight.p1Id===p.playerId)||(fight.turn==='p2'&&fight.p2Id===p.playerId);
+    const amIFighter=(fight.type==='boss'&&fight.p1Id===p.playerId)||(fight.p1Id===p.playerId||fight.p2Id===p.playerId);
+    if(amIFighter&&isMyTurn){
+      let html=`<button class="fight-action-btn" onclick="fightAction('attack')">⚔ Attack</button>`;
+      if(p.skills&&p.skills.length>0){
+        p.skills.forEach((sk,i)=>{html+=`<button class="fight-action-btn skill" onclick="fightAction('skill',${i})">✦ ${sk.name}</button>`;});
+      }
+      actEl.innerHTML=html;
+    } else if(amIFighter){
+      actEl.innerHTML=`<div style="color:var(--muted);font-style:italic;text-align:center;padding:8px;font-size:12px">Waiting for opponent...</div>`;
+    } else {
+      actEl.innerHTML=`<div style="color:var(--muted);font-style:italic;text-align:center;padding:8px;font-size:12px">👁 Spectating</div>`;
+    }
+  }
+}
+
+async function fightAction(action,skillIdx){
+  if(!activeFightId)return;
+  try{
+    const res=await fetch(`/api/fights/${activeFightId}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId:player.playerId,action,skillIdx})});
+    const data=await res.json();
+    if(data.fight)renderFight(data.fight);
+  }catch{}
+}
+
+function checkLevelUp(){
+  const p=player;
+  while(p.xp>=p.maxXp){
+    p.xp-=p.maxXp;
+    p.level++;
+    p.maxXp=Math.floor(100*Math.pow(1.15,p.level-1));
+    p.maxHp=Math.floor(100+p.end*10+p.level*5);
+    p.hp=p.maxHp;
+    p.maxCe=Math.floor(100+p.level*8);
+    for(let i=RANK_THRESHOLDS.length-1;i>=0;i--){if(p.level>=RANK_THRESHOLDS[i]){p.rankIdx=i;break;}}
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// SHOP
+// ══════════════════════════════════════════════════════
+function renderShopItems(){
+  const el=document.getElementById('shop-grid');
+  el.innerHTML=SHOP_ITEMS.map(item=>`
+    <div class="shop-item">
+      <div class="shop-item-name">${item.name}</div>
+      <div class="shop-item-desc">${item.desc}</div>
+      <div class="shop-item-price">🪙 ${item.price} Coins</div>
+      <button class="shop-buy" onclick="buyItem('${item.id}')">Buy</button>
+    </div>
+  `).join('');
+}
+function buyItem(id){
+  const item=SHOP_ITEMS.find(i=>i.id===id);
+  if(!item)return;
+  if(player.coins<item.price){showShopMsg('Not enough coins!');return;}
+  player.coins-=item.price;
+  if(item.type==='heal')player.hp=player.maxHp;
+  else if(item.type==='restore_ce')player.ce=player.maxCe;
+  else if(item.type==='spins')player.spins+=item.value;
+  else if(item.type==='level'){player.level++;player.maxXp=Math.floor(100*Math.pow(1.15,player.level-1));player.maxHp=Math.floor(100+player.end*10+player.level*5);}
+  else if(item.type==='boost'){
+    if(item.stat==='xp')player.xpMult=(player.xpMult||1)+item.value-1;
+    else player.coinMult=(player.coinMult||1)+item.value-1;
+    setTimeout(()=>{if(item.stat==='xp')player.xpMult=1;else player.coinMult=1;renderAll();},item.dur);
+  }
+  else if(item.type==='outfit')player.outfitFilter=item.outfitFilter;
+  renderAll();
+  scheduleSave();
+  showShopMsg(`✓ Purchased ${item.name}!`);
+}
+function showShopMsg(msg){toast('🛒',msg);}
+function openShop(){document.getElementById('shop-overlay').style.display='flex';}
+function closeShop(){document.getElementById('shop-overlay').style.display='none';}
+
+// ══════════════════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════════════════
+async function openLeaderboard(){
+  document.getElementById('lb-overlay').style.display='flex';
+  try{
+    const res=await fetch('/api/leaderboard');
+    const data=await res.json();
+    const el=document.getElementById('lb-list');
+    if(!data.length){el.innerHTML=`<div class="text-muted text-center" style="padding:20px;font-style:italic">No data yet</div>`;return;}
+    el.innerHTML=data.map((e,i)=>`
+      <div class="lb-row">
+        <span class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</span>
+        <span class="lb-name cinzel">${e.name} <span style="font-size:10px;color:var(--muted)">Lv.${e.level}</span></span>
+        ${e.clan?`<span style="font-size:11px;color:var(--gold)">${e.clan}</span>`:''}
+        <span class="lb-kills">${e.kills} kills</span>
+      </div>
+    `).join('');
+  }catch{}
+}
+function closeLb(){document.getElementById('lb-overlay').style.display='none';}
+
+// ══════════════════════════════════════════════════════
+// DAILY MISSIONS
+// ══════════════════════════════════════════════════════
+function loadDailyMissions(){
+  const today=new Date().toISOString().slice(0,10);
+  try{
+    const saved=JSON.parse(localStorage.getItem('jjk_daily_missions')||'{}');
+    if(saved.date===today&&saved.missions){dailyData=saved;return;}
+  }catch{}
+  const seed=today.split('-').reduce((a,b)=>a+parseInt(b),0);
+  const selected=[DAILY_POOL[seed%3],DAILY_POOL[(seed+2)%5+2],DAILY_POOL[(seed+4)%DAILY_POOL.length]];
+  dailyData={date:today,missions:selected.map(m=>({...m,progress:0,claimed:false}))};
+  localStorage.setItem('jjk_daily_missions',JSON.stringify(dailyData));
+}
+function updateDailyProgress(type,delta){
+  if(!dailyData)return;
+  let changed=false;
+  dailyData.missions=dailyData.missions.map(m=>{
+    if(m.claimed||m.type!==type)return m;
+    const progress=Math.min(m.target,(m.progress||0)+delta);
+    if(progress!==m.progress)changed=true;
+    return{...m,progress};
+  });
+  if(changed){localStorage.setItem('jjk_daily_missions',JSON.stringify(dailyData));renderMissions();}
+}
+function renderMissions(){
+  if(!dailyData)return;
+  const el=document.getElementById('missions-list');
+  el.innerHTML=dailyData.missions.map((m,i)=>{
+    const pct=Math.min(100,Math.round((m.progress/m.target)*100));
+    const done=m.progress>=m.target;
+    return`<div class="mission-item">
+      <div class="mission-title" style="color:${done?'var(--green2)':'var(--gold)'};display:flex;justify-content:space-between">
+        <span>${m.title}</span><span style="font-size:11px">${m.progress}/${m.target}</span>
+      </div>
+      <div class="mission-desc">${m.desc}</div>
+      <div class="mission-bar"><div class="mission-bar-fill" style="width:${pct}%;background:${done?'var(--green)':'var(--blue)'}"></div></div>
+      ${done&&!m.claimed?`<button class="claim-btn" onclick="claimMission(${i})">🎁 Claim: +${m.rewards.spins} Spins${m.rewards.coins>0?` +${m.rewards.coins} Coins`:''}</button>`:''}
+      ${m.claimed?`<div style="text-align:center;font-size:11px;color:var(--green2)">✓ Claimed</div>`:''}
+    </div>`;
+  }).join('');
+}
+function claimMission(i){
+  const m=dailyData.missions[i];
+  if(!m||m.claimed||m.progress<m.target)return;
+  dailyData.missions[i]={...m,claimed:true};
+  player.spins+=(m.rewards.spins||0);
+  player.coins+=(m.rewards.coins||0);
+  localStorage.setItem('jjk_daily_missions',JSON.stringify(dailyData));
+  renderAll();
+  renderMissions();
+  scheduleSave();
+}
+
+// ══════════════════════════════════════════════════════
+// ACHIEVEMENTS
+// ══════════════════════════════════════════════════════
+function checkAchievements(){
+  if(!player)return;
+  const unlocked=JSON.parse(localStorage.getItem('jjk_achievements')||'[]');
+  for(const a of ACHIEVEMENTS){
+    if(!unlocked.includes(a.id)&&a.check(player)){
+      unlocked.push(a.id);
+      toast(a.icon,a.title);
+    }
+  }
+  localStorage.setItem('jjk_achievements',JSON.stringify(unlocked));
+  renderAchievements();
+}
+function renderAchievements(){
+  const unlocked=JSON.parse(localStorage.getItem('jjk_achievements')||'[]');
+  const el=document.getElementById('ach-list');
+  el.innerHTML=ACHIEVEMENTS.map(a=>{
+    const done=unlocked.includes(a.id);
+    return`<div class="ach-item" style="opacity:${done?1:0.4}">
+      <span class="ach-icon">${a.icon}</span>
+      <div>
+        <div class="ach-title ${done?'done':''}">${a.title}</div>
+        <div class="ach-desc">${a.desc}</div>
+      </div>
+      ${done?'<span style="margin-left:auto;color:var(--green2);font-size:14px">✓</span>':''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════════════
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'chat',msg}));
+  chatLine(`<${player.name}> ${msg}`,'var(--text)');
+}
+
+// ══════════════════════════════════════════════════════
+// SAVE / LOAD
+// ══════════════════════════════════════════════════════
+function openSave(){
+  const box=document.getElementById('save-export-box');
+  try{box.textContent=btoa(JSON.stringify(player));}catch{box.textContent='Error encoding save';}
+  document.getElementById('save-overlay').style.display='flex';
+}
+function closeSave(){document.getElementById('save-overlay').style.display='none';}
+function exportSave(){
+  try{navigator.clipboard.writeText(document.getElementById('save-export-box').textContent);showSaveMsg('✓ Copied to clipboard!','var(--green2)');}
+  catch{showSaveMsg('Select and copy the text manually','var(--muted)');}
+}
+function importSave(){
+  const code=document.getElementById('save-import-input').value.trim();
+  if(!code){showSaveMsg('Paste a save code first!','var(--red2)');return;}
+  try{
+    const data=JSON.parse(atob(code));
+    player={...data,playerId:player.playerId,roomCode:player.roomCode};
+    renderAll();
+    scheduleSave();
+    showSaveMsg('✓ Save loaded!','var(--green2)');
+  }catch{showSaveMsg('Invalid save code!','var(--red2)');}
+}
+function showSaveMsg(msg,color){
+  const el=document.getElementById('save-msg');
+  el.textContent=msg;el.style.color=color;el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['sorcerer','combat','world'][i]===tab));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`pane-${tab}`));
+  if(tab==='world')renderPlayers();
+}
+function setTrainTab(tab){
+  document.querySelectorAll('.sub-tab').forEach((b,i)=>b.classList.toggle('active',['train','rolls'][i]===tab));
+  document.getElementById('train-pane').style.display=tab==='train'?'block':'none';
+  document.getElementById('rolls-pane').style.display=tab==='rolls'?'block':'none';
+  if(tab!=='train')stopAuto();
+}
+
+// ══════════════════════════════════════════════════════
+// AUTO-SAVE
+// ══════════════════════════════════════════════════════
+function scheduleSave(){
+  if(saveTimeout)clearTimeout(saveTimeout);
+  saveTimeout=setTimeout(()=>savePlayer(),2000);
+}
+
+// ── Init daily tracking
+setInterval(()=>{
+  if(!player)return;
+  const kills=player.kills,coins=player.coins,level=player.level,trains=player.trainCount||0;
+  const kd=kills-prevKills,cd=coins-prevCoins,ld=level-prevLevel,td=trains-prevTrains;
+  prevKills=kills;prevCoins=coins;prevLevel=level;prevTrains=trains;
+  if(kd>0)updateDailyProgress('kills',kd);
+  if(cd>0)updateDailyProgress('coins',cd);
+  if(ld>0)updateDailyProgress('level',ld);
+  if(td>0)updateDailyProgress('trainCount',td);
+  checkAchievements();
+},5000);
+</script>
+</body>
+</html>
