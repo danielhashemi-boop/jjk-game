@@ -650,6 +650,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <div class="overlay-box fight-modal">
     <div class="overlay-title" id="fight-title">— BATTLE —</div>
     <button class="overlay-close" onclick="closeFight()">✕</button>
+    <div id="fight-round" style="text-align:center;font-family:'Cinzel',serif;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px"></div>
     <div class="fight-vs">
       <div class="fight-side">
         <div class="fight-name" id="fight-p1-name">—</div>
@@ -662,8 +663,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div>
     </div>
     <div class="fight-log" id="fight-log"></div>
-    <div class="fight-actions" id="fight-actions"></div>
-    <div id="fight-result" style="text-align:center;padding:10px;font-family:'Cinzel',serif;font-size:14px;display:none"></div>
+    <div class="fight-actions" id="fight-actions" style="flex-direction:column;gap:6px"></div>
+    <div id="fight-result" style="text-align:center;padding:14px;display:none"></div>
   </div>
 </div>
 
@@ -1084,9 +1085,10 @@ function renderPlayers(){
     html+=`<div class="player-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="player-name"><span style="color:var(--green);margin-right:4px">●</span>${op.name}</span>
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:4px">
           <span class="text-muted" style="font-size:12px">Lv.${op.level}</span>
           <button class="pvp-btn" onclick="startPvp('${pid}')">⚔ Duel</button>
+          <button class="pvp-btn" style="border-color:var(--gold);color:var(--accent)" onclick="startRankedPvp('${pid}')">🏆 Ranked</button>
         </div>
       </div>
       <div class="player-stats">HP: ${op.hp}/${op.maxHp} | Kills: ${op.kills||0}</div>
@@ -1670,13 +1672,21 @@ function skipCutscene(){
   if(pendingCutsceneCb){pendingCutsceneCb();pendingCutsceneCb=null;}
 }
 
+let fightTimer = null;
+let myMoveLocked = false;
+let rankedInfo = null;
+
 async function openFight(fightId){
   activeFightId=fightId;
+  myMoveLocked=false;
   document.getElementById('fight-overlay').style.display='flex';
   await pollFight();
+  // Load ranked info
+  try{const r=await fetch(`/api/ranked/${player.playerId}`);rankedInfo=await r.json();}catch{}
 }
 function closeFight(){
   activeFightId=null;
+  if(fightTimer){clearInterval(fightTimer);fightTimer=null;}
   document.getElementById('fight-overlay').style.display='none';
 }
 
@@ -1692,92 +1702,157 @@ async function pollFight(){
 function renderFight(fight){
   if(!fight)return;
   const p=player;
-  document.getElementById('fight-title').textContent=fight.type==='boss'?`— ${fight.boss?.name||'BOSS'} —`:'— DUEL —';
+  const isBoss=fight.type==='boss';
+  const isRanked=fight.type==='ranked';
+  const titleEl=document.getElementById('fight-title');
+  if(isBoss) titleEl.innerHTML=`— <span style="color:var(--red2)">${fight.boss?.name||'BOSS'}</span> —`;
+  else if(isRanked) titleEl.innerHTML=`⚔ <span style="color:var(--gold)">RANKED DUEL</span> ⚔${rankedInfo?` <span style="font-size:11px;color:var(--muted)">${rankedInfo.rank}</span>`:''}`;
+  else titleEl.textContent='— DUEL —';
+
   // Names
-  const p1name=fight.type==='boss'?p.name:(fight.p1Name||'Player 1');
-  const p2name=fight.type==='boss'?(fight.boss?.name||'Boss'):(fight.p2Name||'Player 2');
-  document.getElementById('fight-p1-name').textContent=p1name;
-  document.getElementById('fight-p2-name').textContent=p2name;
+  const p1name=isBoss?p.name:(fight.p1Name||'P1');
+  const p2name=isBoss?(fight.boss?.name||'Boss'):(fight.p2Name||'P2');
+  document.getElementById('fight-p1-name').innerHTML=p1name+(fight.p1Debuff?` <span style="font-size:10px;color:${fight.p1Debuff==='stunned'?'#f1c40f':'#e8b84b'}">[${fight.p1Debuff}]</span>`:'');
+  document.getElementById('fight-p2-name').innerHTML=p2name+(fight.p2Debuff?` <span style="font-size:10px;color:${fight.p2Debuff==='stunned'?'#f1c40f':'#e8b84b'}">[${fight.p2Debuff}]</span>`:'');
+
   // HP bars
   let p1hp,p1max,p2hp,p2max;
-  if(fight.type==='boss'){
-    p1hp=fight.playerHp??p.hp; p1max=fight.playerMaxHp??p.maxHp;
-    p2hp=fight.boss?.hp??0; p2max=fight.boss?.maxHp??1;
-  } else {
-    p1hp=fight.p1Hp??0; p1max=fight.p1MaxHp??1;
-    p2hp=fight.p2Hp??0; p2max=fight.p2MaxHp??1;
-  }
+  if(isBoss){p1hp=fight.playerHp??p.hp;p1max=fight.playerMaxHp??p.maxHp;p2hp=fight.boss?.hp??0;p2max=fight.boss?.maxHp??1;}
+  else{p1hp=fight.p1Hp??0;p1max=fight.p1MaxHp??1;p2hp=fight.p2Hp??0;p2max=fight.p2MaxHp??1;}
   const p1pct=Math.max(0,Math.min(100,(p1hp/p1max)*100));
   const p2pct=Math.max(0,Math.min(100,(p2hp/p2max)*100));
   document.getElementById('fight-p1-hp').style.width=p1pct+'%';
   document.getElementById('fight-p1-hp-txt').textContent=`HP: ${p1hp}/${p1max}`;
   document.getElementById('fight-p2-hp').style.width=p2pct+'%';
   document.getElementById('fight-p2-hp-txt').textContent=`HP: ${p2hp}/${p2max}`;
+
+  // Round indicator
+  const roundEl=document.getElementById('fight-round');
+  if(roundEl) roundEl.textContent=fight.round>0?`Round ${fight.round}`:'';
+
   // Log
   const logEl=document.getElementById('fight-log');
-  logEl.innerHTML=(fight.log||[]).map(l=>`<div style="color:${l.color||'var(--text)'}">${l.text}</div>`).join('');
+  logEl.innerHTML=(fight.log||[]).slice(-20).map(l=>{
+    if(l.color==='rainbow') return`<div><span class="rainbow">${l.text}</span></div>`;
+    return`<div style="color:${l.color||'var(--text)'}">${l.text}</div>`;
+  }).join('');
   logEl.scrollTop=logEl.scrollHeight;
-  // Actions / result
+
   const actEl=document.getElementById('fight-actions');
   const resEl=document.getElementById('fight-result');
+
   if(fight.over){
+    if(fightTimer){clearInterval(fightTimer);fightTimer=null;}
     actEl.innerHTML='';
     resEl.style.display='block';
-    const iWon=(fight.winner===p.playerId)||(fight.type==='boss'&&fight.winner==='player');
+    const iWon=(fight.winner===p.playerId)||(isBoss&&fight.winner==='player');
     if(iWon){
-      resEl.style.color='var(--accent)';
-      resEl.textContent='🏆 VICTORY!';
-      // Apply rewards
-      if(fight.type==='boss'&&fight.boss?.rewards&&!fight.rewardApplied){
+      resEl.innerHTML=`<div style="color:var(--gold);font-size:20px;font-family:'Cinzel',serif;letter-spacing:4px">🏆 VICTORY!</div>${isRanked&&fight.winnerRank?`<div style="color:var(--green2);font-size:12px;margin-top:6px">Rank: ${fight.winnerRank.rank} | +25 RP</div>`:''}`;
+      if(isBoss&&fight.boss?.rewards&&!fight.rewardApplied){
         fight.rewardApplied=true;
         const r=fight.boss.rewards;
-        p.xp+=Math.floor(r.xp*(p.xpMult||1));
-        p.coins+=Math.floor(r.coins*(p.coinMult||1));
-        p.spins+=r.spins;
-        checkLevelUp();
-        renderAll();
-        scheduleSave();
+        p.xp+=Math.floor(r.xp*(p.xpMult||1));p.coins+=Math.floor(r.coins*(p.coinMult||1));p.spins+=r.spins;
+        checkLevelUp();renderAll();scheduleSave();
+      }
+      if(!isBoss&&!fight.pvpRewardApplied){
+        fight.pvpRewardApplied=true;
+        const bonus=isRanked?150:80;
+        p.coins+=bonus;p.xp+=isRanked?200:100;
+        checkLevelUp();renderAll();scheduleSave();
       }
     } else {
-      resEl.style.color='var(--red2)';
-      resEl.textContent='💀 DEFEATED';
+      resEl.innerHTML=`<div style="color:var(--red2);font-size:20px;font-family:'Cinzel',serif;letter-spacing:4px">💀 DEFEATED</div>${isRanked&&fight.loserRank?`<div style="color:var(--red2);font-size:12px;margin-top:6px">Rank: ${fight.loserRank.rank} | -15 RP</div>`:''}`;
     }
-  } else {
-    resEl.style.display='none';
-    const isMyTurn=(fight.type==='boss')||(fight.turn==='p1'&&fight.p1Id===p.playerId)||(fight.turn==='p2'&&fight.p2Id===p.playerId);
-    const amIFighter=(fight.type==='boss'&&fight.p1Id===p.playerId)||(fight.p1Id===p.playerId||fight.p2Id===p.playerId);
-    if(amIFighter&&isMyTurn){
-      let html=`<button class="fight-action-btn" onclick="fightAction('attack')">⚔ Attack</button>`;
-      if(p.skills&&p.skills.length>0){
-        p.skills.forEach((sk,i)=>{html+=`<button class="fight-action-btn skill" onclick="fightAction('skill',${i})">✦ ${sk.name}</button>`;});
-      }
-      actEl.innerHTML=html;
-    } else if(amIFighter){
-      actEl.innerHTML=`<div style="color:var(--muted);font-style:italic;text-align:center;padding:8px;font-size:12px">Waiting for opponent...</div>`;
-    } else {
-      actEl.innerHTML=`<div style="color:var(--muted);font-style:italic;text-align:center;padding:8px;font-size:12px">👁 Spectating</div>`;
-    }
+    myMoveLocked=false;
+    return;
   }
+
+  resEl.style.display='none';
+  const amIFighter=isBoss?(fight.p1Id===p.playerId):(fight.p1Id===p.playerId||fight.p2Id===p.playerId);
+  const isP1=fight.p1Id===p.playerId;
+  const myMoveSubmitted=isP1?!!fight.p1Move:!!fight.p2Move;
+
+  if(!amIFighter){
+    actEl.innerHTML=`<div style="color:var(--muted);font-style:italic;text-align:center;padding:12px;font-size:12px">👁 Spectating — Round ${fight.round||0}</div>`;
+    return;
+  }
+
+  if(myMoveSubmitted||myMoveLocked){
+    actEl.innerHTML=`
+      <div style="text-align:center;padding:10px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--green2);letter-spacing:2px;margin-bottom:6px">✓ MOVE LOCKED IN</div>
+        <div style="font-size:11px;color:var(--muted);font-style:italic">Waiting for opponent to choose...</div>
+        <div id="fight-timer-display" style="font-family:'Cinzel',serif;font-size:18px;color:var(--accent);margin-top:8px"></div>
+      </div>`;
+    return;
+  }
+
+  // Build action panel
+  const isBossMode=isBoss;
+  let html=`<div style="font-family:'Cinzel',serif;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;text-align:center">CHOOSE YOUR MOVE — BOTH PLAYERS PICK SIMULTANEOUSLY</div>`;
+
+  // Main moves grid
+  html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
+    <button class="fight-action-btn" onclick="fightAction('attack')" title="Fast reliable attack">⚔ Attack<br><span style="font-size:9px;color:var(--muted)">Quick & reliable</span></button>
+    <button class="fight-action-btn" style="background:rgba(255,107,0,0.1);border-color:#ff6b00;color:#ff8c00" onclick="fightAction('heavy')" title="Heavy telegraphed strike — 2.2× damage but can be blocked/dodged">💢 Heavy Strike<br><span style="font-size:9px;color:var(--muted)">2.2× DMG, telegraphed</span></button>
+    <button class="fight-action-btn" style="background:rgba(93,173,226,0.1);border-color:var(--blue);color:var(--blue2)" onclick="fightAction('dodge')" title="Attempt to dodge — if successful, counter attack! AGI stat matters">💨 Dodge & Counter<br><span style="font-size:9px;color:var(--muted)">Counter if successful</span></button>
+    <button class="fight-action-btn" style="background:rgba(93,173,226,0.08);border-color:var(--blue2);color:#7fb3d3" onclick="fightAction('block')" title="Reduce incoming damage by 75% (25% vs heavy)">🛡 Block<br><span style="font-size:9px;color:var(--muted)">-75% dmg (-50% heavy)</span></button>
+    ${!isBossMode?`<button class="fight-action-btn" style="background:rgba(232,180,75,0.1);border-color:var(--gold);color:var(--accent)" onclick="fightAction('taunt')" title="Drop their guard next round for +40% damage window">😤 Taunt<br><span style="font-size:9px;color:var(--muted)">Open their guard</span></button>`:''}
+    <button class="fight-action-btn skill" onclick="fightAction('domain')" title="Domain Expansion — massive guaranteed damage, stuns opponent. Countered by opponent also using Domain!">🌀 Domain Expansion<br><span style="font-size:9px;color:var(--purple2)">Massive dmg, can clash</span></button>
+  </div>`;
+
+  // Skills row
+  if(p.skills&&p.skills.length>0){
+    html+=`<div style="font-family:'Cinzel',serif;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:5px">TECHNIQUE SKILLS</div>`;
+    html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">`;
+    p.skills.forEach((sk,i)=>{
+      const key=`${p.tech}:${i}`;
+      const onCd=(skillCooldowns[key]||0)>0;
+      html+=`<button class="fight-action-btn skill" ${onCd?'disabled':''} onclick="fightAction('skill',${i})" style="font-size:9px;padding:6px 3px">
+        ✦ ${sk.name}<br><span style="font-size:8px;color:var(--muted)">DMG:${sk.dmg}</span>
+        ${onCd?`<div style="position:absolute;bottom:0;left:0;height:2px;background:var(--purple);width:${Math.min(100,(skillCooldowns[key]||0)/(sk.cd*1000)*100)}%"></div>`:''}
+      </button>`;
+    });
+    html+=`</div>`;
+  }
+
+  actEl.innerHTML=html;
 }
 
+let fightActionTimer=null;
 async function fightAction(action,skillIdx){
-  if(!activeFightId)return;
+  if(!activeFightId||myMoveLocked)return;
+  myMoveLocked=true;
+  // Show locked state immediately
+  const actEl=document.getElementById('fight-actions');
+  const moveNames={attack:'⚔ Attack',heavy:'💢 Heavy Strike',dodge:'💨 Dodge & Counter',block:'🛡 Block',taunt:'😤 Taunt',domain:'🌀 Domain Expansion',skill:player.skills?.[skillIdx]?.name||'Skill'};
+  actEl.innerHTML=`<div style="text-align:center;padding:10px">
+    <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--green2);letter-spacing:2px">✓ ${moveNames[action]||action} LOCKED</div>
+    <div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:6px">Waiting for opponent...</div>
+  </div>`;
   try{
     const res=await fetch(`/api/fights/${activeFightId}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId:player.playerId,action,skillIdx})});
     const data=await res.json();
-    if(data.fight)renderFight(data.fight);
+    if(data.fight){myMoveLocked=false;renderFight(data.fight);}
+  }catch{myMoveLocked=false;}
+}
+
+async function startRankedPvp(targetId){
+  if(activeFightId)return;
+  try{
+    const res=await fetch(`/api/rooms/${player.roomCode}/pvp/ranked`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId})});
+    const data=await res.json();
+    if(data.fightId) openFight(data.fightId);
   }catch{}
 }
 
 function checkLevelUp(){
   const p=player;
   while(p.xp>=p.maxXp){
-    p.xp-=p.maxXp;
-    p.level++;
+    p.xp-=p.maxXp;p.level++;
     p.maxXp=Math.floor(100*Math.pow(1.15,p.level-1));
     p.maxHp=Math.floor(100+p.end*10+p.level*5);
-    p.hp=p.maxHp;
-    p.maxCe=Math.floor(100+p.level*8);
+    p.hp=p.maxHp;p.maxCe=Math.floor(100+p.level*8);
     for(let i=RANK_THRESHOLDS.length-1;i>=0;i--){if(p.level>=RANK_THRESHOLDS[i]){p.rankIdx=i;break;}}
   }
 }
