@@ -821,9 +821,12 @@ function handlePLTResult(result, isPvE){
 
 // PLT immortality is handled inside enemyCounter directly (see combat section)
 </script>
+<script>
 // ══════════════════════════════════════════════════════
 (function(){
-  const c=document.getElementById('particles'),ctx=c.getContext('2d');
+  const c=document.getElementById('particles');
+  if(!c)return;
+  const ctx=c.getContext('2d');
   let W,H,pts=[];
   function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}
   resize();window.addEventListener('resize',resize);
@@ -1617,7 +1620,9 @@ async function doAttack(){
       renderAll();
     }catch(err){console.warn('Dodge skipped:',err);}
   }
-}(dmgMult=1){
+}
+
+function enemyCounter(dmgMult=1){
   if(!curEnemy)return;
   // PLT immortality
   if(player.pltImmune>0){
