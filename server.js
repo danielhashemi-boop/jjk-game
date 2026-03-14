@@ -136,7 +136,11 @@ app.post('/api/rooms/:code/pvp', (req, res) => {
     p1Id: challengerId, p2Id: targetId,
     p1Hp: c.maxHp, p2Hp: t.maxHp,
     p1MaxHp: c.maxHp, p2MaxHp: t.maxHp,
-    log: [], turn: 'p1', over: false
+    p1Ce: c.maxCe, p2Ce: t.maxCe,
+    p1MaxCe: c.maxCe, p2MaxCe: t.maxCe,
+    p1Move: null, p2Move: null,
+    round: 0, log: [], over: false,
+    p1Debuff: null, p2Debuff: null,
   };
   broadcastRoom(req.params.code, { type: 'pvp_start', fightId, p1Name: c.name, p2Name: t.name, p1Id: challengerId, p2Id: targetId });
   res.json({ fightId });
@@ -162,6 +166,23 @@ app.get('/api/fights/:fightId', (req, res) => {
 });
 
 // Fight action (attack / skill)
+// ── RANKED SYSTEM ──
+const RANKS_PVP = ['Bronze I','Bronze II','Bronze III','Silver I','Silver II','Silver III','Gold I','Gold II','Gold III','Platinum I','Platinum II','Diamond','Special Grade'];
+const RANK_POINTS = {}; // pid -> points
+
+function getRankFromPoints(pts) {
+  const idx = Math.min(RANKS_PVP.length-1, Math.floor((pts||0)/100));
+  return { rank: RANKS_PVP[idx], idx, pts: pts||0 };
+}
+
+function adjustRank(pid, won) {
+  if (!RANK_POINTS[pid]) RANK_POINTS[pid] = 0;
+  RANK_POINTS[pid] = Math.max(0, RANK_POINTS[pid] + (won ? 25 : -15));
+  return getRankFromPoints(RANK_POINTS[pid]);
+}
+
+// ── FIGHT ACTION — Simultaneous system ──
+// Both players submit their move, then resolve at same time
 app.post('/api/fights/:fightId/action', (req, res) => {
   const { playerId, action, skillIdx } = req.body;
   let fight = null, roomCode = null;
@@ -171,78 +192,256 @@ app.post('/api/fights/:fightId/action', (req, res) => {
   if (!fight || fight.over) return res.status(400).json({ error: 'Fight not found or over' });
   const room = rooms[roomCode];
 
+  // ── BOSS FIGHTS (unchanged logic, enhanced) ──
   if (fight.type === 'boss') {
     const player = room.players[fight.p1Id];
     if (!player) return res.status(404).json({ error: 'Player not found' });
-    // Player attacks boss
+    if (action === 'dodge') {
+      fight.log.push({ text: `💨 ${player.name} dodges! Boss misses next turn!`, color: '#5dade2' });
+      fight.bossMissNext = true;
+      broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+      return res.json({ fight: sanitizeFight(fight, room) });
+    }
+    if (action === 'block') {
+      fight.blockNext = true;
+      fight.log.push({ text: `🛡 ${player.name} braces for impact! Next hit reduced 60%!`, color: '#5dade2' });
+      broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+      return res.json({ fight: sanitizeFight(fight, room) });
+    }
     let dmg = Math.max(1, (player.str || 5) * 2 + Math.floor(Math.random() * 20));
     if (action === 'skill' && player.skills && player.skills[skillIdx]) {
       const sk = player.skills[skillIdx];
       dmg = sk.dmg + Math.floor(Math.random() * sk.dmg * 0.3);
     }
-    // Crit
-    if (Math.random() < 0.1) { dmg = Math.floor(dmg * 1.5); fight.log.push({ text: `💥 CRITICAL! ${player.name} deals ${dmg} to ${fight.boss.name}!`, color: '#ff6b00' }); }
+    if (action === 'heavy') dmg = Math.floor(dmg * 1.8);
+    const crit = Math.random() < 0.12;
+    if (crit) { dmg = Math.floor(dmg * 1.6); fight.log.push({ text: `💥 CRIT! ${player.name} deals ${dmg}!`, color: '#ff6b00' }); }
     else fight.log.push({ text: `⚔ ${player.name} hits ${fight.boss.name} for ${dmg}!`, color: '#e8dfc4' });
     fight.boss.hp = Math.max(0, fight.boss.hp - dmg);
-
     if (fight.boss.hp <= 0) {
       fight.over = true; fight.winner = 'player';
       const r = fight.boss.rewards;
-      fight.log.push({ text: `🏆 ${player.name} defeated ${fight.boss.name}! +${r.xp} XP +${r.coins} coins +${r.spins} spins!`, color: '#d4a843' });
+      fight.log.push({ text: `🏆 ${player.name} defeated ${fight.boss.name}! +${r.xp}XP +${r.coins} coins +${r.spins} spins!`, color: '#d4a843' });
       broadcastRoom(roomCode, { type: 'pvp', fightId: fight.fightId, summary: `${player.name} defeated ${fight.boss.name}!` });
     } else {
-      // Boss attacks back
-      const bDmg = Math.max(1, fight.boss.atk - Math.floor((player.end || 5) * 0.5) + Math.floor(Math.random() * 20));
-      fight.log.push({ text: `👁 ${fight.boss.name} strikes for ${bDmg}!`, color: '#ff4444' });
-      // We track boss fight hp in fight object for display purposes
-      if (!fight.playerHp) fight.playerHp = player.maxHp;
-      fight.playerMaxHp = player.maxHp;
-      fight.playerHp = Math.max(0, fight.playerHp - bDmg);
-      if (fight.playerHp <= 0) {
-        fight.over = true; fight.winner = 'boss';
-        fight.log.push({ text: `💀 ${player.name} was defeated by ${fight.boss.name}...`, color: '#ff4444' });
-        broadcastRoom(roomCode, { type: 'pvp', fightId: fight.fightId, summary: `${fight.boss.name} defeated ${player.name}!` });
+      if (!fight.bossMissNext) {
+        let bDmg = Math.max(1, fight.boss.atk - Math.floor((player.end || 5) * 0.5) + Math.floor(Math.random() * 20));
+        if (fight.blockNext) { bDmg = Math.floor(bDmg * 0.4); fight.log.push({ text: `🛡 Block absorbs damage! (${bDmg})`, color: '#5dade2' }); }
+        else fight.log.push({ text: `👁 ${fight.boss.name} strikes for ${bDmg}!`, color: '#ff4444' });
+        if (!fight.playerHp) fight.playerHp = player.maxHp;
+        fight.playerMaxHp = player.maxHp;
+        fight.playerHp = Math.max(0, fight.playerHp - bDmg);
+        if (fight.playerHp <= 0) {
+          fight.over = true; fight.winner = 'boss';
+          fight.log.push({ text: `💀 ${player.name} was defeated!`, color: '#ff4444' });
+          broadcastRoom(roomCode, { type: 'pvp', fightId: fight.fightId, summary: `${fight.boss.name} defeated ${player.name}!` });
+        }
+      } else {
+        fight.log.push({ text: `💨 Boss swings and misses!`, color: '#5dade2' });
       }
+      fight.bossMissNext = false; fight.blockNext = false;
     }
     broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
     return res.json({ fight: sanitizeFight(fight, room) });
   }
 
-  if (fight.type === 'pvp') {
+  // ── PvP — SIMULTANEOUS SYSTEM ──
+  if (fight.type === 'pvp' || fight.type === 'ranked') {
     const isP1 = fight.p1Id === playerId;
     const isP2 = fight.p2Id === playerId;
     if (!isP1 && !isP2) return res.status(403).json({ error: 'Not in this fight' });
-    if ((fight.turn === 'p1' && !isP1) || (fight.turn === 'p2' && !isP2)) return res.status(400).json({ error: 'Not your turn' });
 
-    const attacker = room.players[playerId];
-    const defenderId = isP1 ? fight.p2Id : fight.p1Id;
-    const defender = room.players[defenderId];
-    let dmg = Math.max(1, (attacker.str || 5) * 2 + Math.floor(Math.random() * 15));
-    if (action === 'skill' && attacker.skills && attacker.skills[skillIdx]) {
-      const sk = attacker.skills[skillIdx];
-      dmg = sk.dmg + Math.floor(Math.random() * sk.dmg * 0.25);
-    }
-    if (Math.random() < 0.1) { dmg = Math.floor(dmg * 1.5); fight.log.push({ text: `💥 CRIT! ${attacker.name} hits ${defender.name} for ${dmg}!`, color: '#ff6b00' }); }
-    else fight.log.push({ text: `⚔ ${attacker.name} hits ${defender.name} for ${dmg}!`, color: '#e8dfc4' });
+    // Store the player's move
+    if (isP1) fight.p1Move = { action, skillIdx };
+    else fight.p2Move = { action, skillIdx };
 
-    if (isP1) fight.p2Hp = Math.max(0, fight.p2Hp - dmg);
-    else fight.p1Hp = Math.max(0, fight.p1Hp - dmg);
-
-    const p1Dead = fight.p1Hp <= 0, p2Dead = fight.p2Hp <= 0;
-    if (p1Dead || p2Dead) {
-      fight.over = true;
-      const winner = p1Dead ? defender : attacker;
-      const loser = p1Dead ? attacker : defender;
-      fight.winner = p1Dead ? fight.p2Id : fight.p1Id;
-      fight.log.push({ text: `🏆 ${winner.name} wins the duel!`, color: '#d4a843' });
-      broadcastRoom(roomCode, { type: 'pvp', fightId: fight.fightId, summary: `${winner.name} defeated ${loser.name} in a duel!` });
-    } else {
-      fight.turn = fight.turn === 'p1' ? 'p2' : 'p1';
-    }
+    fight.log.push({ text: `⏳ ${room.players[playerId]?.name || '?'} locked in their move...`, color: '#7a6e5a' });
     broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+
+    // If BOTH players have submitted, resolve the round
+    if (fight.p1Move && fight.p2Move) {
+      resolvePvpRound(fight, room, roomCode);
+    }
+
     return res.json({ fight: sanitizeFight(fight, room) });
   }
 });
+
+function calcMoveDmg(player, move) {
+  const base = (player.str || 5) * 2 + Math.floor(Math.random() * 15);
+  if (move.action === 'attack') return base;
+  if (move.action === 'heavy') return Math.floor(base * 2.2);
+  if (move.action === 'skill' && player.skills && player.skills[move.skillIdx]) {
+    const sk = player.skills[move.skillIdx];
+    return sk.dmg + Math.floor(Math.random() * sk.dmg * 0.3);
+  }
+  if (move.action === 'domain') return Math.floor(base * 4);
+  return 0;
+}
+
+function resolvePvpRound(fight, room, roomCode) {
+  const p1 = room.players[fight.p1Id];
+  const p2 = room.players[fight.p2Id];
+  const m1 = fight.p1Move;
+  const m2 = fight.p2Move;
+  fight.p1Move = null; fight.p2Move = null;
+  fight.round = (fight.round || 0) + 1;
+
+  fight.log.push({ text: `━━ ROUND ${fight.round} ━━`, color: '#c9a227' });
+
+  // ── CLASH DETECTION ──
+  const bothAttacking = ['attack','heavy','skill','domain'].includes(m1.action) && ['attack','heavy','skill','domain'].includes(m2.action);
+  if (bothAttacking && Math.random() < 0.2) {
+    fight.log.push({ text: `⚡ TECHNIQUE CLASH! Cursed energy collides!`, color: 'rainbow' });
+    const p1Power = calcMoveDmg(p1, m1);
+    const p2Power = calcMoveDmg(p2, m2);
+    const clashDmg = Math.floor(Math.min(p1Power, p2Power) * 0.3);
+    fight.p1Hp = Math.max(0, fight.p1Hp - clashDmg);
+    fight.p2Hp = Math.max(0, fight.p2Hp - clashDmg);
+    fight.log.push({ text: `Both take ${clashDmg} from the clash!`, color: '#bb8fce' });
+    fight.p1Move = null; fight.p2Move = null;
+    checkPvpOver(fight, p1, p2, room, roomCode);
+    broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+    return;
+  }
+
+  // ── RESOLVE P1 MOVE vs P2 DEFENSE ──
+  resolveMove(fight, p1, p2, m1, m2, 'p1', room, roomCode);
+  if (!fight.over) resolveMove(fight, p2, p1, m2, m1, 'p2', room, roomCode);
+  if (!fight.over) checkPvpOver(fight, p1, p2, room, roomCode);
+  broadcastRoom(roomCode, { type: 'fight_update', fight: sanitizeFight(fight, room) });
+}
+
+function resolveMove(fight, attacker, defender, atkMove, defMove, side, room, roomCode) {
+  const defHpKey = side === 'p1' ? 'p2Hp' : 'p1Hp';
+
+  if (atkMove.action === 'dodge') {
+    fight.log.push({ text: `💨 ${attacker.name} dashes back, creating distance!`, color: '#5dade2' });
+    return;
+  }
+  if (atkMove.action === 'block') {
+    fight.log.push({ text: `🛡 ${attacker.name} takes a defensive stance!`, color: '#5dade2' });
+    return;
+  }
+  if (atkMove.action === 'taunt') {
+    fight.log.push({ text: `😤 ${attacker.name} taunts ${defender.name}! Next round their guard drops!`, color: '#e8b84b' });
+    if (side === 'p1') fight.p2Debuff = 'open'; else fight.p1Debuff = 'open';
+    return;
+  }
+
+  // Calculate damage
+  let dmg = calcMoveDmg(attacker, atkMove);
+  const moveName = atkMove.action === 'skill' && attacker.skills?.[atkMove.skillIdx]
+    ? attacker.skills[atkMove.skillIdx].name
+    : atkMove.action === 'heavy' ? 'Heavy Strike'
+    : atkMove.action === 'domain' ? 'Domain Expansion'
+    : 'Basic Attack';
+
+  // Debuff bonus
+  const atkDebuff = side === 'p1' ? fight.p1Debuff : fight.p2Debuff;
+  if (atkDebuff === 'open') { dmg = Math.floor(dmg * 1.4); fight.log.push({ text: `🎯 Opening exploit! +40% DMG!`, color: '#e8b84b' }); }
+  if (side === 'p1') fight.p1Debuff = null; else fight.p2Debuff = null;
+
+  // ── DEFENSE RESOLUTION ──
+  if (defMove.action === 'dodge') {
+    const dodgeSuccess = attacker.agi > defender.agi
+      ? Math.random() < 0.35
+      : Math.random() < 0.55;
+    if (dodgeSuccess) {
+      fight.log.push({ text: `💨 ${defender.name} dodges ${attacker.name}'s ${moveName}!`, color: '#5dade2' });
+      // Counter window: dodger gets reduced damage counter
+      const counterDmg = Math.floor((defender.str||5) * 1.5 + Math.random()*10);
+      fight[defHpKey === 'p2Hp' ? 'p1Hp' : 'p2Hp'] = Math.max(0, fight[defHpKey === 'p2Hp' ? 'p1Hp' : 'p2Hp'] - counterDmg);
+      fight.log.push({ text: `↩ ${defender.name} counters for ${counterDmg}!`, color: '#58d68d' });
+      return;
+    } else {
+      fight.log.push({ text: `❌ ${defender.name} couldn't dodge in time!`, color: '#e74c3c' });
+      dmg = Math.floor(dmg * 1.15); // punish failed dodge
+    }
+  } else if (defMove.action === 'block') {
+    const blockMult = atkMove.action === 'heavy' ? 0.5 : 0.25;
+    dmg = Math.floor(dmg * blockMult);
+    fight.log.push({ text: `🛡 ${defender.name} blocks! Damage reduced to ${dmg}!`, color: '#5dade2' });
+  } else if (defMove.action === 'domain' && atkMove.action !== 'domain') {
+    fight.log.push({ text: `💥 DOMAIN CLASH! Domains cancel out!`, color: 'rainbow' });
+    return;
+  }
+
+  // Crit
+  if (Math.random() < 0.1) {
+    dmg = Math.floor(dmg * 1.6);
+    fight.log.push({ text: `💥 CRITICAL! ${attacker.name}'s ${moveName} for ${dmg}!`, color: '#ff6b00' });
+  } else {
+    const actionIcon = atkMove.action==='heavy'?'💢':atkMove.action==='domain'?'🌀':atkMove.action==='skill'?'✦':'⚔';
+    fight.log.push({ text: `${actionIcon} ${attacker.name}: ${moveName} → ${dmg} dmg!`, color: '#e8dfc4' });
+  }
+
+  fight[defHpKey] = Math.max(0, fight[defHpKey] - dmg);
+
+  // Domain bonus: stun
+  if (atkMove.action === 'domain') {
+    fight.log.push({ text: `🌀 ${attacker.name}'s domain overwhelms ${defender.name}!`, color: '#bb8fce' });
+    if (side==='p1') fight.p2Debuff='stunned'; else fight.p1Debuff='stunned';
+  }
+}
+
+function checkPvpOver(fight, p1, p2, room, roomCode) {
+  const p1Dead = fight.p1Hp <= 0, p2Dead = fight.p2Hp <= 0;
+  if (!p1Dead && !p2Dead) return;
+  fight.over = true;
+  let winnerId, loserId;
+  if (p1Dead && p2Dead) {
+    fight.log.push({ text: `💀 DOUBLE KO! Simultaneous defeat!`, color: '#bb8fce' });
+    winnerId = fight.p2Id; loserId = fight.p1Id; // p2 wins tiebreak by hp difference... p1 died first
+  } else if (p1Dead) {
+    winnerId = fight.p2Id; loserId = fight.p1Id;
+  } else {
+    winnerId = fight.p1Id; loserId = fight.p2Id;
+  }
+  fight.winner = winnerId;
+  const winner = room.players[winnerId], loser = room.players[loserId];
+
+  // Ranked adjustments
+  if (fight.type === 'ranked') {
+    const winnerRank = adjustRank(winnerId, true);
+    const loserRank = adjustRank(loserId, false);
+    fight.log.push({ text: `🏆 ${winner?.name} wins! Rank: ${winnerRank.rank} (+25 RP)`, color: '#d4a843' });
+    fight.log.push({ text: `📉 ${loser?.name}: ${loserRank.rank} (-15 RP)`, color: '#e74c3c' });
+    fight.winnerRank = winnerRank; fight.loserRank = loserRank;
+  } else {
+    fight.log.push({ text: `🏆 ${winner?.name} wins the duel!`, color: '#d4a843' });
+  }
+  broadcastRoom(roomCode, { type: 'pvp', fightId: fight.fightId, summary: `${winner?.name} defeated ${loser?.name}${fight.type==='ranked'?' [RANKED]':''}!` });
+}
+
+// Get ranked info for player
+app.get('/api/ranked/:pid', (req, res) => {
+  res.json(getRankFromPoints(RANK_POINTS[req.params.pid]));
+});
+
+// Ranked challenge
+app.post('/api/rooms/:code/pvp/ranked', (req, res) => {
+  const room = rooms[req.params.code];
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  const { challengerId, targetId } = req.body;
+  const c = room.players[challengerId], t = room.players[targetId];
+  if (!c || !t) return res.status(404).json({ error: 'Player not found' });
+  const fightId = uuidv4();
+  room.fights[fightId] = {
+    fightId, type: 'ranked',
+    p1Id: challengerId, p2Id: targetId,
+    p1Hp: c.maxHp, p2Hp: t.maxHp,
+    p1MaxHp: c.maxHp, p2MaxHp: t.maxHp,
+    p1Move: null, p2Move: null,
+    p1Ce: c.maxCe, p2Ce: t.maxCe,
+    p1MaxCe: c.maxCe, p2MaxCe: t.maxCe,
+    round: 0, log: [], over: false,
+    p1Debuff: null, p2Debuff: null,
+  };
+  broadcastRoom(req.params.code, { type: 'pvp_start', fightId, p1Name: c.name, p2Name: t.name, p1Id: challengerId, p2Id: targetId, ranked: true });
+  res.json({ fightId });
+});
+
 
 function sanitizeFight(fight, room) {
   const f = { ...fight };
