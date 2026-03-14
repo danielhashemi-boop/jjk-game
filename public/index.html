@@ -611,11 +611,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 // ══════════════════════════════════════════════════════
 const PLT_SYMBOLS = ['7️⃣','❤️','💕','🌸','💋','⭐','🎰','💫','🔥'];
 const PLT_WEIGHTS = [3, 15, 18, 20, 18, 15, 8, 12, 10]; // 7 is rare!
-let pltResolve = null;
-let pltSpinning = false;
-let pltFightId = null;
-let pltIsP1 = false;
-let pltSpunResult = null;
+// PLT state (declared globally above)
+let pltFightId=null,pltIsP1=false,pltSpunResult=null;
 
 function pltWeightedSymbol(){
   const tot = PLT_WEIGHTS.reduce((a,b)=>a+b,0);
@@ -1035,6 +1032,14 @@ let skillCds={},activeFight=null,liveFs={},dailyData=null,rollCount=0,saveTO=nul
 let pStatus={},eStatus={},waveMode=false,waveNum=0,dungeonMode=false,dungeonRoom=0,dungeonEnemies=[];
 let domainActive=false,domainTimer=null,myMoveLocked=false,rankedPts=0;
 let prevKills=0,prevCoins=0,prevLevel=0,prevTrains=0;
+// Dodge game state (global so all script blocks can access)
+let dodgeActive=false,dodgeResolve=null,dodgeAnimId=null,dodgeKeys={};
+let dodgeSoul={x:240,y:285},dodgeBullets=[],dodgeHp=100;
+let dodgeStartTime=0,dodgeDuration=0,dodgePattern=null,dodgeIsDomain=false,dodgeSpawnTimer=0;
+let dodgeMobileDir={up:false,down:false,left:false,right:false};
+let dodgeCanvas=null,dodgeCtx=null,lastHitTime=0;
+// PLT + QTE state
+let pltResolve=null,pltSpinning=false,qteResolve=null;
 
 // ══════════════════════════════════════════════════════
 // VFX ENGINE
@@ -1780,7 +1785,7 @@ async function pollFight(){if(!activeFight)return;try{const r=await fetch(`/api/
 // ══════════════════════════════════════════════════════
 // QTE DOMAIN CLASH
 // ══════════════════════════════════════════════════════
-let qteResolve=null;
+// QTE state (declared globally above)
 function startQTE(fightId){
   return new Promise(resolve=>{
     qteResolve=resolve;
@@ -2464,21 +2469,7 @@ const DEFAULT_PATTERN = {
   domainSpawn:()=>{const b=[];for(let i=0;i<10;i++){const a=(i/10)*Math.PI*2;b.push({type:'orb',x:DODGE_W/2,y:DODGE_H/2,vx:Math.cos(a)*3.5,vy:Math.sin(a)*3.5,r:13,color:'#c9a227',life:3000,delay:i*100});}return b;}
 };
 
-// ── GAME STATE ──
-let dodgeActive = false;
-let dodgeResolve = null;
-let dodgeAnimId = null;
-let dodgeKeys = {};
-let dodgeSoul = {x:DODGE_W/2, y:DODGE_H*0.75};
-let dodgeBullets = [];
-let dodgeHp = 100;
-let dodgeStartTime = 0;
-let dodgeDuration = 0;
-let dodgePattern = null;
-let dodgeIsDomain = false;
-let dodgeSpawnTimer = 0;
-let dodgeMobileDir = {up:false,down:false,left:false,right:false};
-let dodgeCanvas = null, dodgeCtx = null;
+// ── GAME STATE (declared in main block above) ──
 
 function getDodgePattern(techName){
   return TECH_PATTERNS[techName] || DEFAULT_PATTERN;
@@ -2750,7 +2741,6 @@ function drawSoul(ctx,x,y,color){
   ctx.restore();
 }
 
-let lastHitTime=0;
 function dodgeHit(dmg){
   const now=performance.now();
   if(now-lastHitTime<200)return; // invincibility frames
