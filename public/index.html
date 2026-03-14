@@ -1187,6 +1187,58 @@ function handleWS(msg){
   }
   if(msg.type==='pvp'){const f=msg.fightId;if(f&&liveFs[f]){delete liveFs[f];renderLiveFs();}chatLine(`⚔ ${msg.summary}`,'var(--red2)');if(activeFight===f)pollFight();}
   if(msg.type==='fight_update'){if(activeFight===msg.fight?.fightId)renderFight(msg.fight);}
+
+  // ── DOMAIN CLASH — defender must dodge winner's domain ──
+  if(msg.type==='pvp_dodge_required'&&msg.fightId===activeFight){
+    const isDefender=msg.defenderId===player.playerId;
+    const isAttacker=msg.attackerId===player.playerId;
+    if(isDefender&&!dodgeActive){
+      // Show "you must dodge" message then open dodge game
+      logLine(`🌀 ${msg.attackerName}'s domain wins the clash! DODGE IT!`,'rainbow');
+      setTimeout(async()=>{
+        try{
+          const dr=await openDodgeGame(msg.attackerName,msg.tech,msg.skillName,true);
+          await fetch(`/api/fights/${activeFight}/dodge-result`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({playerId:player.playerId,result:dr.result,dmgMult:dr.dmgMult})
+          });
+        }catch(e){console.error('PvP dodge error:',e);}
+      },500);
+    } else if(isAttacker){
+      // Show attacker watching
+      logLine(`🌀 Your domain wins! ${msg.defenderName} is dodging your domain!`,'var(--pur3)');
+      // Show spectate view of dodge
+      showPvpSpectateMode(msg);
+    }
+  }
+
+  // ── SKILL USED in PvP — defender gets dodge minigame ──
+  if(msg.type==='pvp_dodge_skill'&&msg.fightId===activeFight){
+    const isDefender=msg.defenderId===player.playerId;
+    const isAttacker=msg.attackerId===player.playerId;
+    if(isDefender&&!dodgeActive){
+      logLine(`⚠ ${msg.attackerName} uses ${msg.skillName}! DODGE!`,'var(--red2)');
+      setTimeout(async()=>{
+        try{
+          const dr=await openDodgeGame(msg.attackerName,msg.tech,msg.skillName,msg.isDomain);
+          await fetch(`/api/fights/${activeFight}/dodge-result`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({playerId:player.playerId,result:dr.result,dmgMult:dr.dmgMult})
+          });
+        }catch(e){console.error('PvP skill dodge error:',e);}
+      },300);
+    } else if(isAttacker){
+      logLine(`✦ Your ${msg.skillName} — opponent is dodging!`,'var(--pur3)');
+    }
+  }
+}
+
+function showPvpSpectateMode(msg){
+  // Show attacker a spectating overlay on the dodge canvas
+  const ov=document.getElementById('dodge-overlay');
+  if(!ov)return;
+  // Just show a message in the fight log — the fight_update WS will update when done
+  chatLine(`🌀 ${msg.defenderName} is dodging your domain...`,'var(--pur3)');
 }
 
 function setSave(s){
