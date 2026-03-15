@@ -755,6 +755,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           <div class="pt">Online Players</div>
           <button class="boss-btn" id="toji-btn" onclick="startBoss('toji')">⚔ Boss: Toji Zenin</button>
           <button class="boss-btn sk" id="suk-btn" onclick="startBoss('sukuna')">👁 Boss: KING OF CURSES</button>
+          <button class="boss-btn" style="border-color:#e8c84a;color:#e8c84a;background:rgba(201,162,39,.1);margin-bottom:6px" onclick="joinArenaQueue()">⚔ WASD Arena — Real-time PvP</button>
+          <button class="boss-btn" style="border-color:#aaa;color:#aaa;background:rgba(150,150,150,.08);margin-bottom:6px" onclick="startArenaBotMatch()">🤖 Arena vs Bot (Practice)</button>
           <button class="boss-btn" style="border-color:#5dade2;color:#5dade2;background:rgba(93,173,226,.08)" onclick="open2v2Lobby()">⚔⚔ 2v2 Team Battle</button>
           <div id="lfights"></div>
           <div id="plist"></div>
@@ -1856,6 +1858,14 @@ function handleWS(msg){
     document.getElementById('v2-ov').style.display='none';
     toast('⚔⚔',`2v2 Match found! ${msg.team1?.map(p=>p.name).join(' & ')} vs ${msg.team2?.map(p=>p.name).join(' & ')}`);
     chatLine(`⚔⚔ 2V2: ${msg.team1?.map(p=>p.name).join(' & ')} VS ${msg.team2?.map(p=>p.name).join(' & ')}!`,'#5dade2');
+  }
+  if(msg.type==='arena_match_found')handleArenaMatchFound(msg);
+  if(msg.type==='arena_state'&&arenaActive&&arenaOnline&&arenaF2){
+    arenaF2.x=msg.x;arenaF2.y=msg.y;arenaF2.hp=msg.hp;
+    arenaF2.facing=msg.facing;arenaF2.vx=msg.vx;arenaF2.vy=msg.vy;
+    arenaF2.blocking=msg.blocking;
+    if(msg.attackAnim)arenaF2.attackAnim=200;
+    if(arenaF2.hp<=0&&!arenaF2.dead)arenaKill(arenaF2);
   }
 
   // ── CLASH MINIGAME EVENT ──
@@ -4182,6 +4192,836 @@ function leaveV2Queue(){
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'v2_leave',playerId:player.playerId}));
   document.getElementById('v2-status').textContent='Left queue.';
 }
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     WASD PVP ARENA — SIDE-SCROLLER FIGHTER
+     ══════════════════════════════════════════════════════ -->
+
+<style>
+/* ── ARENA OVERLAY ── */
+#arena-ov{
+  position:fixed;inset:0;z-index:500;
+  background:#000;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;
+}
+#arena-ov.active{display:flex}
+#arena-topbar{
+  width:100%;max-width:900px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 16px;
+  background:rgba(0,0,0,.6);
+  border-bottom:1px solid rgba(201,162,39,.2);
+  flex-shrink:0;
+}
+.arena-pname{font-size:12px;letter-spacing:.1em;color:var(--acc2);min-width:120px}
+.arena-pname.right{text-align:right}
+.arena-hp-wrap{flex:1;height:14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;margin:0 10px}
+.arena-hpbar{height:100%;border-radius:20px;transition:width .15s}
+.arena-hpbar.p1{background:linear-gradient(90deg,#e74c3c,#ff6b5b)}
+.arena-hpbar.p2{background:linear-gradient(90deg,#ff6b5b,#e74c3c);float:right}
+.arena-hp-txt{font-size:9px;letter-spacing:.05em;color:var(--mut);text-align:center;margin-top:2px}
+#arena-timer{font-size:18px;font-weight:900;color:var(--acc);letter-spacing:.1em;min-width:60px;text-align:center;text-shadow:0 0 15px var(--glow-acc)}
+#arena-round{font-size:9px;color:var(--mut);letter-spacing:.12em;text-align:center;margin-top:2px}
+#arena-canvas{
+  width:100%;max-width:900px;
+  height:420px;
+  background:#000;
+  border-left:1px solid rgba(201,162,39,.1);
+  border-right:1px solid rgba(201,162,39,.1);
+  cursor:none;
+  flex-shrink:0;
+}
+#arena-footer{
+  width:100%;max-width:900px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 16px;
+  background:rgba(0,0,0,.6);
+  border-top:1px solid rgba(201,162,39,.2);
+  flex-shrink:0;
+}
+.arena-skill-bar{display:flex;gap:5px;align-items:center}
+.arena-sk{
+  width:46px;height:46px;
+  background:rgba(0,0,0,.5);
+  border:1px solid rgba(201,162,39,.3);
+  border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:9px;color:var(--mut);letter-spacing:.04em;position:relative;overflow:hidden;
+  transition:border-color .2s;
+}
+.arena-sk.ready{border-color:var(--acc);color:var(--acc2)}
+.arena-sk.active{border-color:var(--grn2);color:var(--grn3);box-shadow:0 0 10px rgba(39,174,96,.3)}
+.arena-sk-key{font-size:11px;font-weight:700;color:inherit}
+.arena-sk-name{font-size:7px;color:inherit;opacity:.7;text-align:center}
+.arena-sk-cd{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--acc);transition:width .1s}
+.arena-controls{font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.06em;text-align:center}
+.arena-ce-bar-wrap{flex:1;margin:0 12px}
+.arena-ce-lbl{font-size:8px;color:var(--blue3);letter-spacing:.08em;margin-bottom:2px}
+.arena-ce-track{height:6px;background:rgba(0,0,0,.5);border:1px solid rgba(52,152,219,.3);border-radius:20px;overflow:hidden}
+.arena-ce-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--pur2));border-radius:20px;transition:width .2s}
+
+/* ── ARENA QUEUE MODAL ── */
+#arena-queue-ov{
+  position:fixed;inset:0;z-index:490;
+  background:rgba(0,0,0,.92);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(12px);
+}
+#arena-queue-ov.active{display:flex}
+.arena-queue-box{
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid rgba(201,162,39,.3);
+  border-radius:16px;padding:32px 36px;text-align:center;
+  box-shadow:0 0 60px rgba(0,0,0,.8),0 0 25px var(--glow-acc);
+  width:340px;
+}
+.arena-queue-title{font-family:'Cinzel',serif;font-size:16px;letter-spacing:.15em;color:var(--acc);margin-bottom:6px;text-shadow:0 0 20px var(--glow-acc)}
+.arena-queue-sub{font-size:11px;color:var(--mut);letter-spacing:.06em;margin-bottom:20px}
+.arena-queue-dots{font-size:24px;letter-spacing:8px;color:var(--acc);animation:queuePulse 1.2s infinite}
+@keyframes queuePulse{0%,100%{opacity:.3}50%{opacity:1}}
+.arena-queue-status{font-size:11px;color:var(--mut);margin-top:12px;letter-spacing:.06em;min-height:18px}
+
+/* ── RESULT SCREEN ── */
+#arena-result{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.85);z-index:10;
+  backdrop-filter:blur(8px);
+}
+#arena-result.show{display:flex}
+.arena-result-title{font-family:'Cinzel',serif;font-size:32px;font-weight:900;letter-spacing:.15em;margin-bottom:8px}
+.arena-result-sub{font-size:13px;color:var(--mut);letter-spacing:.08em;margin-bottom:20px}
+.arena-result-stats{display:flex;gap:20px;margin-bottom:20px}
+.arena-stat-chip{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center}
+.arena-stat-val{font-family:'Cinzel',serif;font-size:18px;color:var(--acc2)}
+.arena-stat-lbl{font-size:9px;color:var(--mut);letter-spacing:.08em;margin-top:2px}
+
+/* mobile dpad */
+#arena-dpad{display:none;position:absolute;bottom:70px;left:16px;z-index:6}
+.arena-dpad-grid{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:3px}
+.adpb{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.adpb:active{background:rgba(255,255,255,.25)}
+#arena-action-btns{display:none;position:absolute;bottom:70px;right:16px;z-index:6;flex-direction:column;gap:6px}
+.aab{width:52px;height:52px;border-radius:50%;border:2px solid;font-size:11px;font-family:'Cinzel',serif;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;color:#fff;font-weight:700}
+@media(hover:none) and (pointer:coarse){
+  #arena-dpad{display:block}
+  #arena-action-btns{display:flex}
+}
+</style>
+
+<!-- ARENA QUEUE OVERLAY -->
+<div id="arena-queue-ov">
+  <div class="arena-queue-box">
+    <div class="arena-queue-title">⚔ ARENA QUEUE</div>
+    <div class="arena-queue-sub">SEARCHING FOR OPPONENT</div>
+    <div class="arena-queue-dots">• • •</div>
+    <div class="arena-queue-status" id="arena-queue-status">Looking for a match...</div>
+    <button onclick="leaveArenaQueue()" style="margin-top:16px;padding:8px 24px;background:rgba(192,57,43,.12);border:1px solid var(--red);color:var(--red2);font-family:'Cinzel',serif;font-size:10px;letter-spacing:.1em;border-radius:6px;cursor:pointer">LEAVE QUEUE</button>
+  </div>
+</div>
+
+<!-- ARENA OVERLAY -->
+<div id="arena-ov">
+  <!-- Top HUD -->
+  <div id="arena-topbar">
+    <div>
+      <div class="arena-pname" id="arena-p1name">PLAYER 1</div>
+      <div class="arena-hp-wrap"><div class="arena-hpbar p1" id="arena-p1hp" style="width:100%"></div></div>
+      <div class="arena-hp-txt" id="arena-p1hp-txt">1000 / 1000</div>
+    </div>
+    <div style="text-align:center;flex-shrink:0;padding:0 12px">
+      <div id="arena-timer">99</div>
+      <div id="arena-round">ROUND 1</div>
+    </div>
+    <div style="text-align:right">
+      <div class="arena-pname right" id="arena-p2name">PLAYER 2</div>
+      <div class="arena-hp-wrap"><div class="arena-hpbar p2" id="arena-p2hp" style="width:100%"></div></div>
+      <div class="arena-hp-txt" id="arena-p2hp-txt">1000 / 1000</div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div style="position:relative;width:100%;max-width:900px;flex:1">
+    <canvas id="arena-canvas"></canvas>
+    <!-- Result screen -->
+    <div id="arena-result">
+      <div class="arena-result-title" id="arena-result-title">YOU WIN</div>
+      <div class="arena-result-sub" id="arena-result-sub">VICTORY</div>
+      <div class="arena-result-stats" id="arena-result-stats"></div>
+      <button onclick="closeArena()" style="padding:10px 28px;background:rgba(201,162,39,.1);border:1px solid var(--acc);color:var(--acc2);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;border-radius:6px;cursor:pointer">RETURN TO LOBBY</button>
+    </div>
+    <!-- Mobile dpad -->
+    <div id="arena-dpad">
+      <div class="arena-dpad-grid">
+        <div></div>
+        <div class="adpb" id="adp-up">▲</div>
+        <div></div>
+        <div class="adpb" id="adp-left">◀</div>
+        <div></div>
+        <div class="adpb" id="adp-right">▶</div>
+        <div></div>
+        <div class="adpb" id="adp-down">▼</div>
+        <div></div>
+      </div>
+    </div>
+    <!-- Mobile action buttons -->
+    <div id="arena-action-btns">
+      <div class="aab" id="aab-q" style="border-color:var(--pur2);background:rgba(142,68,173,.2)">Q</div>
+      <div class="aab" id="aab-e" style="border-color:var(--blue2);background:rgba(52,152,219,.2)">E</div>
+      <div class="aab" id="aab-r" style="border-color:var(--red2);background:rgba(192,57,43,.2)">R</div>
+      <div class="aab" id="aab-space" style="border-color:var(--grn2);background:rgba(39,174,96,.2)">↑</div>
+    </div>
+  </div>
+
+  <!-- Bottom HUD -->
+  <div id="arena-footer">
+    <div class="arena-skill-bar" id="arena-skill-bar">
+      <div class="arena-sk" id="ask-q"><span class="arena-sk-key">Q</span><span class="arena-sk-name">Skill 1</span><div class="arena-sk-cd" id="ask-q-cd" style="width:0%"></div></div>
+      <div class="arena-sk" id="ask-e"><span class="arena-sk-key">E</span><span class="arena-sk-name">Skill 2</span><div class="arena-sk-cd" id="ask-e-cd" style="width:0%"></div></div>
+      <div class="arena-sk" id="ask-r"><span class="arena-sk-key">R</span><span class="arena-sk-name">Skill 3</span><div class="arena-sk-cd" id="ask-r-cd" style="width:0%"></div></div>
+      <div class="arena-sk" id="ask-f"><span class="arena-sk-key">F</span><span class="arena-sk-name">Domain</span><div class="arena-sk-cd" id="ask-f-cd" style="width:0%"></div></div>
+    </div>
+    <div class="arena-ce-bar-wrap">
+      <div class="arena-ce-lbl">CURSED ENERGY</div>
+      <div class="arena-ce-track"><div class="arena-ce-fill" id="arena-ce-fill" style="width:100%"></div></div>
+    </div>
+    <div class="arena-controls">WASD / ARROWS — MOVE &amp; JUMP<br>SHIFT — BLOCK &nbsp;|&nbsp; SPACE — DASH<br>Q E R F — SKILLS</div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// WASD ARENA — SIDE-SCROLLER PVP
+// ══════════════════════════════════════════════════════
+
+const ARENA_W = 900, ARENA_H = 420;
+const ARENA_FLOOR = ARENA_H - 80;
+const ARENA_GRAVITY = 0.55;
+const ARENA_JUMP_FORCE = -13;
+const ARENA_SPEED = 4.2;
+const ARENA_DASH_DIST = 110;
+const ARENA_DASH_DUR = 160; // ms
+
+// Fighter state
+let arenaActive = false;
+let arenaAnimId = null;
+let arenaOnline = false; // true = real PvP, false = local/bot
+let arenaRound = 1;
+let arenaTimerSec = 90;
+let arenaTimerInt = null;
+let arenaInQueue = false;
+let arenaMatchId = null;
+
+const ARENA_MAXHP = 1000;
+const ARENA_MAXCE = 100;
+
+function makeArenaFighter(x, facing, name, color, isPlayer){
+  return {
+    x, y: ARENA_FLOOR,
+    vx:0, vy:0,
+    w:38, h:68,
+    onGround:true,
+    facing, // 1=right, -1=left
+    name, color,
+    hp: ARENA_MAXHP, maxHp: ARENA_MAXHP,
+    ce: ARENA_MAXCE, maxCe: ARENA_MAXCE,
+    blocking: false,
+    dashing: false, dashDir:1, dashTimer:0, dashCd:0,
+    attackAnim:0, hitAnim:0,
+    isPlayer,
+    skills:[],
+    skillCds:[0,0,0,0],
+    // effects
+    effects:[], // {type, timer, color}
+    dmgNumbers:[], // {val, x, y, timer, crit}
+    combo:0, comboTimer:0,
+    stunTimer:0,
+    dead:false,
+  };
+}
+
+let arenaF1 = null; // local player
+let arenaF2 = null; // opponent / bot
+
+const ARENA_KEYS = {};
+window.addEventListener('keydown', e=>{
+  if(!arenaActive)return;
+  ARENA_KEYS[e.code]=true;
+  if(['Space','KeyW','ArrowUp','KeyQ','KeyE','KeyR','KeyF','ShiftLeft','ShiftRight'].includes(e.code))e.preventDefault();
+  handleArenaKeyDown(e.code);
+});
+window.addEventListener('keyup', e=>{
+  ARENA_KEYS[e.code]=false;
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){if(arenaF1)arenaF1.blocking=false;}
+});
+
+function handleArenaKeyDown(code){
+  if(!arenaActive||!arenaF1||arenaF1.dead)return;
+  const f=arenaF1;
+  // Jump
+  if((code==='KeyW'||code==='ArrowUp'||code==='Space')&&f.onGround&&code!=='Space'){
+    f.vy=ARENA_JUMP_FORCE; f.onGround=false;
+  }
+  // Dash — Space
+  if(code==='Space'&&f.dashCd<=0&&!f.dashing){
+    f.dashing=true; f.dashDir=f.facing;
+    f.dashTimer=ARENA_DASH_DUR; f.dashCd=800;
+    arenaSpawnEffect(f,'dash','rgba(150,220,255,.7)');
+  }
+  // Block
+  if(code==='ShiftLeft'||code==='ShiftRight') f.blocking=true;
+  // Skills
+  if(code==='KeyQ') arenaUseSkill(f,0);
+  if(code==='KeyE') arenaUseSkill(f,1);
+  if(code==='KeyR') arenaUseSkill(f,2);
+  if(code==='KeyF') arenaUseSkill(f,3); // domain
+}
+
+function arenaUseSkill(f, idx){
+  if(f.skillCds[idx]>0||f.stunTimer>0)return;
+  const sk = f.skills[idx];
+  if(!sk)return;
+  if(f.ce<sk.cost){arenaSpawnDmgNum('NO CE',f.x,f.y-80,'#e74c3c',false);return;}
+  f.ce=Math.max(0,f.ce-sk.cost);
+  f.skillCds[idx]=sk.cd;
+  f.attackAnim=300;
+  const opp = f===arenaF1?arenaF2:arenaF1;
+  const dist=Math.abs(f.x-opp.x);
+  const inRange=dist<(sk.range||280);
+  if(inRange&&!opp.dead){
+    let dmg=sk.dmg+Math.floor(Math.random()*sk.dmg*.2);
+    if(opp.blocking)dmg=Math.floor(dmg*.25);
+    const crit=Math.random()<.12;
+    if(crit)dmg=Math.floor(dmg*1.7);
+    opp.hp=Math.max(0,opp.hp-dmg);
+    opp.hitAnim=200;
+    if(!opp.blocking){opp.vx=f.facing*4;opp.vy=-3;}
+    if(sk.stun)opp.stunTimer=sk.stun;
+    arenaSpawnEffect(opp,'hit',sk.color||'#e8c84a');
+    arenaSpawnDmgNum(crit?`${dmg}!`:dmg,opp.x,opp.y-60,sk.color||'#e8c84a',crit);
+    f.combo++;
+    if(f===arenaF1&&arenaOnline)arenaSendState();
+  }
+  // Domain — screen flash
+  if(idx===3){
+    skillFlash(sk.color||'#9b59b6', player?.tech||'', sk.name||'Domain');
+    domainVFX(player?.tech||'');
+  }
+  arenaUpdateSkillUI();
+  if(opp.hp<=0&&!opp.dead)arenaKill(opp);
+}
+
+function arenaSpawnEffect(f, type, color){
+  f.effects.push({type,timer:350,maxTimer:350,color});
+}
+function arenaSpawnDmgNum(val, x, y, color, crit){
+  const list=arenaF1?arenaF1.dmgNumbers:[];
+  list.push({val:String(val),x,y,timer:900,vy:-1.2,color,crit});
+  if(arenaF2)arenaF2.dmgNumbers.push({val:String(val),x,y,timer:900,vy:-1.2,color,crit});
+}
+
+function arenaKill(f){
+  f.dead=true; f.vy=-10;
+  const winner=f===arenaF1?arenaF2:arenaF1;
+  clearInterval(arenaTimerInt);
+  setTimeout(()=>arenaShowResult(winner),800);
+}
+
+function arenaShowResult(winner){
+  const isWin = winner===arenaF1;
+  const res=document.getElementById('arena-result');
+  document.getElementById('arena-result-title').textContent=isWin?'VICTORY':'DEFEAT';
+  document.getElementById('arena-result-title').style.color=isWin?'var(--acc2)':'var(--red2)';
+  document.getElementById('arena-result-sub').textContent=isWin?`${winner.name} WINS`:`${winner.name} WINS`;
+  // Rewards
+  const statsEl=document.getElementById('arena-result-stats');
+  if(isWin&&player){
+    const coinReward=200+arenaF1.combo*5;
+    const xpReward=300+arenaRound*100;
+    player.coins+=coinReward; player.xp+=xpReward; player.spins+=2;
+    checkLevelUp(); schedSave();
+    statsEl.innerHTML=`
+      <div class="arena-stat-chip"><div class="arena-stat-val">+${xpReward}</div><div class="arena-stat-lbl">XP</div></div>
+      <div class="arena-stat-chip"><div class="arena-stat-val">+${coinReward}</div><div class="arena-stat-lbl">COINS</div></div>
+      <div class="arena-stat-chip"><div class="arena-stat-val">+2</div><div class="arena-stat-lbl">SPINS</div></div>
+      <div class="arena-stat-chip"><div class="arena-stat-val">${arenaF1.combo}</div><div class="arena-stat-lbl">MAX COMBO</div></div>
+    `;
+  } else {
+    statsEl.innerHTML=`<div class="arena-stat-chip"><div class="arena-stat-val">${arenaF1.combo}</div><div class="arena-stat-lbl">COMBO</div></div>`;
+  }
+  res.classList.add('show');
+}
+
+// ── BUILD SKILLS FROM PLAYER TECHNIQUE ──
+function arenaGetSkills(tech, skills){
+  if(!skills||!skills.length) return defaultArenaSkills();
+  return [
+    {name:skills[0]?.name||'Strike', key:'Q', dmg:80, cost:15, cd:2000, range:250, color:'#e8c84a'},
+    {name:skills[1]?.name||'Blast',  key:'E', dmg:130,cost:25, cd:3500, range:300, color:'#9b59b6'},
+    {name:skills[2]?.name||'Surge',  key:'R', dmg:100,cost:20, cd:3000, range:280, color:'#3498db', stun:400},
+    {name:'Domain',                  key:'F', dmg:250,cost:50, cd:12000,range:350, color:'#bb8fce'},
+  ];
+}
+function defaultArenaSkills(){
+  return [
+    {name:'Strike', key:'Q', dmg:75,  cost:12, cd:1800, range:250, color:'#e8c84a'},
+    {name:'Blast',  key:'E', dmg:120, cost:22, cd:3200, range:300, color:'#9b59b6'},
+    {name:'Surge',  key:'R', dmg:95,  cost:18, cd:2800, range:280, color:'#3498db', stun:350},
+    {name:'Domain', key:'F', dmg:240, cost:48, cd:11000,range:350, color:'#bb8fce'},
+  ];
+}
+
+// ── BOT AI ──
+let botThinkTimer=0;
+function arenaUpdateBot(dt){
+  const bot=arenaF2, p=arenaF1;
+  if(!bot||bot.dead||p.dead)return;
+  botThinkTimer-=dt;
+  if(botThinkTimer>0)return;
+  botThinkTimer=400+Math.random()*600;
+  const dx=p.x-bot.x;
+  const dist=Math.abs(dx);
+  // Move toward player
+  if(dist>180){bot.vx=Math.sign(dx)*ARENA_SPEED*0.85;}
+  else if(dist<80){bot.vx=-Math.sign(dx)*ARENA_SPEED*0.5;}
+  else bot.vx=0;
+  bot.facing=Math.sign(dx)||1;
+  // Jump occasionally
+  if(bot.onGround&&Math.random()<.15){bot.vy=ARENA_JUMP_FORCE;bot.onGround=false;}
+  // Attack
+  if(dist<260&&Math.random()<.5){
+    const sk=Math.floor(Math.random()*4);
+    arenaUseSkill(bot,sk);
+  }
+  // Block sometimes when player attacking
+  if(p.attackAnim>0&&dist<200)bot.blocking=Math.random()<.35;
+  else bot.blocking=false;
+}
+
+// ── UPDATE LOOP ──
+let arenaLastTime=0;
+function arenaLoop(ts){
+  if(!arenaActive){arenaAnimId=null;return;}
+  const dt=Math.min(ts-arenaLastTime,50);
+  arenaLastTime=ts;
+  arenaUpdate(dt);
+  arenaDraw();
+  arenaAnimId=requestAnimationFrame(arenaLoop);
+}
+
+function arenaUpdate(dt){
+  if(!arenaF1||!arenaF2)return;
+  [arenaF1,arenaF2].forEach((f,fi)=>{
+    if(f.dead)return;
+    // Input for player
+    if(f.isPlayer){
+      if(!f.dashing){
+        if(ARENA_KEYS['KeyA']||ARENA_KEYS['ArrowLeft']){f.vx=-ARENA_SPEED;f.facing=-1;}
+        else if(ARENA_KEYS['KeyD']||ARENA_KEYS['ArrowRight']){f.vx=ARENA_SPEED;f.facing=1;}
+        else f.vx*=0.72;
+      }
+      if(ARENA_KEYS['ShiftLeft']||ARENA_KEYS['ShiftRight'])f.blocking=true;
+      // Basic attack — no key needed, auto-attack at melee range
+      const opp=arenaF2; const dist=Math.abs(f.x-opp.x);
+      if(dist<90&&!f.attackAnim&&!f.stunTimer&&!f.blocking&&f.onGround&&!opp.dead){
+        // Melee: auto-attack every ~600ms when in range
+        if(!f._meleeTimer||f._meleeTimer<=0){
+          f._meleeTimer=600;
+          let dmg=20+Math.floor(f.combo*.5)+Math.floor(Math.random()*15);
+          if(opp.blocking)dmg=Math.floor(dmg*.2);
+          const crit=Math.random()<.08;
+          if(crit)dmg=Math.floor(dmg*1.8);
+          opp.hp=Math.max(0,opp.hp-dmg);
+          opp.hitAnim=150; opp.vx=f.facing*2;
+          arenaSpawnEffect(opp,'hit','#e07060');
+          arenaSpawnDmgNum(crit?`${dmg}!!`:dmg,opp.x,opp.y-50,'#ff8060',crit);
+          f.attackAnim=200; f.combo++;
+          f.comboTimer=1800;
+          if(opp.hp<=0&&!opp.dead)arenaKill(opp);
+        }
+      }
+    } else {
+      arenaUpdateBot(dt);
+    }
+    // Dash
+    if(f.dashing){
+      f.dashTimer-=dt; f.vx=f.dashDir*18;
+      if(f.dashTimer<=0){f.dashing=false;f.vx=0;}
+    }
+    // Gravity
+    if(!f.onGround)f.vy+=ARENA_GRAVITY;
+    // Move
+    f.x+=f.vx; f.y+=f.vy;
+    // Floor
+    if(f.y>=ARENA_FLOOR){f.y=ARENA_FLOOR;f.vy=0;f.onGround=true;}
+    // Walls
+    f.x=Math.max(f.w/2,Math.min(ARENA_W-f.w/2,f.x));
+    // Timers
+    if(f.attackAnim>0)f.attackAnim-=dt;
+    if(f.hitAnim>0)f.hitAnim-=dt;
+    if(f.stunTimer>0)f.stunTimer-=dt;
+    if(f.dashCd>0)f.dashCd-=dt;
+    if(f._meleeTimer>0)f._meleeTimer-=dt;
+    if(f.comboTimer>0){f.comboTimer-=dt;if(f.comboTimer<=0)f.combo=0;}
+    // CE regen
+    if(!f.blocking)f.ce=Math.min(f.maxCe,f.ce+0.025*dt/16);
+    else f.ce=Math.min(f.maxCe,f.ce+0.06*dt/16); // regen faster when blocking
+    // Skill cooldowns
+    for(let i=0;i<4;i++)if(f.skillCds[i]>0)f.skillCds[i]-=dt;
+    // Effects
+    f.effects=f.effects.filter(e=>e.timer>0);
+    f.effects.forEach(e=>e.timer-=dt);
+    // Damage numbers
+    f.dmgNumbers=f.dmgNumbers.filter(d=>d.timer>0);
+    f.dmgNumbers.forEach(d=>{d.timer-=dt;d.y+=d.vy;});
+  });
+  // CE bar for player
+  const ceFill=document.getElementById('arena-ce-fill');
+  if(ceFill&&arenaF1)ceFill.style.width=`${(arenaF1.ce/arenaF1.maxCe)*100}%`;
+  // Update HP bars
+  arenaUpdateHUD();
+  // Skill CD UI
+  arenaUpdateSkillUI();
+}
+
+function arenaUpdateHUD(){
+  if(!arenaF1||!arenaF2)return;
+  const p1=document.getElementById('arena-p1hp'),p2=document.getElementById('arena-p2hp');
+  const p1t=document.getElementById('arena-p1hp-txt'),p2t=document.getElementById('arena-p2hp-txt');
+  if(p1)p1.style.width=`${Math.max(0,arenaF1.hp/arenaF1.maxHp*100)}%`;
+  if(p2)p2.style.width=`${Math.max(0,arenaF2.hp/arenaF2.maxHp*100)}%`;
+  if(p1t)p1t.textContent=`${Math.max(0,arenaF1.hp)} / ${arenaF1.maxHp}`;
+  if(p2t)p2t.textContent=`${Math.max(0,arenaF2.hp)} / ${arenaF2.maxHp}`;
+}
+
+function arenaUpdateSkillUI(){
+  if(!arenaF1)return;
+  const keys=['q','e','r','f'];
+  arenaF1.skills.forEach((sk,i)=>{
+    const btn=document.getElementById(`ask-${keys[i]}`);
+    const cdBar=document.getElementById(`ask-${keys[i]}-cd`);
+    if(!btn)return;
+    const cd=arenaF1.skillCds[i];
+    const pct=cd>0?((cd/sk.cd)*100):0;
+    btn.classList.toggle('ready',cd<=0);
+    if(cdBar)cdBar.style.width=`${pct}%`;
+    // Update name
+    const nameEl=btn.querySelector('.arena-sk-name');
+    if(nameEl)nameEl.textContent=sk.name;
+  });
+}
+
+// ── DRAW ──
+function arenaDraw(){
+  const canvas=document.getElementById('arena-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  // Background
+  ctx.fillStyle='#06050a';
+  ctx.fillRect(0,0,W,H);
+  // Ground
+  const grad=ctx.createLinearGradient(0,ARENA_FLOOR,0,H);
+  grad.addColorStop(0,'#1a1628'); grad.addColorStop(1,'#0d0b14');
+  ctx.fillStyle=grad; ctx.fillRect(0,ARENA_FLOOR,W,H-ARENA_FLOOR);
+  ctx.strokeStyle='rgba(201,162,39,.3)'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,ARENA_FLOOR);ctx.lineTo(W,ARENA_FLOOR);ctx.stroke();
+  // Background pillars / atmosphere
+  for(let i=0;i<5;i++){
+    const px=80+i*160;
+    ctx.strokeStyle=`rgba(201,162,39,${.04+i*.01})`;
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,ARENA_FLOOR);ctx.stroke();
+  }
+  // Cursed energy particles in background
+  const t=Date.now()*.001;
+  for(let i=0;i<8;i++){
+    const px=((i*137+t*20)%W);
+    const py=50+Math.sin(t+i)*100;
+    ctx.fillStyle=`rgba(155,89,182,${.05+Math.sin(t*2+i)*.03})`;
+    ctx.beginPath();ctx.arc(px,py,2+Math.sin(t+i),0,Math.PI*2);ctx.fill();
+  }
+  // Draw fighters
+  if(arenaF2)arenaDrawFighter(ctx,arenaF2);
+  if(arenaF1)arenaDrawFighter(ctx,arenaF1);
+  // Draw damage numbers (global layer)
+  [[arenaF1],[arenaF2]].forEach(([f])=>{
+    if(!f)return;
+    f.dmgNumbers.forEach(d=>{
+      const alpha=Math.min(1,d.timer/300);
+      ctx.save();
+      ctx.globalAlpha=alpha;
+      ctx.font=`${d.crit?'900':'700'} ${d.crit?20:15}px 'Cinzel',serif`;
+      ctx.fillStyle=d.color;
+      ctx.textAlign='center';
+      if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=12;}
+      ctx.fillText(d.val,d.x,d.y);
+      ctx.restore();
+    });
+  });
+}
+
+function arenaDrawFighter(ctx, f){
+  ctx.save();
+  const hitFlash = f.hitAnim>0 && Math.floor(f.hitAnim/40)%2===0;
+  const alpha = f.dead ? Math.max(0,(f.hp+200)/200) : 1;
+  ctx.globalAlpha = alpha;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.4)';
+  ctx.beginPath();ctx.ellipse(f.x,ARENA_FLOOR+4,f.w*.7,6,0,0,Math.PI*2);ctx.fill();
+  // Blocking shield aura
+  if(f.blocking){
+    ctx.save();
+    ctx.globalAlpha=.25+Math.sin(Date.now()*.006)*.1;
+    ctx.strokeStyle='#3498db';ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(f.x-f.facing*8,f.y-f.h/2,f.w*.7,f.h*.6,0,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+  // Dash trail
+  if(f.dashing){
+    for(let t=1;t<=4;t++){
+      ctx.save();ctx.globalAlpha=alpha*(.15*t);
+      ctx.fillStyle='rgba(150,220,255,.4)';
+      ctx.fillRect(f.x-f.w/2-f.dashDir*t*14,f.y-f.h,f.w,f.h);
+      ctx.restore();
+    }
+  }
+  // Stun stars
+  if(f.stunTimer>0){
+    for(let s=0;s<3;s++){
+      const sa=Date.now()*.005+s*2.1;
+      const sx=f.x+Math.cos(sa)*20, sy=f.y-f.h-10+Math.sin(sa)*6;
+      ctx.fillStyle='#f1c40f';ctx.font='12px serif';
+      ctx.textAlign='center';ctx.fillText('★',sx,sy);
+    }
+  }
+  // Body
+  const bodyColor = hitFlash ? '#fff' : f.color;
+  // Legs
+  const legY = f.y - 12;
+  const walkPhase = (Date.now()*.01)%(Math.PI*2);
+  const moving = Math.abs(f.vx)>0.5;
+  if(moving&&f.onGround){
+    ctx.fillStyle=bodyColor;
+    // Left leg
+    ctx.fillRect(f.x-10,legY,10,20+Math.sin(walkPhase)*8);
+    // Right leg
+    ctx.fillRect(f.x,legY,10,20-Math.sin(walkPhase)*8);
+  } else {
+    ctx.fillStyle=bodyColor;
+    ctx.fillRect(f.x-10,legY,10,18);
+    ctx.fillRect(f.x,legY,10,18);
+  }
+  // Torso
+  const torsoH = 32;
+  const tiltX = f.attackAnim>0 ? f.facing*5 : 0;
+  const airTilt = !f.onGround ? f.vy*.5 : 0;
+  ctx.save();
+  ctx.translate(f.x+tiltX, f.y-f.h/2-6);
+  ctx.rotate(airTilt*.04);
+  ctx.fillStyle=bodyColor;
+  ctx.fillRect(-f.w/2, -torsoH/2, f.w, torsoH);
+  // Torso shimmer
+  ctx.fillStyle=`rgba(255,255,255,.07)`;
+  ctx.fillRect(-f.w/2,-torsoH/2,f.w/2,torsoH);
+  ctx.restore();
+  // Head
+  const headX = f.x + (f.facing>0?3:-3) + tiltX;
+  const headY = f.y - f.h + 4;
+  ctx.fillStyle=bodyColor;
+  ctx.beginPath();ctx.arc(headX, headY, 14, 0, Math.PI*2);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#fff';
+  const eyeX = headX + f.facing*5;
+  ctx.beginPath();ctx.arc(eyeX, headY-2, 3.5, 0, Math.PI*2);ctx.fill();
+  ctx.fillStyle='#000';
+  ctx.beginPath();ctx.arc(eyeX+f.facing*1.2, headY-2, 2, 0, Math.PI*2);ctx.fill();
+  // Attack effect
+  if(f.attackAnim>0){
+    const prog=f.attackAnim/300;
+    ctx.save();
+    ctx.globalAlpha=prog*.7;
+    ctx.strokeStyle=f.color;
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(f.x+f.facing*30, f.y-f.h*.4, 25+prog*20, -Math.PI*.4, Math.PI*.4);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Hit effects
+  f.effects.forEach(ef=>{
+    const prog=ef.timer/ef.maxTimer;
+    if(ef.type==='hit'){
+      ctx.save();ctx.globalAlpha=prog*.8;
+      for(let p=0;p<6;p++){
+        const a=(p/6)*Math.PI*2+Date.now()*.01;
+        const r=20+prog*30;
+        ctx.strokeStyle=ef.color;ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(f.x+Math.cos(a)*10,f.y-f.h/2+Math.sin(a)*10);
+        ctx.lineTo(f.x+Math.cos(a)*r,f.y-f.h/2+Math.sin(a)*r);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    if(ef.type==='dash'){
+      ctx.save();ctx.globalAlpha=prog*.5;
+      ctx.strokeStyle=ef.color;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(f.x,f.y-f.h/2,30+prog*20,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // Name tag
+  ctx.globalAlpha=1;
+  ctx.font='bold 10px Cinzel,serif';
+  ctx.textAlign='center';
+  ctx.fillStyle=f.color;
+  ctx.shadowColor=f.color;ctx.shadowBlur=8;
+  ctx.fillText(f.name.toUpperCase(),f.x,f.y-f.h-8);
+  ctx.shadowBlur=0;
+  // Combo
+  if(f.combo>=3&&f.comboTimer>0){
+    ctx.font=`bold ${12+Math.min(f.combo,8)}px Cinzel,serif`;
+    ctx.fillStyle='#e8c84a';
+    ctx.shadowColor='rgba(201,162,39,.8)';ctx.shadowBlur=12;
+    ctx.fillText(`${f.combo}×COMBO`,f.x,f.y-f.h-22);
+    ctx.shadowBlur=0;
+  }
+  ctx.restore();
+}
+
+// ── OPEN / CLOSE ARENA ──
+function openArena(opponentName, opponentColor, online=false){
+  arenaActive=true; arenaOnline=online;
+  const canvas=document.getElementById('arena-canvas');
+  canvas.width=ARENA_W; canvas.height=ARENA_H;
+  const pColor = '#e8c84a'; // player always gold
+  const oColor = opponentColor || '#e74c3c';
+  arenaF1=makeArenaFighter(160, 1, player?.name||'YOU', pColor, true);
+  arenaF2=makeArenaFighter(ARENA_W-160, -1, opponentName||'OPPONENT', oColor, false);
+  // Scale HP by player level
+  const lvl=player?.level||1;
+  arenaF1.maxHp=arenaF2.maxHp=Math.floor(ARENA_MAXHP+(lvl-1)*20);
+  arenaF1.hp=arenaF1.maxHp; arenaF2.hp=arenaF2.maxHp;
+  // Skills from player technique
+  arenaF1.skills=arenaGetSkills(player?.tech, player?.skills);
+  arenaF2.skills=arenaGetSkills(null,null); // bot gets defaults
+  // Update skill bar
+  arenaUpdateSkillUI();
+  document.getElementById('arena-p1name').textContent=arenaF1.name;
+  document.getElementById('arena-p2name').textContent=arenaF2.name;
+  document.getElementById('arena-round').textContent=`ROUND ${arenaRound}`;
+  document.getElementById('arena-result').classList.remove('show');
+  // Timer
+  arenaTimerSec=90;
+  clearInterval(arenaTimerInt);
+  arenaTimerInt=setInterval(()=>{
+    arenaTimerSec--;
+    const el=document.getElementById('arena-timer');
+    if(el)el.textContent=arenaTimerSec;
+    if(arenaTimerSec<=10&&el)el.style.color='var(--red2)';
+    if(arenaTimerSec<=0){
+      clearInterval(arenaTimerInt);
+      // Time up — whoever has more HP wins
+      const winner=arenaF1.hp>=arenaF2.hp?arenaF1:arenaF2;
+      arenaShowResult(winner);
+    }
+  },1000);
+  document.getElementById('arena-ov').classList.add('active');
+  arenaLastTime=performance.now();
+  arenaAnimId=requestAnimationFrame(arenaLoop);
+  logLine('⚔ ARENA: Use WASD to move, Space to dash, Shift to block, Q/E/R/F for skills!','var(--acc)');
+}
+
+function closeArena(){
+  arenaActive=false;
+  clearInterval(arenaTimerInt);
+  if(arenaAnimId)cancelAnimationFrame(arenaAnimId);
+  document.getElementById('arena-ov').classList.remove('active');
+  Object.keys(ARENA_KEYS).forEach(k=>delete ARENA_KEYS[k]);
+  renderAll();
+}
+
+// ── QUICK PLAY vs BOT ──
+function startArenaBotMatch(){
+  const botNames=['Yuji','Megumi','Nobara','Nanami','Toji','Maki'];
+  const botColors=['#e74c3c','#3498db','#e67e22','#f1c40f','#2ecc71','#9b59b6'];
+  const idx=Math.floor(Math.random()*botNames.length);
+  openArena(botNames[idx],botColors[idx],false);
+}
+
+// ── ARENA QUEUE (online) ──
+let arenaQueueInt=null;
+function joinArenaQueue(){
+  if(!player)return;
+  arenaInQueue=true;
+  document.getElementById('arena-queue-ov').classList.add('active');
+  document.getElementById('arena-queue-status').textContent='Searching for opponent...';
+  if(ws&&ws.readyState===1){
+    ws.send(JSON.stringify({type:'arena_queue_join',name:player.name,roomCode:player.roomCode,level:player.level,tech:player.tech}));
+  }
+  // Simulate finding match after 3s if no opponent (vs bot)
+  arenaQueueInt=setTimeout(()=>{
+    if(arenaInQueue){
+      document.getElementById('arena-queue-status').textContent='No opponent found — starting vs BOT';
+      setTimeout(()=>{leaveArenaQueue();startArenaBotMatch();},1200);
+    }
+  },3000);
+}
+function leaveArenaQueue(){
+  arenaInQueue=false;
+  clearTimeout(arenaQueueInt);
+  document.getElementById('arena-queue-ov').classList.remove('active');
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'arena_queue_leave'}));
+}
+
+// Handle arena match found from server
+function handleArenaMatchFound(msg){
+  if(!arenaInQueue)return;
+  clearTimeout(arenaQueueInt);
+  arenaInQueue=false;
+  arenaMatchId=msg.matchId;
+  document.getElementById('arena-queue-ov').classList.remove('active');
+  const isP1=msg.p1Name===player.name;
+  const oppName=isP1?msg.p2Name:msg.p1Name;
+  const oppColor=isP1?'#e74c3c':'#3498db';
+  openArena(oppName,oppColor,true);
+}
+
+function arenaSendState(){
+  if(!ws||ws.readyState!==1||!arenaMatchId)return;
+  ws.send(JSON.stringify({
+    type:'arena_state',matchId:arenaMatchId,
+    x:Math.floor(arenaF1.x),y:Math.floor(arenaF1.y),
+    hp:arenaF1.hp,facing:arenaF1.facing,
+    vx:arenaF1.vx,vy:arenaF1.vy,
+    blocking:arenaF1.blocking,attackAnim:arenaF1.attackAnim>0,
+  }));
+}
+
+// Mobile dpad
+['up','down','left','right'].forEach(dir=>{
+  const el=document.getElementById(`adp-${dir}`);
+  if(!el)return;
+  el.addEventListener('pointerdown',()=>{
+    if(dir==='up'&&arenaF1?.onGround){arenaF1.vy=ARENA_JUMP_FORCE;arenaF1.onGround=false;}
+    if(dir==='left'){ARENA_KEYS['KeyA']=true;}
+    if(dir==='right'){ARENA_KEYS['KeyD']=true;}
+  });
+  el.addEventListener('pointerup',()=>{
+    ARENA_KEYS['KeyA']=false;ARENA_KEYS['KeyD']=false;
+  });
+});
+['q','e','r','space'].forEach(k=>{
+  const el=document.getElementById(`aab-${k}`);
+  if(!el)return;
+  el.addEventListener('pointerdown',()=>{
+    if(k==='space')handleArenaKeyDown('Space');
+    else handleArenaKeyDown(`Key${k.toUpperCase()}`);
+  });
+});
 </script>
 </body>
 </html>
