@@ -335,6 +335,41 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .plt-immortal-badge{display:inline-block;padding:3px 10px;background:rgba(255,215,0,.15);border:1px solid #ffd700;color:#ffd700;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;animation:immortalGlow 1s infinite}
 @keyframes immortalGlow{0%,100%{box-shadow:0 0 5px rgba(255,215,0,.3)}50%{box-shadow:0 0 20px rgba(255,215,0,.8)}}
 #toasts{position:fixed;top:56px;right:14px;z-index:100;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+/* ── QUESTS ── */
+.qchain{background:var(--s2);border:1px solid var(--b1);border-radius:4px;margin-bottom:12px;overflow:hidden}
+.qchain-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:rgba(201,162,39,.04)}
+.qchain-hdr:hover{background:rgba(201,162,39,.08)}
+.qchain-icon{font-size:18px}.qchain-title{font-family:'Cinzel',serif;font-size:12px;color:var(--acc);letter-spacing:2px;flex:1}
+.qchain-prog{font-size:10px;color:var(--mut);font-style:italic}
+.qchain-body{display:none;padding:0 14px 12px}.qchain-body.open{display:block}
+.qitem{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(30,26,46,.5)}
+.qitem:last-child{border-bottom:none}
+.qitem-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b3);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px}
+.qitem-check.done{background:var(--grn);border-color:var(--grn);color:#fff}
+.qitem-check.active{border-color:var(--acc);color:var(--acc)}
+.qitem-title{font-family:'Cinzel',serif;font-size:10px;color:var(--txt);margin-bottom:2px}
+.qitem-desc{font-size:10px;color:var(--mut);font-style:italic;margin-bottom:3px}
+.qitem-bar{background:rgba(0,0,0,.4);height:3px;border-radius:2px;margin-bottom:3px}
+.qitem-bar-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;transition:width .4s}
+.qitem-rew{display:flex;gap:5px;flex-wrap:wrap}
+.qrew{font-size:9px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);color:var(--acc);padding:1px 6px;border-radius:2px}
+.qclaim{background:var(--grn);color:#fff;border:none;font-family:'Cinzel',serif;font-size:9px;padding:4px 10px;cursor:pointer;border-radius:2px;margin-top:4px}
+/* ── EVENTS ── */
+.ev-card{background:linear-gradient(135deg,rgba(142,68,173,.15),rgba(142,68,173,.05));border:1px solid rgba(142,68,173,.3);padding:16px;margin-bottom:12px;border-radius:4px}
+.ev-name{font-family:'Cinzel',serif;font-size:14px;color:#bb8fce;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.ev-badge{font-size:9px;background:rgba(142,68,173,.3);padding:2px 7px;border-radius:10px;letter-spacing:1px}
+.ev-desc{font-size:12px;color:var(--mut);margin-bottom:10px;font-style:italic;line-height:1.5}
+.ev-bonuses{display:flex;gap:6px;flex-wrap:wrap}
+.ev-bonus{font-size:10px;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:var(--grn3);padding:2px 8px;border-radius:2px}
+/* ── OUTFITS ── */
+.outfit-card{background:var(--s2);border:1px solid var(--b1);padding:12px;text-align:center;cursor:pointer;transition:all .15s;border-radius:4px;position:relative}
+.outfit-card:hover{border-color:var(--acc)}.outfit-card.equipped{border-color:var(--acc);background:rgba(201,162,39,.08)}
+.outfit-icon{font-size:26px;margin-bottom:5px}.outfit-name{font-family:'Cinzel',serif;font-size:10px;color:var(--txt);margin-bottom:2px}
+.outfit-desc{font-size:9px;color:var(--mut);font-style:italic;margin-bottom:5px}
+.outfit-price{font-family:'Cinzel',serif;font-size:10px;color:var(--acc)}
+.outfit-btn{width:100%;padding:5px;font-family:'Cinzel',serif;font-size:9px;cursor:pointer;border:1px solid var(--acc);color:var(--acc);background:transparent;margin-top:4px}
+.outfit-btn.eq{border-color:var(--grn);color:var(--grn2);background:rgba(39,174,96,.1)}
+.outfit-badge{position:absolute;top:5px;right:5px;font-size:8px;padding:1px 5px;border-radius:2px;background:rgba(39,174,96,.2);color:var(--grn2)}
 .toast{background:var(--s2);border:1px solid var(--acc);padding:9px 14px;display:flex;gap:9px;align-items:center;min-width:200px;animation:slideIn .4s ease, fadeOut .4s ease 3.6s forwards;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 .t-ic{font-size:18px}.t-l{font-family:'Cinzel',serif;font-size:8px;color:var(--mut);letter-spacing:2px}.t-t{font-family:'Cinzel',serif;font-size:11px;color:var(--acc)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -530,6 +565,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
       <span>RANK: <span class="tb-val text-gold" id="tb-rank">—</span></span>
       <span>SPINS: <span class="tb-gold" id="tb-spins">0</span></span>
       <span>COINS: <span class="tb-gold" id="tb-coins">0</span></span>
+      <span id="tb-event" style="display:none;color:#bb8fce;font-size:9px;letter-spacing:1px">🌙 EVENT</span>
+      <span id="tb-outfit" style="font-size:14px"></span>
       <button class="tb-btn" onclick="openShop()">Shop</button>
       <button class="tb-btn" onclick="openLb()">🏆</button>
       <button class="tb-btn" onclick="openSave()">💾</button>
@@ -539,6 +576,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
   <div id="tabnav">
     <button class="tnb active" onclick="switchTab('s')">⚡ SORCERER</button>
     <button class="tnb" onclick="switchTab('c')">⚔ COMBAT</button>
+    <button class="tnb" onclick="switchTab('q')">📜 QUESTS</button>
+    <button class="tnb" onclick="switchTab('e')">🎉 EVENTS</button>
     <button class="tnb" onclick="switchTab('w')">🌐 WORLD</button>
   </div>
   <div id="tc">
@@ -663,7 +702,29 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
       </div>
     </div>
   </div>
+
+  <!-- QUESTS PANE -->
+  <div id="pane-q" class="pane" style="flex-direction:column;overflow-y:auto;gap:12px">
+    <div class="panel">
+      <div class="pt" style="color:var(--acc)">📜 Quest Chains</div>
+      <div id="quest-list"></div>
+    </div>
+  </div>
+
+  <!-- EVENTS PANE -->
+  <div id="pane-e" class="pane" style="flex-direction:column;overflow-y:auto;gap:12px">
+    <div class="panel">
+      <div class="pt" style="color:#8e44ad">🎉 Active Events</div>
+      <div id="event-list"></div>
+    </div>
+    <div class="panel">
+      <div class="pt" style="color:#c9a227">👕 Outfits</div>
+      <div id="outfit-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    </div>
+  </div>
+
 </div>
+
 
 <!-- FIGHT OVERLAY -->
 <div class="ov" id="fight-ov" style="display:none">
@@ -1007,12 +1068,32 @@ const CLANS=[
 ];
 
 const TECHS=[
+  // SS+
   {name:'Infinity',r:'SS+',color:'#7ec8e3',skills:[
     {name:'Hollow Purple',dmg:140,cost:80,cd:8,status:'curse',color:'#bb8fce'},
     {name:'Blue',dmg:60,cost:30,cd:3,status:'slow',color:'#3498db'},
     {name:'Red',dmg:75,cost:40,cd:4,color:'#e74c3c'},
     {name:'Infinity Veil',dmg:0,cost:25,cd:6,heal:50,color:'#7ec8e3'},
   ],w:1},
+  {name:'Shadow Monarch',r:'SS+',color:'#2c3e50',skills:[
+    {name:'Arise',dmg:90,cost:55,cd:5,color:'#85929e'},
+    {name:'Shadow Exchange',dmg:65,cost:35,cd:3,color:'#566573'},
+    {name:'Sovereign Domain',dmg:155,cost:95,cd:11,status:'curse',color:'#aab7b8'},
+    {name:'Army of Death',dmg:220,cost:130,cd:16,color:'#ccd1d1'},
+  ],w:1},
+  {name:'Star Rage',r:'SS+',color:'#fff176',skills:[
+    {name:'Plasma Strike',dmg:120,cost:65,cd:5,status:'burn',color:'#fff176'},
+    {name:'Lightning Body',dmg:95,cost:50,cd:4,status:'stun',color:'#f1c40f'},
+    {name:'Electrokinesis',dmg:150,cost:90,cd:9,status:'stun',color:'#fffde7'},
+    {name:'Kashimo Surge',dmg:210,cost:125,cd:15,status:'stun',color:'#ffeb3b'},
+  ],w:1},
+  {name:'Rika Cursed Spirit',r:'SS+',color:'#ff4da6',skills:[
+    {name:'Rika Claw',dmg:110,cost:55,cd:4,status:'curse',color:'#ff4da6'},
+    {name:'Rika Barrier',dmg:0,cost:40,cd:6,heal:80,color:'#ff80c8'},
+    {name:'Rika Rampage',dmg:175,cost:100,cd:10,status:'curse',color:'#e91e8c'},
+    {name:'Queen of Curses',dmg:240,cost:140,cd:16,status:'curse',color:'#ff6ec7'},
+  ],w:1},
+  // SS
   {name:'Shrine',r:'SS',color:'#e74c3c',skills:[
     {name:'Cleave',dmg:90,cost:45,cd:3,status:'bleed',color:'#c0392b'},
     {name:'Dismantle',dmg:115,cost:60,cd:5,status:'bleed',color:'#e74c3c'},
@@ -1025,18 +1106,19 @@ const TECHS=[
     {name:'Black Lightning',dmg:130,cost:70,cd:7,status:'stun',color:'#ffd700'},
     {name:'Voltage Surge',dmg:160,cost:90,cd:10,status:'stun',color:'#ffe066'},
   ],w:3},
-  {name:'Ten Shadows',r:'A',color:'#bb8fce',skills:[
-    {name:'Divine Dogs',dmg:55,cost:25,cd:2,color:'#bb8fce'},
-    {name:'Nue',dmg:68,cost:35,cd:3,color:'#9b59b6'},
-    {name:'Great Serpent',dmg:88,cost:50,cd:5,status:'curse',color:'#8e44ad'},
-    {name:'Eight-Handled Sword',dmg:115,cost:70,cd:8,color:'#d7bde2'},
-  ],w:10},
-  {name:'Flame Manipulation',r:'A',color:'#e67e22',skills:[
-    {name:'Fire Shot',dmg:58,cost:25,cd:2,status:'burn',color:'#e67e22'},
-    {name:'Flame Wave',dmg:80,cost:40,cd:4,status:'burn',color:'#e74c3c'},
-    {name:'Inferno',dmg:100,cost:55,cd:5,status:'burn',color:'#c0392b'},
-    {name:'Solar Flare',dmg:140,cost:85,cd:9,status:'burn',color:'#ff6b00'},
-  ],w:12},
+  {name:'Private Pure Love Train',r:'SS',color:'#ff69b4',skills:[
+    {name:'Love Rush',dmg:95,cost:45,cd:3,color:'#ff69b4'},
+    {name:'Tender Crush',dmg:115,cost:60,cd:5,status:'curse',color:'#ff1493'},
+    {name:'Heart Breaker',dmg:140,cost:75,cd:7,status:'stun',color:'#ff69b4'},
+    {name:'Pure Love Barrage',dmg:170,cost:95,cd:10,color:'#ffb6c1',isPureLoveDomain:true},
+  ],w:2,specialDomain:true},
+  {name:'Cursed Armor',r:'SS',color:'#4a90d9',skills:[
+    {name:'Iron Curtain',dmg:0,cost:30,cd:3,heal:60,color:'#4a90d9'},
+    {name:'Armor Slam',dmg:105,cost:50,cd:4,status:'stun',color:'#2980b9'},
+    {name:'Hardened Fist',dmg:140,cost:70,cd:6,color:'#5dade2'},
+    {name:'Fortress Crush',dmg:180,cost:100,cd:11,status:'stun',color:'#85c1e9'},
+  ],w:3},
+  // S
   {name:'Piercing Blood',r:'S',color:'#e74c3c',skills:[
     {name:'Blood Shot',dmg:55,cost:25,cd:2,status:'bleed',color:'#c0392b'},
     {name:'Blood Mania',dmg:75,cost:40,cd:3,status:'bleed',color:'#e74c3c'},
@@ -1049,12 +1131,50 @@ const TECHS=[
     {name:'Squeeze',dmg:85,cost:48,cd:5,status:'stun',color:'#bb8fce'},
     {name:'Explode',dmg:120,cost:72,cd:8,status:'curse',color:'#d7bde2'},
   ],w:8},
-  {name:'Shadow Monarch',r:'SS+',color:'#2c3e50',skills:[
-    {name:'Arise',dmg:90,cost:55,cd:5,color:'#85929e'},
-    {name:'Shadow Exchange',dmg:65,cost:35,cd:3,color:'#566573'},
-    {name:'Sovereign Domain',dmg:155,cost:95,cd:11,status:'curse',color:'#aab7b8'},
-    {name:'Army of Death',dmg:220,cost:130,cd:16,color:'#ccd1d1'},
-  ],w:1},
+  {name:'Puppet Master',r:'S',color:'#e8b84b',skills:[
+    {name:'String Shot',dmg:48,cost:20,cd:2,color:'#e8b84b'},
+    {name:'Marionette',dmg:68,cost:38,cd:4,status:'curse',color:'#d4ac0d'},
+    {name:'Puppet Army',dmg:92,cost:55,cd:6,color:'#f1c40f'},
+    {name:'Body Snatch',dmg:125,cost:80,cd:10,status:'stun',color:'#ffd700'},
+  ],w:6},
+  {name:'Gravity Fist',r:'S',color:'#7d3cff',skills:[
+    {name:'Crush',dmg:60,cost:28,cd:2,color:'#7d3cff'},
+    {name:'Gravity Pull',dmg:80,cost:42,cd:3,status:'slow',color:'#9b59b6'},
+    {name:'Black Hole Punch',dmg:110,cost:60,cd:6,status:'stun',color:'#6c3483'},
+    {name:'Singularity',dmg:150,cost:88,cd:10,status:'curse',color:'#d2b4de'},
+  ],w:6},
+  // A
+  {name:'Ten Shadows',r:'A',color:'#bb8fce',skills:[
+    {name:'Divine Dogs',dmg:55,cost:25,cd:2,color:'#bb8fce'},
+    {name:'Nue',dmg:68,cost:35,cd:3,color:'#9b59b6'},
+    {name:'Great Serpent',dmg:88,cost:50,cd:5,status:'curse',color:'#8e44ad'},
+    {name:'Eight-Handled Sword',dmg:115,cost:70,cd:8,color:'#d7bde2'},
+  ],w:10},
+  {name:'Flame Manipulation',r:'A',color:'#e67e22',skills:[
+    {name:'Fire Shot',dmg:58,cost:25,cd:2,status:'burn',color:'#e67e22'},
+    {name:'Flame Wave',dmg:80,cost:40,cd:4,status:'burn',color:'#e74c3c'},
+    {name:'Inferno',dmg:100,cost:55,cd:5,status:'burn',color:'#c0392b'},
+    {name:'Solar Flare',dmg:140,cost:85,cd:9,status:'burn',color:'#ff6b00'},
+  ],w:12},
+  {name:'Lightning Rod',r:'A',color:'#f1c40f',skills:[
+    {name:'Static Shock',dmg:52,cost:22,cd:2,status:'stun',color:'#f1c40f'},
+    {name:'Ball Lightning',dmg:72,cost:38,cd:4,status:'stun',color:'#f39c12'},
+    {name:'Thunder God',dmg:95,cost:55,cd:6,status:'stun',color:'#ffd700'},
+    {name:'Lightning Domain',dmg:135,cost:80,cd:10,status:'stun',color:'#ffe066'},
+  ],w:10},
+  {name:'Blood Manipulation',r:'A',color:'#c0392b',skills:[
+    {name:'Thin Ice',dmg:50,cost:22,cd:2,status:'slow',color:'#c0392b'},
+    {name:'Convergence',dmg:72,cost:38,cd:3,status:'bleed',color:'#e74c3c'},
+    {name:'Supernova',dmg:98,cost:55,cd:6,status:'bleed',color:'#ff5252'},
+    {name:'Body Control',dmg:130,cost:78,cd:9,status:'stun',color:'#ff8080'},
+  ],w:10},
+  {name:'Sound Manipulation',r:'A',color:'#00bcd4',skills:[
+    {name:'Sonic Blast',dmg:55,cost:24,cd:2,status:'stun',color:'#00bcd4'},
+    {name:'Echo Strike',dmg:75,cost:38,cd:3,color:'#00acc1'},
+    {name:'Resonance Wave',dmg:98,cost:55,cd:5,status:'stun',color:'#4dd0e1'},
+    {name:'Sonic Boom',dmg:140,cost:82,cd:9,status:'stun',color:'#b2ebf2'},
+  ],w:10},
+  // B
   {name:'Ratio Technique',r:'B',color:'#e8b84b',skills:[
     {name:'Overtime',dmg:48,cost:20,cd:2,color:'#d4ac0d'},
     {name:'Nanami Chop',dmg:65,cost:32,cd:3,color:'#e8b84b'},
@@ -1067,6 +1187,19 @@ const TECHS=[
     {name:'Rapid Jabs',dmg:30,cost:12,cd:1,color:'#f39c12'},
     {name:'Black Flash',dmg:100,cost:55,cd:7,status:'stun',color:'#ff6b00'},
   ],w:30},
+  {name:'Ice Formation',r:'B',color:'#7ec8e3',skills:[
+    {name:'Ice Shard',dmg:42,cost:18,cd:2,status:'slow',color:'#7ec8e3'},
+    {name:'Blizzard',dmg:62,cost:32,cd:3,status:'slow',color:'#5dade2'},
+    {name:'Frost Nova',dmg:82,cost:48,cd:5,status:'stun',color:'#aed6f1'},
+    {name:'Absolute Zero',dmg:115,cost:70,cd:9,status:'stun',color:'#d6eaf8'},
+  ],w:20},
+  {name:'Wind Scythe',r:'B',color:'#80cbc4',skills:[
+    {name:'Gust Slash',dmg:40,cost:18,cd:2,color:'#80cbc4'},
+    {name:'Tornado Cut',dmg:58,cost:28,cd:3,color:'#4db6ac'},
+    {name:'Wind Barrage',dmg:75,cost:42,cd:4,color:'#b2dfdb'},
+    {name:'Cyclone Blade',dmg:100,cost:60,cd:7,status:'slow',color:'#e0f2f1'},
+  ],w:22},
+  // C
   {name:'Boogie Woogie',r:'C',color:'#5dade2',skills:[
     {name:'Clap Exchange',dmg:38,cost:15,cd:2,color:'#5dade2'},
     {name:'Phantom Swap',dmg:50,cost:22,cd:2,color:'#3498db'},
@@ -1079,6 +1212,13 @@ const TECHS=[
     {name:'Nail Cannon',dmg:68,cost:38,cd:4,color:'#bb8fce'},
     {name:'Full Body Pin',dmg:85,cost:52,cd:6,status:'stun',color:'#d7bde2'},
   ],w:35},
+  {name:'Poison Mist',r:'C',color:'#8bc34a',skills:[
+    {name:'Toxic Puff',dmg:30,cost:14,cd:2,status:'curse',color:'#8bc34a'},
+    {name:'Venom Spray',dmg:48,cost:24,cd:3,status:'curse',color:'#7cb342'},
+    {name:'Miasma Cloud',dmg:64,cost:36,cd:4,status:'curse',color:'#aed581'},
+    {name:'Lethal Fog',dmg:85,cost:52,cd:6,status:'curse',color:'#dcedc8'},
+  ],w:38},
+  // D
   {name:'Cursed Tool',r:'D',color:'#7f8c8d',skills:[
     {name:'Slash',dmg:28,cost:10,cd:1,color:'#7f8c8d'},
     {name:'Heavy Strike',dmg:44,cost:22,cd:2,color:'#95a5a6'},
@@ -1091,30 +1231,6 @@ const TECHS=[
     {name:'Boulder Crush',dmg:55,cost:32,cd:3,color:'#aab7b8'},
     {name:'Earthen Prison',dmg:78,cost:48,cd:6,status:'stun',color:'#ccd1d1'},
   ],w:60},
-  {name:'Lightning Rod',r:'A',color:'#f1c40f',skills:[
-    {name:'Static Shock',dmg:52,cost:22,cd:2,status:'stun',color:'#f1c40f'},
-    {name:'Ball Lightning',dmg:72,cost:38,cd:4,status:'stun',color:'#f39c12'},
-    {name:'Thunder God',dmg:95,cost:55,cd:6,status:'stun',color:'#ffd700'},
-    {name:'Lightning Domain',dmg:135,cost:80,cd:10,status:'stun',color:'#ffe066'},
-  ],w:10},
-  {name:'Ice Formation',r:'B',color:'#7ec8e3',skills:[
-    {name:'Ice Shard',dmg:42,cost:18,cd:2,status:'slow',color:'#7ec8e3'},
-    {name:'Blizzard',dmg:62,cost:32,cd:3,status:'slow',color:'#5dade2'},
-    {name:'Frost Nova',dmg:82,cost:48,cd:5,status:'stun',color:'#aed6f1'},
-    {name:'Absolute Zero',dmg:115,cost:70,cd:9,status:'stun',color:'#d6eaf8'},
-  ],w:20},
-  {name:'Puppet Master',r:'S',color:'#e8b84b',skills:[
-    {name:'String Shot',dmg:48,cost:20,cd:2,color:'#e8b84b'},
-    {name:'Marionette',dmg:68,cost:38,cd:4,status:'curse',color:'#d4ac0d'},
-    {name:'Puppet Army',dmg:92,cost:55,cd:6,color:'#f1c40f'},
-    {name:'Body Snatch',dmg:125,cost:80,cd:10,status:'stun',color:'#ffd700'},
-  ],w:6},
-  {name:'Private Pure Love Train',r:'SS',color:'#ff69b4',skills:[
-    {name:'Love Rush',dmg:95,cost:45,cd:3,color:'#ff69b4'},
-    {name:'Tender Crush',dmg:115,cost:60,cd:5,status:'curse',color:'#ff1493'},
-    {name:'Heart Breaker',dmg:140,cost:75,cd:7,status:'stun',color:'#ff69b4'},
-    {name:'Pure Love Barrage',dmg:170,cost:95,cd:10,color:'#ffb6c1',isPureLoveDomain:true},
-  ],w:2,specialDomain:true},
 ];
 
 const ENEMIES=[
@@ -1122,28 +1238,105 @@ const ENEMIES=[
   {name:'Transfigured Human',grade:'Grade 3',maxHp:130,dmg:13,xp:38,coins:26,spins:1,color:'#82e0aa'},
   {name:'Cursed Womb',grade:'Grade 2',maxHp:320,dmg:27,xp:85,coins:65,spins:2,color:'#7ec8e3'},
   {name:'Vengeful Spirit',grade:'Grade 1',maxHp:650,dmg:48,xp:190,coins:125,spins:3,color:'#d7bde2'},
-  {name:'Mahito',grade:'Special Grade',maxHp:1300,dmg:85,xp:420,coins:310,spins:6,color:'#e74c3c'},
-  {name:'Jogo',grade:'Special Grade',maxHp:2100,dmg:125,xp:820,coins:610,spins:10,color:'#e67e22'},
-  {name:'Dagon',grade:'Special Grade',maxHp:3600,dmg:185,xp:1550,coins:1050,spins:15,color:'#1abc9c'},
-  {name:'Hanami',grade:'Special Grade',maxHp:5000,dmg:240,xp:2200,coins:1500,spins:20,color:'#27ae60'},
-  {name:'Sukuna Finger',grade:'King Fragment',maxHp:8000,dmg:320,xp:4000,coins:2500,spins:30,color:'#c0392b'},
+  {name:'Smallpox Deity',grade:'Special Grade',maxHp:1100,dmg:75,xp:360,coins:270,spins:5,color:'#c39bd3'},
+  {name:'Mahito',grade:'Special Grade',maxHp:1800,dmg:95,xp:520,coins:380,spins:7,color:'#e74c3c'},
+  {name:'Jogo',grade:'Special Grade',maxHp:2800,dmg:135,xp:950,coins:700,spins:11,color:'#e67e22'},
+  {name:'Dagon',grade:'Special Grade',maxHp:4200,dmg:195,xp:1750,coins:1200,spins:16,color:'#1abc9c'},
+  {name:'Hanami',grade:'Special Grade',maxHp:6000,dmg:255,xp:2500,coins:1700,spins:22,color:'#27ae60'},
+  {name:'Choso',grade:'Special Grade',maxHp:7500,dmg:290,xp:3200,coins:2100,spins:26,color:'#c0392b'},
+  {name:'Sukuna Finger',grade:'King Fragment',maxHp:10000,dmg:340,xp:5000,coins:3000,spins:35,color:'#e74c3c'},
+  {name:'Sukuna (4 Fingers)',grade:'King of Curses',maxHp:18000,dmg:480,xp:9000,coins:5500,spins:55,color:'#c0392b'},
+];
+
+// ── OUTFITS ──
+const OUTFITS=[
+  {id:'default',name:'Default',icon:'👕',desc:'Standard sorcerer uniform',price:0,color:'#888'},
+  {id:'jjk_uniform',name:'JJK Uniform',icon:'🥋',desc:'Jujutsu High uniform',price:500,color:'#1a1a2e'},
+  {id:'gojo_fit',name:'Gojo Drip',icon:'😎',desc:'White blindfold + black fit',price:2500,color:'#7ec8e3'},
+  {id:'sukuna_marks',name:'Sukuna Marks',icon:'👹',desc:'Royal tattoos of the King',price:5000,color:'#c0392b'},
+  {id:'yuta_cloak',name:'Yuta Cloak',icon:'🧥',desc:'Okkotsu\'s signature cloak',price:3000,color:'#2c3e50'},
+  {id:'nanami_suit',name:'Nanami Suit',icon:'👔',desc:'Professional 9-to-5 fit',price:1800,color:'#e8b84b'},
+  {id:'toji_gear',name:'Toji Gear',icon:'⚔️',desc:'Heavenly Restriction warrior',price:4000,color:'#566573'},
+  {id:'cursed_armor',name:'Cursed Armor',icon:'🛡️',desc:'Full cursed energy plating',price:6000,color:'#4a90d9'},
+  {id:'hakama',name:'Traditional Hakama',icon:'🎎',desc:'Ancient sorcerer robes',price:2000,color:'#8e44ad'},
+  {id:'hood',name:'Dark Hood',icon:'🦹',desc:'Mysterious hooded cloak',price:1200,color:'#2c3e50'},
 ];
 
 const SHOP_ITEMS=[
+  // Boosts
   {id:'xp2',name:'XP Booster',icon:'⚡',desc:'×2 XP for 5 min',price:300,tag:'BOOST',tagCol:'#3498db'},
   {id:'coin2',name:'Coin Booster',icon:'💰',desc:'×2 Coins for 5 min',price:300,tag:'BOOST',tagCol:'#3498db'},
+  {id:'xp3',name:'XP Surge',icon:'⚡⚡',desc:'×3 XP for 3 min',price:700,tag:'BOOST',tagCol:'#2980b9'},
+  // Heals
   {id:'hpot',name:'HP Potion',icon:'❤️',desc:'Restore full HP',price:150,tag:'HEAL',tagCol:'#e74c3c'},
   {id:'cpot',name:'CE Potion',icon:'💙',desc:'Restore full CE',price:100,tag:'HEAL',tagCol:'#3498db'},
+  {id:'elixir',name:'Elixir',icon:'✨',desc:'Full HP + CE restore',price:350,tag:'HEAL',tagCol:'#9b59b6'},
+  // Gacha
   {id:'spins5',name:'Spin Bundle',icon:'🎲',desc:'Get +5 spins',price:500,tag:'GACHA',tagCol:'#9b59b6'},
   {id:'spins15',name:'Mega Spin',icon:'🎰',desc:'Get +15 spins',price:1200,tag:'GACHA',tagCol:'#9b59b6'},
+  {id:'spins50',name:'Ultra Spin Pack',icon:'💎',desc:'Get +50 spins',price:3500,tag:'GACHA',tagCol:'#8e44ad'},
   {id:'lvlup',name:'Instant Level',icon:'📈',desc:'Gain +1 level',price:1000,tag:'POWER',tagCol:'#e67e22'},
   {id:'reroll',name:'Technique Reroll',icon:'🔄',desc:'Reroll tech for free',price:600,tag:'GACHA',tagCol:'#9b59b6'},
+  {id:'clan_reroll',name:'Clan Reroll',icon:'👑',desc:'Reroll your clan',price:800,tag:'GACHA',tagCol:'#c9a227'},
+  // Stats
   {id:'str5',name:'STR Training',icon:'💪',desc:'+5 STR permanently',price:800,tag:'STAT',tagCol:'#e74c3c'},
   {id:'agi5',name:'AGI Training',icon:'💨',desc:'+5 AGI permanently',price:800,tag:'STAT',tagCol:'#3498db'},
   {id:'end5',name:'END Training',icon:'🛡',desc:'+5 END permanently',price:800,tag:'STAT',tagCol:'#27ae60'},
   {id:'cemax',name:'CE Expansion',icon:'🌀',desc:'+50 Max CE',price:600,tag:'STAT',tagCol:'#9b59b6'},
+  {id:'hpmax',name:'HP Expansion',icon:'❤️',desc:'+50 Max HP',price:600,tag:'STAT',tagCol:'#e74c3c'},
+  // Passives
   {id:'combo_charm',name:'Combo Charm',icon:'🔥',desc:'Combo bonus ×1.5',price:1500,tag:'PASSIVE',tagCol:'#e67e22'},
   {id:'crit_charm',name:'Crit Charm',icon:'💥',desc:'+8% crit chance',price:1200,tag:'PASSIVE',tagCol:'#f1c40f'},
+  {id:'xp_charm',name:'Scholar Charm',icon:'📚',desc:'+25% XP permanently',price:2000,tag:'PASSIVE',tagCol:'#3498db'},
+  {id:'coin_charm',name:'Merchant Charm',icon:'💰',desc:'+25% Coins permanently',price:2000,tag:'PASSIVE',tagCol:'#c9a227'},
+  {id:'regen_charm',name:'Regen Charm',icon:'💚',desc:'Regen 2 HP per action',price:1800,tag:'PASSIVE',tagCol:'#27ae60'},
+];
+
+// ── QUESTS ──
+const QUEST_CHAINS=[
+  {
+    id:'cursed_path',title:'The Cursed Path',icon:'⚔️',
+    quests:[
+      {id:'cp1',title:'First Steps',desc:'Defeat 10 cursed spirits',type:'kills',target:10,rewards:{coins:200,spins:3,xp:500}},
+      {id:'cp2',title:'Sorcerer Initiation',desc:'Reach level 10',type:'level',target:10,rewards:{coins:500,spins:5,xp:1000}},
+      {id:'cp3',title:'Grade 2 Trial',desc:'Defeat 50 enemies',type:'kills',target:50,rewards:{coins:1000,spins:10,xp:2000}},
+      {id:'cp4',title:'Special Grade Test',desc:'Defeat Mahito',type:'kill_enemy',target:'Mahito',rewards:{coins:2000,spins:15,xp:5000}},
+    ]
+  },
+  {
+    id:'power_seeker',title:'Power Seeker',icon:'💪',
+    quests:[
+      {id:'ps1',title:'Physical Training',desc:'Train 100 times',type:'trainCount',target:100,rewards:{coins:300,spins:4,xp:800}},
+      {id:'ps2',title:'Body Hardening',desc:'Reach 30 STR',type:'stat_str',target:30,rewards:{coins:600,spins:6,xp:1500}},
+      {id:'ps3',title:'True Power',desc:'Ascend once',type:'ascensions',target:1,rewards:{coins:1500,spins:12,xp:3000}},
+      {id:'ps4',title:'Domain Mastery',desc:'Use Domain Expansion 10 times',type:'domainCount',target:10,rewards:{coins:3000,spins:20,xp:6000}},
+    ]
+  },
+  {
+    id:'collector',title:'Collector',icon:'🎲',
+    quests:[
+      {id:'col1',title:'First Roll',desc:'Roll your first technique',type:'rolls',target:1,rewards:{coins:100,spins:2,xp:200}},
+      {id:'col2',title:'Clan Seeker',desc:'Roll 10 times total',type:'rolls',target:10,rewards:{coins:400,spins:5,xp:1000}},
+      {id:'col3',title:'Lucky Draw',desc:'Get an S-rank technique',type:'rarity_s',target:1,rewards:{coins:1000,spins:10,xp:2500}},
+      {id:'col4',title:'Legendary Pull',desc:'Get an SS+ technique',type:'rarity_ssp',target:1,rewards:{coins:5000,spins:30,xp:10000}},
+    ]
+  },
+];
+
+// ── SEASONAL EVENTS ──
+const EVENTS=[
+  {
+    id:'cursed_night',
+    name:'🌙 Night of Curses',
+    desc:'A surge of cursed energy blankets the world. All enemies are stronger but drop double rewards!',
+    color:'#8e44ad',
+    active:true,
+    bonuses:{xpMult:1.5,coinMult:2,enemyHpMult:1.5,enemyDmgMult:1.3},
+    shopItems:[
+      {id:'ev_cursed_token',name:'Cursed Night Token',icon:'🌙',desc:'Event currency — spend at event shop',price:0,tag:'EVENT',tagCol:'#8e44ad',eventItem:true},
+      {id:'ev_dark_charm',name:'Dark Charm',icon:'🔮',desc:'+15% all damage for this session',price:500,tag:'EVENT',tagCol:'#9b59b6'},
+    ],
+  },
 ];
 
 const DAILY_POOL=[
@@ -1151,9 +1344,12 @@ const DAILY_POOL=[
   {id:'dt50',title:'Intense Session',desc:'Train 50 times',type:'trainCount',target:50,rewards:{spins:6,coins:250}},
   {id:'dk5',title:'Daily Hunt',desc:'Defeat 5 enemies',type:'kills',target:5,rewards:{spins:4,coins:150}},
   {id:'dk15',title:'Cursed Hunt',desc:'Defeat 15 enemies',type:'kills',target:15,rewards:{spins:8,coins:300}},
+  {id:'dk30',title:'Mass Exorcism',desc:'Defeat 30 enemies',type:'kills',target:30,rewards:{spins:12,coins:500}},
   {id:'dl',title:'Level Up',desc:'Gain a level',type:'level',target:1,rewards:{spins:5,coins:200}},
   {id:'dr3',title:'Gacha Session',desc:'Roll 3 times',type:'rolls',target:3,rewards:{spins:2,coins:80}},
   {id:'dc',title:'Coin Grind',desc:'Earn 500 coins',type:'coins',target:500,rewards:{spins:4,coins:0}},
+  {id:'dc2k',title:'Big Earner',desc:'Earn 2000 coins',type:'coins',target:2000,rewards:{spins:8,coins:0}},
+  {id:'domain_day',title:'Domain Day',desc:'Use Domain Expansion',type:'domainCount',target:1,rewards:{spins:6,coins:300}},
 ];
 
 const ACHIEVEMENTS=[
@@ -1161,15 +1357,25 @@ const ACHIEVEMENTS=[
   {id:'k10',title:'Curse Hunter',desc:'10 enemies defeated',icon:'💀',check:p=>p.kills>=10},
   {id:'k100',title:'Sorcerer',desc:'100 enemies defeated',icon:'🗡️',check:p=>p.kills>=100},
   {id:'k500',title:'Cursed Expert',desc:'500 enemies defeated',icon:'⚡',check:p=>p.kills>=500},
+  {id:'k1000',title:'Legendary Sorcerer',desc:'1000 enemies defeated',icon:'👑',check:p=>p.kills>=1000},
   {id:'l10',title:'Rising Sorcerer',desc:'Reach level 10',icon:'⭐',check:p=>p.level>=10},
   {id:'l25',title:'Grade 1 Sorcerer',desc:'Reach level 25',icon:'🌟',check:p=>p.level>=25},
+  {id:'l50',title:'Special Grade',desc:'Reach level 50',icon:'💎',check:p=>p.level>=50},
   {id:'clan',title:'Bloodline',desc:'Get a clan',icon:'👑',check:p=>!!p.clan},
   {id:'tech',title:'Awakened',desc:'Unlock a technique',icon:'✦',check:p=>!!p.tech},
   {id:'rtech',title:'Talented Sorcerer',desc:'Get S+ technique',icon:'💎',check:p=>['S','SS','SS+'].includes(p.techRarity)},
+  {id:'ssp',title:'Chosen One',desc:'Get an SS+ technique',icon:'🌈',check:p=>p.techRarity==='SS+'},
   {id:'asc',title:'Ascended',desc:'Prestige once',icon:'🌀',check:p=>(p.ascensions||0)>=1},
+  {id:'asc3',title:'Beyond Limits',desc:'Prestige 3 times',icon:'♾️',check:p=>(p.ascensions||0)>=3},
   {id:'coins1k',title:'Rich Sorcerer',desc:'1000 coins earned',icon:'💰',check:p=>p.coins>=1000},
+  {id:'coins10k',title:'Wealthy Sorcerer',desc:'10000 coins total',icon:'💵',check:p=>(p.totalCoins||0)>=10000},
   {id:'combo10',title:'Combo Master',desc:'10-hit combo',icon:'🔥',check:p=>(p.maxCombo||0)>=10},
+  {id:'combo25',title:'Unstoppable',desc:'25-hit combo',icon:'💥',check:p=>(p.maxCombo||0)>=25},
   {id:'domain',title:'Domain User',desc:'Use Domain Expansion',icon:'🌀',check:p=>!!(p.domainUsed)},
+  {id:'domain10',title:'Domain Master',desc:'Use Domain 10 times',icon:'🌌',check:p=>(p.domainCount||0)>=10},
+  {id:'outfit',title:'Fashion Sorcerer',desc:'Buy an outfit',icon:'👗',check:p=>(p.outfits||[]).length>1},
+  {id:'quest1',title:'On a Mission',desc:'Complete your first quest',icon:'📜',check:p=>(p.completedQuests||[]).length>=1},
+  {id:'quest10',title:'Quest Master',desc:'Complete 10 quests',icon:'🏆',check:p=>(p.completedQuests||[]).length>=10},
 ];
 
 // ══════════════════════════════════════════════════════
@@ -1416,6 +1622,13 @@ function renderAll(){
   document.getElementById('tb-rank').textContent=RANKS[p.rankIdx||0];
   document.getElementById('tb-spins').textContent=p.spins;
   document.getElementById('tb-coins').textContent=p.coins;
+  // Outfit icon
+  const outfitData=OUTFITS.find(o=>o.id===(p.outfitId||'default'));
+  const outfitEl=document.getElementById('tb-outfit');
+  if(outfitEl)outfitEl.textContent=outfitData?.icon||'';
+  // Event indicator
+  const evEl=document.getElementById('tb-event');
+  if(evEl)evEl.style.display=EVENTS.some(e=>e.active)?'inline':'none';
   document.getElementById('st-str').textContent=Math.floor(p.str);
   document.getElementById('st-agi').textContent=Math.floor(p.agi);
   document.getElementById('st-end').textContent=Math.floor(p.end);
@@ -1585,7 +1798,7 @@ function startIdle(){
 function doRoll(type){
   const p=player;
   if(p.spins<=0){document.getElementById('roll-res').innerHTML=`<span style="color:var(--red2)">No spins left!</span>`;return;}
-  p.spins--;rollCount++;updateDailyP('rolls',1);
+  p.spins--;rollCount++;p.rollCount=(p.rollCount||0)+1;updateDailyP('rolls',1);
   if(type==='clan'){
     const clan=wr(CLANS,CLANS.map(c=>c.w));
     p.clan=clan.name;p.clanRarity=clan.r;
@@ -1719,7 +1932,8 @@ async function activateDomain(){
   if(!curEnemy){logLine('No enemy!','var(--red2)');return;}
   const cost=Math.floor(p.maxCe*.6);
   if(p.ce<cost){logLine(`Need ${cost} CE for Domain!`,'var(--red2)');return;}
-  p.ce-=cost;p.domainUsed=true;
+  p.ce-=cost;p.domainUsed=true;p.domainCount=(p.domainCount||0)+1;
+  updateDailyP('domainCount',1);
 
   // Pure Love Train — slot machine
   if(p.tech==='Private Pure Love Train'){
@@ -1799,6 +2013,7 @@ async function doAttack(){
   if(bf){dmg=Math.floor(dmg*2.5);logLine(`⚡ BLACK FLASH! ${dmg} damage!`,'rainbow');shakeScreen();}
   // HP regen (Haibara)
   if(bn.hpRegen)p.hp=Math.min(p.maxHp,p.hp+bn.hpRegen);
+  if(p.regenCharm)p.hp=Math.min(p.maxHp,(p.hp||0)+2);
   curEnemy.hp=Math.max(0,curEnemy.hp-dmg);combo++;
   if(Math.random()<.05){applyStatus('enemy','bleed',1,3);logLine(`🩸 ${e.name} bleeds!`,SCOLORS.bleed);}
   const eb=document.getElementById('ebox');
@@ -1886,15 +2101,23 @@ function doSkill(idx){
 
 function killEnemy(){
   const p=player,e=ENEMIES[curEnemy.id];
-  let xp=Math.floor(e.xp*(p.xpMult||1)),coins=Math.floor(e.coins*(p.coinMult||1)),spins=e.spins||0;
+  const evB=getEventBonuses();
+  let xp=Math.floor(e.xp*(p.xpMult||1)*(p.xpCharm?1.25:1)*evB.xpMult);
+  let coins=Math.floor(e.coins*(p.coinMult||1)*(p.coinCharm?1.25:1)*evB.coinMult);
+  let spins=e.spins||0;
   if(curEnemy.isElite){xp=Math.floor(xp*2.5);coins=Math.floor(coins*2.5);spins+=4;logLine('⚡ ELITE BONUS: ×2.5!','#ff8c00');}
   if(waveMode)xp=Math.floor(xp*(1+waveNum*.12));
   if(dungeonMode)xp=Math.floor(xp*1.6);
-  p.kills++;p.xp+=xp;p.coins+=coins;if(spins>0)p.spins+=spins;
+  p.kills++;p.xp+=xp;p.coins+=coins;p.totalCoins=(p.totalCoins||0)+coins;
+  if(spins>0)p.spins+=spins;
   p.maxCombo=Math.max(p.maxCombo||0,combo);
   eStatus={};
   updateDailyP('kills',1);updateDailyP('coins',coins);
-  logLine(`🏆 ${curEnemy.label||e.name} defeated! +${xp}XP +${coins}💰${spins?` +${spins}🎲`:''}!`,'var(--acc)');
+  // Track quest kills for specific enemies
+  if(!p.completedQuests)p.completedQuests=[];
+  const killKey='kill_'+e.name.replace(/\s/g,'_');
+  if(!p.completedQuests.includes(killKey+'_done'))p.completedQuests.push(killKey+'_done');
+  logLine(`🏆 ${curEnemy.label||e.name} defeated! +${xp}XP +${coins}💰${spins?` +${spins}🎲`:''}${evB.coinMult>1?' [EVENT BONUS]':''}!`,'var(--acc)');
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'kill',name:p.name,enemy:e.name,xp}));
   checkLevelUp();
   const wasWave=waveMode,wasDungeon=dungeonMode;
@@ -2155,20 +2378,28 @@ function buyItem(id){
   const p=player;if(p.coins<item.price){toast('❌','Not enough coins!');return;}
   p.coins-=item.price;
   if(id==='xp2'){p.xpMult=(p.xpMult||1)+1;setTimeout(()=>{p.xpMult=Math.max(1,(p.xpMult||1)-1);renderAll();},300000);}
+  else if(id==='xp3'){p.xpMult=(p.xpMult||1)+2;setTimeout(()=>{p.xpMult=Math.max(1,(p.xpMult||1)-2);renderAll();},180000);}
   else if(id==='coin2'){p.coinMult=(p.coinMult||1)+1;setTimeout(()=>{p.coinMult=Math.max(1,(p.coinMult||1)-1);renderAll();},300000);}
   else if(id==='hpot')p.hp=p.maxHp;
   else if(id==='cpot')p.ce=p.maxCe;
+  else if(id==='elixir'){p.hp=p.maxHp;p.ce=p.maxCe;}
   else if(id==='spins5')p.spins+=5;
   else if(id==='spins15')p.spins+=15;
+  else if(id==='spins50')p.spins+=50;
   else if(id==='lvlup'){p.level++;p.maxXp=Math.floor(100*Math.pow(1.15,p.level-1));p.maxHp=Math.floor(100+p.end*10+p.level*5);}
   else if(id==='reroll'){p.spins+=3;}
+  else if(id==='clan_reroll'){p.clan=null;p.spins+=1;toast('🎲','Clan reset! Roll again!');}
   else if(id==='str5')p.str+=5;
   else if(id==='agi5')p.agi+=5;
   else if(id==='end5'){p.end+=5;p.maxHp=Math.floor(100+p.end*10+p.level*5);}
   else if(id==='cemax')p.maxCe+=50;
+  else if(id==='hpmax'){p.maxHp+=50;p.hp=Math.min(p.hp+50,p.maxHp);}
   else if(id==='combo_charm')p.comboCharm=true;
   else if(id==='crit_charm')p.critCharm=true;
-  renderAll();schedSave();toast('✅',`${item.name} purchased!`);
+  else if(id==='xp_charm'){p.xpCharm=true;}
+  else if(id==='coin_charm'){p.coinCharm=true;}
+  else if(id==='regen_charm'){p.regenCharm=true;}
+  renderAll();schedSave();checkAch();toast('✅',`${item.name} purchased!`);
 }
 function openShop(){renderShop();document.getElementById('shop-ov').style.display='flex';}
 function closeShop(){document.getElementById('shop-ov').style.display='none';}
@@ -2287,9 +2518,153 @@ function showSMsg(m,c){const el=document.getElementById('smsg');el.textContent=m
 // TABS
 // ══════════════════════════════════════════════════════
 function switchTab(tab){
-  document.querySelectorAll('.tnb').forEach((b,i)=>b.classList.toggle('active',['s','c','w'][i]===tab));
+  document.querySelectorAll('.tnb').forEach((b,i)=>b.classList.toggle('active',['s','c','q','e','w'][i]===tab));
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id===`pane-${tab}`));
   if(tab==='w')renderPlayers();
+  if(tab==='q')renderQuests();
+  if(tab==='e'){renderEvents();renderOutfits();}
+}
+
+// ── QUEST SYSTEM ──
+function getQuestProgress(q){
+  if(!player)return 0;
+  const p=player;
+  if(q.type==='kills')return Math.min(q.target,p.kills||0);
+  if(q.type==='level')return Math.min(q.target,p.level||0);
+  if(q.type==='trainCount')return Math.min(q.target,p.trainCount||0);
+  if(q.type==='rolls')return Math.min(q.target,p.rollCount||0);
+  if(q.type==='coins')return Math.min(q.target,(p.totalCoins||p.coins||0));
+  if(q.type==='ascensions')return Math.min(q.target,p.ascensions||0);
+  if(q.type==='domainCount')return Math.min(q.target,p.domainCount||0);
+  if(q.type==='stat_str')return Math.min(q.target,p.str||0);
+  if(q.type==='rarity_s')return ['S','SS','SS+'].includes(p.techRarity)?1:0;
+  if(q.type==='rarity_ssp')return p.techRarity==='SS+'?1:0;
+  if(q.type==='kill_enemy')return (p.completedQuests||[]).includes(q.id+'_done')?1:0;
+  return 0;
+}
+
+function isQuestComplete(q){return getQuestProgress(q)>=q.target;}
+function isQuestClaimed(q){return (player?.completedQuests||[]).includes(q.id);}
+
+function claimQuest(chainId,questId){
+  const chain=QUEST_CHAINS.find(c=>c.id===chainId);
+  const q=chain?.quests.find(qq=>qq.id===questId);
+  if(!q||!player)return;
+  if(!isQuestComplete(q)||isQuestClaimed(q))return;
+  if(!player.completedQuests)player.completedQuests=[];
+  player.completedQuests.push(q.id);
+  if(q.rewards.coins){player.coins+=q.rewards.coins;player.totalCoins=(player.totalCoins||0)+q.rewards.coins;}
+  if(q.rewards.spins)player.spins+=q.rewards.spins;
+  if(q.rewards.xp){player.xp+=q.rewards.xp;checkLevelUp();}
+  toast('📜',`Quest complete! +${q.rewards.coins||0} coins, +${q.rewards.spins||0} spins`);
+  renderAll();schedSave();checkAch();renderQuests();
+}
+
+function renderQuests(){
+  const el=document.getElementById('quest-list');
+  if(!el||!player)return;
+  el.innerHTML=QUEST_CHAINS.map(chain=>{
+    const done=chain.quests.filter(q=>isQuestClaimed(q)).length;
+    const total=chain.quests.length;
+    const qs=chain.quests.map((q,i)=>{
+      const prog=getQuestProgress(q);
+      const complete=isQuestComplete(q);
+      const claimed=isQuestClaimed(q);
+      // Only show if previous quest is claimed (or first)
+      const unlocked=i===0||(isQuestClaimed(chain.quests[i-1]));
+      if(!unlocked)return `<div class="qitem" style="opacity:.3"><div class="qitem-check">🔒</div><div><div class="qitem-title">${q.title}</div><div class="qitem-desc">Complete previous quest to unlock</div></div></div>`;
+      const pct=Math.round(prog/q.target*100);
+      const rewStr=[q.rewards.coins?`💰${q.rewards.coins}`:null,q.rewards.spins?`🎲${q.rewards.spins}`:null,q.rewards.xp?`⚡${q.rewards.xp}XP`:null].filter(Boolean).map(r=>`<span class="qrew">${r}</span>`).join('');
+      const claimBtn=complete&&!claimed?`<button class="qclaim" onclick="claimQuest('${chain.id}','${q.id}')">✓ CLAIM REWARD</button>`:'';
+      return `<div class="qitem">
+        <div class="qitem-check ${claimed?'done':complete?'active':''}">${claimed?'✓':complete?'!':i+1}</div>
+        <div style="flex:1">
+          <div class="qitem-title">${q.title}</div>
+          <div class="qitem-desc">${q.desc}</div>
+          ${!claimed?`<div class="qitem-bar"><div class="qitem-bar-fill" style="width:${pct}%"></div></div>
+          <div style="font-size:9px;color:var(--mut);margin-bottom:3px">${prog}/${q.target}</div>`:''}
+          <div class="qitem-rew">${rewStr}</div>
+          ${claimBtn}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="qchain">
+      <div class="qchain-hdr" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="qchain-icon">${chain.icon}</span>
+        <span class="qchain-title">${chain.title}</span>
+        <span class="qchain-prog">${done}/${total} complete</span>
+        <span style="color:var(--mut);font-size:12px">▾</span>
+      </div>
+      <div class="qchain-body">${qs}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── EVENTS ──
+function renderEvents(){
+  const el=document.getElementById('event-list');
+  if(!el)return;
+  const active=EVENTS.filter(e=>e.active);
+  if(!active.length){el.innerHTML='<div style="text-align:center;color:var(--mut);font-style:italic;padding:20px">No active events right now. Check back soon!</div>';return;}
+  el.innerHTML=active.map(ev=>{
+    const bonusStr=Object.entries(ev.bonuses).map(([k,v])=>{
+      const labels={xpMult:`XP ×${v}`,coinMult:`Coins ×${v}`,enemyHpMult:`Enemy HP ×${v}`,enemyDmgMult:`Enemy DMG ×${v}`};
+      return `<span class="ev-bonus">${labels[k]||k}: ${v}</span>`;
+    }).join('');
+    return `<div class="ev-card">
+      <div class="ev-name">${ev.name}<span class="ev-badge">ACTIVE</span></div>
+      <div class="ev-desc">${ev.desc}</div>
+      <div class="ev-bonuses">${bonusStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── OUTFITS ──
+function renderOutfits(){
+  const el=document.getElementById('outfit-list');
+  if(!el||!player)return;
+  const owned=player.outfits||['default'];
+  const equipped=player.outfitId||'default';
+  el.innerHTML=OUTFITS.map(o=>{
+    const isOwned=owned.includes(o.id);
+    const isEq=equipped===o.id;
+    const btnTxt=isEq?'✓ EQUIPPED':isOwned?'EQUIP':`BUY ${o.price}💰`;
+    return `<div class="outfit-card ${isEq?'equipped':''}">
+      ${isOwned&&!isEq?`<span class="outfit-badge">OWNED</span>`:''}
+      <div class="outfit-icon">${o.icon}</div>
+      <div class="outfit-name">${o.name}</div>
+      <div class="outfit-desc">${o.desc}</div>
+      ${!isOwned?`<div class="outfit-price">${o.price} coins</div>`:''}
+      <button class="outfit-btn ${isEq?'eq':''}" onclick="handleOutfit('${o.id}',${o.price})">${btnTxt}</button>
+    </div>`;
+  }).join('');
+}
+
+function handleOutfit(id,price){
+  if(!player)return;
+  if(!player.outfits)player.outfits=['default'];
+  if(player.outfits.includes(id)){
+    // equip
+    player.outfitId=id;
+    toast('👕','Outfit equipped!');
+  } else {
+    if(player.coins<price){toast('❌','Not enough coins!');return;}
+    player.coins-=price;
+    player.outfits.push(id);
+    player.outfitId=id;
+    toast('👕',`Outfit unlocked!`);
+    checkAch();
+  }
+  renderAll();schedSave();renderOutfits();
+}
+
+// Apply active event bonuses
+function getEventBonuses(){
+  const bonuses={xpMult:1,coinMult:1,enemyHpMult:1,enemyDmgMult:1};
+  EVENTS.filter(e=>e.active).forEach(ev=>{
+    Object.entries(ev.bonuses).forEach(([k,v])=>{ bonuses[k]=(bonuses[k]||1)*v; });
+  });
+  return bonuses;
 }
 function setTrainTab(tab){
   document.querySelectorAll('.stb').forEach((b,i)=>b.classList.toggle('active',['train','rolls'][i]===tab));
