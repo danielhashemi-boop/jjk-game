@@ -543,6 +543,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
       <span>COINS: <span class="tb-gold" id="tb-coins">0</span></span>
       <span id="tb-event" style="display:none;color:#bb8fce;font-size:9px;letter-spacing:1px">🌙 EVENT</span>
       <span id="tb-outfit" style="font-size:14px"></span>
+      <button class="tb-btn" onclick="openCharSelect()" style="display:flex;align-items:center;gap:4px;padding:3px 8px">
+        <canvas id="tb-char-canvas" width="20" height="28" style="image-rendering:pixelated;vertical-align:middle"></canvas>
+        <span style="font-size:8px;letter-spacing:.06em">CHAR</span>
+      </button>
       <button class="tb-btn" onclick="openShop()">Shop</button>
       <button class="tb-btn" onclick="openLb()">🏆</button>
       <button class="tb-btn" onclick="openSave()">💾</button>
@@ -755,6 +759,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           <div class="pt">Online Players</div>
           <button class="boss-btn" id="toji-btn" onclick="startBoss('toji')">⚔ Boss: Toji Zenin</button>
           <button class="boss-btn sk" id="suk-btn" onclick="startBoss('sukuna')">👁 Boss: KING OF CURSES</button>
+          <button class="boss-btn" style="border-color:var(--acc);color:var(--acc2);background:rgba(201,162,39,.08);margin-bottom:6px" onclick="openCharSelect()">✦ Choose Character</button>
           <button class="boss-btn" style="border-color:#3cff3c;color:#3cff3c;background:rgba(60,255,60,.08);margin-bottom:6px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.05em" onclick="startUTBattle(null,null)">★ CURSED BATTLE (UNDERTALE PVP)</button>
           <button class="boss-btn" style="border-color:#e8c84a;color:#e8c84a;background:rgba(201,162,39,.1);margin-bottom:6px" onclick="joinArenaQueue()">⚔ WASD Arena — Real-time PvP</button>
           <button class="boss-btn" style="border-color:#aaa;color:#aaa;background:rgba(150,150,150,.08);margin-bottom:6px" onclick="startArenaBotMatch()">🤖 Arena vs Bot (Practice)</button>
@@ -1978,6 +1983,9 @@ function renderAll(){
   const outfitData=OUTFITS.find(o=>o.id===(p.outfitId||'default'));
   const outfitEl=document.getElementById('tb-outfit');
   if(outfitEl)outfitEl.textContent=outfitData?.icon||'';
+  // Topbar character mini
+  const tbChar=document.getElementById('tb-char-canvas');
+  if(tbChar)drawCharacter(tbChar,p.charId||'megumi','idle',1);
   // Event indicator
   const evEl=document.getElementById('tb-event');
   if(evEl)evEl.style.display=EVENTS.some(e=>e.active)?'inline':'none';
@@ -4775,230 +4783,111 @@ function arenaDraw(){
 
 function arenaDrawFighter(ctx, f){
   ctx.save();
-  const S = 3;
-  const bx = Math.round(f.x);
-  const by = Math.round(f.y);
-  const dir = f.facing;
-  const t = Date.now();
-  const hitFlash = f.hitAnim > 0 && Math.floor(f.hitAnim/40)%2===0;
-  ctx.globalAlpha = f.dead ? 0.4 : 1;
+  if(f.dead)ctx.globalAlpha=0.4;
+  const bx=Math.round(f.x), by=Math.round(f.y);
+  const t=Date.now();
+  const glowCol=(typeof CHARACTERS!=='undefined'&&CHARACTERS.find(c=>c.id===f.charId)?.color)||f.color;
 
-  const C = hitFlash ? {
-    skin:'#fff',skinD:'#ddd',hair:'#fff',hairD:'#eee',
-    suit:'#fff',suitM:'#eee',suitL:'#f5f5f5',
-    shoe:'#fff',shoeD:'#eee',btn:'#fff',eye:'#fff',white:'#fff',ceCol:'#fff'
-  } : {
-    skin:'#e8b48a', skinD:'#c89060',
-    hair:f.color,   hairD:shadeColor(f.color,-45),
-    suit:'#1a1a3a',  suitM:'#222248', suitL:'#2d2d5a',
-    shoe:'#8b5e1a',  shoeD:'#5a3a08',
-    btn:'#c9a227',
-    eye:'#1a0a2e',   white:'#ffffff',
-    ceCol:f.color,
-  };
-
-  // pixel helper — gx from 0..15 (left to right), gy from 0 upward (feet=0)
-  function p(gx,gy,col){
-    const rx = dir>0 ? bx - 8*S + gx*S : bx + 8*S - (gx+1)*S;
-    const ry = by - gy*S - S;
-    ctx.fillStyle=col; ctx.fillRect(rx,ry,S,S);
-  }
-
-  // shadow
-  ctx.save(); ctx.globalAlpha=(f.onGround?0.35:0.1);
+  // Shadow
+  ctx.save();ctx.globalAlpha=f.dead?0.1:0.28;
   ctx.fillStyle='#000';
-  ctx.beginPath(); ctx.ellipse(bx,by+2,f.onGround?22:10,f.onGround?5:2,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath();ctx.ellipse(bx,by+2,f.onGround?22:11,f.onGround?5:3,0,0,Math.PI*2);ctx.fill();
   ctx.restore();
 
-  // CE aura
-  if(!f.dead){
-    const aA = (f.attackAnim>0?0.55:(f.hp<f.maxHp*0.4?0.3:0.1))+Math.sin(t*.008)*.05;
-    const aR = f.attackAnim>0?44:28;
-    const ag=ctx.createRadialGradient(bx,by-42,2,bx,by-42,aR);
-    ag.addColorStop(0,C.ceCol+'88'); ag.addColorStop(1,'transparent');
-    ctx.save(); ctx.globalAlpha=aA; ctx.fillStyle=ag;
-    ctx.beginPath(); ctx.ellipse(bx,by-42,aR,aR*.8,0,0,Math.PI*2); ctx.fill();
+  // Pixel art character drawn on offscreen canvas
+  if(typeof drawCharacter==='function'){
+    const fc=document.createElement('canvas');
+    fc.width=120;fc.height=160;
+    const st=f.attackAnim>0?'attack':'idle';
+    drawCharacter(fc,f.charId||'megumi',st,f.facing);
+    ctx.drawImage(fc,bx-60,by-155,120,160);
+  }
+
+  // Glow under feet
+  const ag=ctx.createRadialGradient(bx,by+2,0,bx,by+2,26);
+  ag.addColorStop(0,glowCol+'55');ag.addColorStop(1,'transparent');
+  ctx.fillStyle=ag;ctx.beginPath();ctx.arc(bx,by+2,26,0,Math.PI*2);ctx.fill();
+
+  // Hit flash
+  if(f.hitAnim>0&&Math.floor(f.hitAnim/40)%2===0){
+    ctx.save();ctx.globalAlpha=0.35;ctx.fillStyle='#fff';
+    ctx.fillRect(bx-30,by-155,60,150);ctx.restore();
+  }
+
+  // Block shield aura
+  if(f.blocking){
+    ctx.save();ctx.globalAlpha=0.22+Math.sin(t*.008)*.08;
+    ctx.strokeStyle='#3498db';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(bx-f.facing*8,by-65,28,52,0,0,Math.PI*2);ctx.stroke();
     ctx.restore();
   }
 
-  const moving   = Math.abs(f.vx)>0.4;
-  const wf       = moving&&f.onGround ? Math.floor(t/110)%4 : 0;
-  const blocking = f.blocking;
-  const attacking= f.attackAnim>0;
-  const airborne = !f.onGround;
-
-  if(!blocking&&!attacking&&!airborne){
-    // ── IDLE / WALK ──
-    // shoes
-    p(1,0,C.shoeD);p(2,0,C.shoeD);p(3,0,C.shoe);p(4,0,C.shoe);
-    p(9,0,C.shoeD);p(10,0,C.shoeD);p(11,0,C.shoe);p(12,0,C.shoe);
-    // legs walk cycle
-    const lL=[0,1,2,1][wf], rL=[2,1,0,1][wf];
-    p(2,1+lL,C.suit);p(3,1+lL,C.suit);p(4,1+lL,C.suitM);
-    p(2,2+lL,C.suit);p(3,2+lL,C.suitM);p(4,2+lL,C.suitL);
-    p(2,3+lL,C.suit);p(3,3+lL,C.suit);
-    p(9,1+rL,C.suitM);p(10,1+rL,C.suit);p(11,1+rL,C.suit);
-    p(9,2+rL,C.suitL);p(10,2+rL,C.suitM);p(11,2+rL,C.suit);
-    p(10,3+rL,C.suit);p(11,3+rL,C.suit);
-    // torso
-    for(let row=5;row<=9;row++){
-      p(2,row,C.suitL);p(3,row,C.suitM);p(4,row,C.suit);p(5,row,C.suit);
-      p(6,row,C.suit);p(7,row,C.suit);p(8,row,C.suit);p(9,row,C.suitM);p(10,row,C.suitL);
+  // Dash trail
+  if(f.dashing){
+    for(let i=1;i<=3;i++){
+      ctx.save();ctx.globalAlpha=0.1*i;
+      ctx.fillStyle=glowCol;
+      ctx.fillRect(bx-32-f.dashDir*i*18,by-152,64,148);
+      ctx.restore();
     }
-    p(6,6,C.btn);p(7,6,C.btn);p(6,7,C.btn);p(7,7,C.btn);p(6,8,C.btn);p(7,8,C.btn);
-    // arms
-    const sw=moving?Math.sin(t*.015)*1.5:0;
-    const la=Math.round(sw),ra=Math.round(-sw);
-    p(1,7+la,C.suitL);p(2,7+la,C.suitM);p(1,6+la,C.suitL);p(0,6+la,C.suit);p(0,5+la,C.skin);
-    p(11,7+ra,C.suitM);p(12,7+ra,C.suitL);p(12,6+ra,C.suitM);p(13,6+ra,C.suit);p(13,5+ra,C.skinD);
-    // neck
-    p(6,10,C.skin);p(7,10,C.skin);
-    // face
-    for(let row=11;row<=14;row++) for(let col=4;col<=9;col++) p(col,row,C.skin);
-    p(4,12,C.skinD);p(9,12,C.skinD); // ear shadows
-    // eyes
-    p(5,13,C.eye);p(6,13,C.white);p(7,13,C.white);p(8,13,C.eye);
-    p(5,12,C.eye);p(8,12,C.eye);
-    p(6,11,C.skinD);p(7,11,C.skinD); // nose
-    // hair base
-    for(let col=4;col<=9;col++){p(col,14,C.hair);p(col,15,C.hair);}
-    p(3,15,C.hair);p(10,15,C.hair);
-    p(3,16,C.hairD);p(4,16,C.hair);p(5,16,C.hair);p(6,16,C.hair);p(7,16,C.hair);p(8,16,C.hair);p(9,16,C.hair);p(10,16,C.hairD);
-    // spikes
-    const spikes=[[3,17],[5,17],[7,17],[9,17],[11,17],[2,17],[4,18],[6,18],[8,18],[10,18],[5,19],[9,19],[7,20],[2,16],[11,16],[1,15],[12,15],[0,14],[13,14],[1,13],[12,13],[6,20],[7,20],[6,21],[7,21]];
-    spikes.forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
-
-  } else if(attacking){
-    // ── ATTACK / LUNGE ──
-    p(0,0,C.shoeD);p(1,0,C.shoe);p(2,0,C.shoe);
-    p(10,0,C.shoeD);p(11,0,C.shoe);p(12,0,C.shoe);p(13,0,C.shoe);
-    p(1,1,C.suit);p(2,1,C.suit);p(2,2,C.suitM);p(3,2,C.suit);p(3,3,C.suit);p(4,3,C.suit);
-    p(10,1,C.suit);p(11,1,C.suit);p(11,2,C.suitM);p(12,2,C.suit);p(11,3,C.suit);p(12,3,C.suit);p(12,4,C.suitM);
-    for(let row=4;row<=8;row++){
-      p(4,row,C.suitL);p(5,row,C.suitM);p(6,row,C.suit);p(7,row,C.suit);p(8,row,C.suit);p(9,row,C.suitM);p(10,row,C.suitL);
-    }
-    p(6,6,C.btn);p(7,6,C.btn);
-    // punch arm extended
-    p(10,8,C.suitL);p(11,8,C.suit);p(11,7,C.suitL);p(12,7,C.suit);p(12,6,C.suitM);p(13,6,C.suit);p(13,5,C.skin);p(14,5,C.skin);p(15,5,C.skinD);
-    // CE fist
-    const fx=bx+dir*48,fy=by-17*S;
-    const prog=f.attackAnim/300;
-    const eg=ctx.createRadialGradient(fx,fy,1,fx,fy,14+prog*8);
-    eg.addColorStop(0,'#fff');eg.addColorStop(0.35,C.ceCol);eg.addColorStop(1,'transparent');
-    ctx.save();ctx.globalAlpha=prog*.9;ctx.fillStyle=eg;
-    ctx.beginPath();ctx.arc(fx,fy,14+prog*8,0,Math.PI*2);ctx.fill();
-    for(let sl=0;sl<3;sl++){const sa=-0.3+sl*0.3;ctx.strokeStyle=C.ceCol+'cc';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fx-dir*5,fy+Math.sin(sa)*5);ctx.lineTo(fx+dir*22,fy+Math.sin(sa)*22);ctx.stroke();}
-    ctx.restore();
-    // back arm
-    p(3,7,C.suitM);p(2,7,C.suit);p(2,6,C.suitL);p(1,6,C.suit);p(1,5,C.skinD);
-    // face
-    for(let row=9;row<=12;row++) for(let col=5;col<=9;col++) p(col,row,C.skin);
-    p(4,11,C.skinD);p(5,10,C.eye);p(7,10,C.eye);p(5,9,C.eye);p(7,9,C.eye);
-    // hair attack spiky
-    for(let col=4;col<=10;col++) p(col,12,C.hair);
-    for(let col=3;col<=10;col++) p(col,13,C.hair);
-    [[3,14],[5,14],[7,14],[9,14],[11,14],[2,13],[4,15],[6,15],[8,15],[10,15],[1,12],[12,13],[5,16],[9,16],[7,17]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
-
-  } else if(blocking){
-    // ── BLOCK / GUARD ──
-    p(3,0,C.shoeD);p(4,0,C.shoe);p(5,0,C.shoe);p(8,0,C.shoeD);p(9,0,C.shoe);p(10,0,C.shoe);
-    p(3,1,C.suit);p(4,1,C.suit);p(5,1,C.suitM);p(8,1,C.suitM);p(9,1,C.suit);p(10,1,C.suit);
-    p(4,2,C.suit);p(5,2,C.suitM);p(8,2,C.suitM);p(9,2,C.suit);
-    p(4,3,C.suitL);p(5,3,C.suit);p(8,3,C.suit);p(9,3,C.suitL);
-    for(let row=4;row<=7;row++) for(let col=3;col<=10;col++) p(col,row,C.suitM);
-    p(6,5,C.btn);p(7,5,C.btn);
-    p(2,7,C.suitL);p(1,8,C.suit);p(1,9,C.skinD);
-    p(11,7,C.suitL);p(12,8,C.suit);p(12,9,C.skinD);
-    p(2,8,C.suitM);p(3,8,C.suit);p(9,8,C.suitM);p(10,8,C.suit);
-    // shield aura
-    const sA=0.2+Math.sin(t*.01)*.1;
-    const sg=ctx.createRadialGradient(bx-dir*8,by-22,2,bx-dir*8,by-22,38);
-    sg.addColorStop(0,'#3498db55');sg.addColorStop(1,'transparent');
-    ctx.save();ctx.globalAlpha=sA;ctx.fillStyle=sg;
-    ctx.beginPath();ctx.ellipse(bx-dir*8,by-22,38,30,dir*0.3,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#5dade2';ctx.lineWidth=1.5;ctx.globalAlpha=sA*1.5;
-    ctx.beginPath();ctx.ellipse(bx-dir*8,by-22,38,30,dir*0.3,0,Math.PI*2);ctx.stroke();
-    ctx.restore();
-    for(let row=8;row<=11;row++) for(let col=4;col<=9;col++) p(col,row,C.skin);
-    p(5,10,C.eye);p(8,10,C.eye);
-    for(let col=3;col<=10;col++) p(col,12,C.hair);
-    for(let col=3;col<=10;col++) p(col,13,C.hair);
-    [[2,12],[4,14],[6,14],[8,14],[10,12],[3,15],[5,15],[7,15],[9,15],[6,16]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
-
-  } else if(airborne){
-    // ── AIRBORNE ──
-    const falling=f.vy>2;
-    p(4,1,C.shoeD);p(5,1,C.shoe);p(8,1,C.shoe);p(9,1,C.shoeD);
-    p(4,2,C.suit);p(5,2,C.suitM);p(8,2,C.suitM);p(9,2,C.suit);
-    p(5,3,C.suit);p(6,3,C.suitM);p(7,3,C.suitM);p(8,3,C.suit);
-    for(let row=4;row<=7;row++) for(let col=3;col<=10;col++) p(col,row,C.suitM);
-    p(6,5,C.btn);p(7,5,C.btn);
-    p(1,5,C.suit);p(2,5,C.suitM);p(0,4,C.skinD);
-    p(12,5,C.suit);p(11,5,C.suitM);p(13,4,C.skinD);
-    if(!falling){
-      const tg=ctx.createLinearGradient(bx-dir*40,by-20,bx+dir*5,by-20);
-      tg.addColorStop(0,'transparent');tg.addColorStop(1,C.ceCol+'44');
-      ctx.fillStyle=tg;ctx.fillRect(bx-dir*40,by-35,40,18);
-    }
-    for(let row=8;row<=11;row++) for(let col=5;col<=9;col++) p(col,row,C.skin);
-    p(6,10,C.eye);p(7,10,C.white);p(8,10,C.eye);p(5,10,C.white);
-    for(let col=4;col<=10;col++) p(col,12,C.hair);
-    [[3,12],[11,12],[2,11],[4,13],[6,13],[8,13],[10,13],[12,11],[3,14],[5,14],[7,14],[9,14],[11,14],[5,15],[7,15],[9,15],[6,16],[8,16]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
   }
 
-  // stun stars
+  // Stun stars
   if(f.stunTimer>0){
     for(let s=0;s<3;s++){
-      const sa=t*.005+s*2.09;
-      ctx.save();ctx.font='11px serif';ctx.fillStyle='#f1c40f';ctx.textAlign='center';
-      ctx.fillText('★',bx+Math.cos(sa)*18,by-72+Math.sin(sa)*5);ctx.restore();
+      const sa=t*.005+s*2.1;
+      ctx.font='11px serif';ctx.fillStyle='#f1c40f';ctx.textAlign='center';
+      ctx.fillText('★',bx+Math.cos(sa)*18,by-165+Math.sin(sa)*5);
     }
   }
 
-  // hit burst
+  // Hit burst particles
   f.effects.forEach(ef=>{
     const prog=ef.timer/ef.maxTimer;
-    ctx.save();
     if(ef.type==='hit'){
-      ctx.globalAlpha=prog*.85;
-      for(let i=0;i<8;i++){
-        const a=(i/8)*Math.PI*2+(1-prog)*2,r=(1-prog)*32;
+      ctx.save();ctx.globalAlpha=prog*.85;
+      for(let p=0;p<8;p++){
+        const a=(p/8)*Math.PI*2;
         ctx.strokeStyle=ef.color;ctx.lineWidth=2;
-        ctx.beginPath();ctx.moveTo(bx+Math.cos(a)*6,by-28+Math.sin(a)*6);ctx.lineTo(bx+Math.cos(a)*r,by-28+Math.sin(a)*r);ctx.stroke();
-        ctx.fillStyle=ef.color+'bb';ctx.beginPath();ctx.arc(bx+Math.cos(a)*r,by-28+Math.sin(a)*r,1.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.moveTo(bx+Math.cos(a)*6,by-65+Math.sin(a)*6);
+        ctx.lineTo(bx+Math.cos(a)*(1-prog)*34,by-65+Math.sin(a)*(1-prog)*34);
+        ctx.stroke();
       }
+      ctx.restore();
     }
     if(ef.type==='dash'){
-      ctx.globalAlpha=prog*.45;ctx.strokeStyle='#7ec8e3';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.ellipse(bx,by-32,30+(1-prog)*18,22+(1-prog)*12,0,0,Math.PI*2);ctx.stroke();
+      ctx.save();ctx.globalAlpha=prog*.4;
+      ctx.strokeStyle='#7ec8e3';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(bx,by-65,32+(1-prog)*22,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
     }
+  });
+
+  // Damage numbers
+  f.dmgNumbers.forEach(d=>{
+    ctx.save();ctx.globalAlpha=Math.min(1,d.timer/250);
+    ctx.font=`${d.crit?'900':'700'} ${d.crit?20:15}px 'Cinzel',serif`;
+    ctx.fillStyle=d.color;ctx.textAlign='center';
+    if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=14;}
+    ctx.fillText(d.val,d.x,d.y);
     ctx.restore();
   });
 
-  // damage numbers
-  f.dmgNumbers.forEach(d=>{
-    const alpha=Math.min(1,d.timer/250);
-    ctx.save();ctx.globalAlpha=alpha;
-    ctx.font=`${d.crit?'900':'700'} ${d.crit?18:13}px 'Cinzel',serif`;
-    ctx.fillStyle=d.color;ctx.textAlign='center';
-    if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=10;}
-    ctx.fillText(d.val,d.x,d.y);ctx.restore();
-  });
-
-  // combo
+  // Combo counter
   if(f.combo>=3&&f.comboTimer>0){
-    ctx.save();ctx.font=`900 ${Math.min(15,9+f.combo)}px 'Cinzel',serif`;
+    ctx.font=`900 ${Math.min(16,9+f.combo)}px 'Cinzel',serif`;
     ctx.textAlign='center';ctx.fillStyle='#e8c84a';
-    ctx.shadowColor='rgba(201,162,39,.9)';ctx.shadowBlur=12;
-    ctx.fillText(`${f.combo}× COMBO`,bx,by-82);ctx.restore();
+    ctx.shadowColor='rgba(201,162,39,.9)';ctx.shadowBlur=14;
+    ctx.fillText(`${f.combo}\u00d7 COMBO`,bx,by-175);
+    ctx.shadowBlur=0;
   }
 
-  // name tag
-  ctx.save();ctx.font='bold 9px Cinzel,serif';ctx.textAlign='center';
-  ctx.fillStyle=f.color;ctx.shadowColor=f.color;ctx.shadowBlur=8;
-  ctx.fillText(f.name.toUpperCase(),bx,by-86);
-  ctx.shadowBlur=0;ctx.restore();
-
+  // Name tag
+  ctx.globalAlpha=1;ctx.font='bold 9px Cinzel,serif';
+  ctx.textAlign='center';ctx.fillStyle=glowCol;
+  ctx.shadowColor=glowCol;ctx.shadowBlur=8;
+  ctx.fillText(f.name.toUpperCase(),bx,by-168);
+  ctx.shadowBlur=0;
   ctx.restore();
 }
 
@@ -5018,10 +4907,15 @@ function openArena(opponentName, opponentColor, online=false){
   arenaActive=true; arenaOnline=online;
   const canvas=document.getElementById('arena-canvas');
   canvas.width=ARENA_W; canvas.height=ARENA_H;
-  const pColor = '#e8c84a'; // player always gold
-  const oColor = opponentColor || '#e74c3c';
+  const myChar = (typeof CHARACTERS!=='undefined')&&CHARACTERS.find(c=>c.id===(player?.charId||'megumi'))||{color:'#e8c84a',id:'megumi'};
+  const pColor = myChar.color;
+  const oppCharList = (typeof CHARACTERS!=='undefined')&&CHARACTERS||[];
+  const oppCharDef = oppCharList[Math.floor(Math.random()*Math.max(1,oppCharList.length))];
+  const oColor = opponentColor || oppCharDef?.color || '#e74c3c';
   arenaF1=makeArenaFighter(160, 1, player?.name||'YOU', pColor, true);
+  arenaF1.charId = myChar.id;
   arenaF2=makeArenaFighter(ARENA_W-160, -1, opponentName||'OPPONENT', oColor, false);
+  arenaF2.charId = oppCharDef?.id||'sukuna';
   // Scale HP by player level
   const lvl=player?.level||1;
   arenaF1.maxHp=arenaF2.maxHp=Math.floor(ARENA_MAXHP+(lvl-1)*20);
@@ -6146,6 +6040,565 @@ function utSetupDpad(){
 function startUTBattle(oppName, oppTech){
   openUTBattle(oppName||'OPPONENT', oppTech||'Shrine', false);
 }
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     CHARACTER SELECT + GAMEMODE PICKER
+     ══════════════════════════════════════════════════════ -->
+<style>
+/* ── CHARACTER SELECT ── */
+#char-select-ov{
+  position:fixed;inset:0;z-index:650;background:rgba(0,0,0,.96);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
+}
+#char-select-ov.active{display:flex}
+.cs-box{
+  width:680px;max-width:97vw;
+  background:#0d0b14;border:2px solid var(--acc);
+  border-radius:12px;padding:24px 20px;
+  box-shadow:0 0 60px var(--glow-acc);
+}
+.cs-title{font-family:'Cinzel',serif;font-size:13px;letter-spacing:.15em;color:var(--acc);text-align:center;margin-bottom:4px}
+.cs-sub{font-size:10px;color:var(--mut);text-align:center;margin-bottom:18px;letter-spacing:.06em}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:18px}
+.cs-card{
+  background:#0a080f;border:2px solid var(--border);border-radius:8px;
+  padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.cs-card:hover{border-color:var(--acc);box-shadow:0 0 14px var(--glow-acc);transform:translateY(-2px)}
+.cs-card.selected{border-color:var(--acc);background:rgba(201,162,39,.08);box-shadow:0 0 18px var(--glow-acc)}
+.cs-card.selected::after{content:'✓';position:absolute;top:4px;right:6px;font-size:10px;color:var(--acc)}
+.cs-canvas{width:80px;height:100px;display:block;margin:0 auto 6px}
+.cs-name{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.06em;color:var(--txt);margin-bottom:2px}
+.cs-clan{font-size:9px;color:var(--mut);font-style:italic}
+.cs-confirm{width:100%;padding:11px;background:rgba(201,162,39,.1);border:1.5px solid var(--acc);
+  color:var(--acc2);font-family:'Cinzel',serif;font-size:10px;letter-spacing:.12em;
+  border-radius:6px;cursor:pointer;transition:all .2s}
+.cs-confirm:hover{background:rgba(201,162,39,.25);box-shadow:0 0 14px var(--glow-acc)}
+.cs-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--mut);
+  font-size:16px;cursor:pointer;font-family:'Cinzel',serif}
+.cs-close:hover{color:var(--red2)}
+
+/* ── GAMEMODE PICKER ── */
+#mode-pick-ov{
+  position:fixed;inset:0;z-index:660;background:rgba(0,0,0,.94);
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);
+}
+#mode-pick-ov.active{display:flex}
+.mp-box{
+  width:480px;max-width:95vw;
+  background:#0d0b14;border:2px solid var(--border);
+  border-radius:12px;padding:26px 24px;
+  box-shadow:0 0 40px rgba(0,0,0,.8);
+}
+.mp-title{font-family:'Cinzel',serif;font-size:12px;letter-spacing:.15em;color:var(--acc);text-align:center;margin-bottom:4px}
+.mp-opp{font-size:11px;color:var(--mut);text-align:center;margin-bottom:20px}
+.mp-modes{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.mp-mode{
+  display:flex;align-items:center;gap:14px;
+  background:#0a080f;border:2px solid var(--border);border-radius:8px;
+  padding:14px 16px;cursor:pointer;transition:all .2s;
+}
+.mp-mode:hover{border-color:var(--acc);box-shadow:0 0 12px var(--glow-acc)}
+.mp-mode-icon{font-size:28px;flex-shrink:0}
+.mp-mode-name{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;color:var(--txt);margin-bottom:3px}
+.mp-mode-desc{font-size:10px;color:var(--mut);line-height:1.5}
+.mp-cancel{width:100%;padding:8px;background:none;border:1px solid var(--border);
+  color:var(--mut);font-family:'Cinzel',serif;font-size:9px;letter-spacing:.1em;
+  border-radius:6px;cursor:pointer}
+.mp-cancel:hover{border-color:var(--red2);color:var(--red2)}
+</style>
+
+<!-- Character Select Overlay -->
+<div id="char-select-ov">
+  <div class="cs-box" style="position:relative">
+    <button class="cs-close" onclick="closeCharSelect()">✕</button>
+    <div class="cs-title">✦ CHOOSE YOUR CHARACTER ✦</div>
+    <div class="cs-sub">Your fighter for arena battles</div>
+    <div class="cs-grid" id="cs-grid"></div>
+    <button class="cs-confirm" onclick="confirmCharSelect()">CONFIRM SELECTION</button>
+  </div>
+</div>
+
+<!-- Gamemode Picker Overlay -->
+<div id="mode-pick-ov">
+  <div class="mp-box">
+    <div class="mp-title">⚔ CHOOSE BATTLE MODE</div>
+    <div class="mp-opp" id="mp-opp-name">vs OPPONENT</div>
+    <div class="mp-modes">
+      <div class="mp-mode" onclick="pickMode('undertale')">
+        <div class="mp-mode-icon">❤</div>
+        <div>
+          <div class="mp-mode-name">★ CURSED BATTLE</div>
+          <div class="mp-mode-desc">Undertale-style turn combat.<br>Attack for 10s, then dodge as a SOUL.</div>
+        </div>
+      </div>
+      <div class="mp-mode" onclick="pickMode('arena')">
+        <div class="mp-mode-icon">⚔</div>
+        <div>
+          <div class="mp-mode-name">WASD ARENA</div>
+          <div class="mp-mode-desc">Real-time side-scroller PvP.<br>Move, dash, block and spam skills live.</div>
+        </div>
+      </div>
+      <div class="mp-mode" onclick="pickMode('classic')">
+        <div class="mp-mode-icon">📜</div>
+        <div>
+          <div class="mp-mode-name">CLASSIC DUEL</div>
+          <div class="mp-mode-desc">Turn-based combat with simultaneous moves.<br>The original PvP system.</div>
+        </div>
+      </div>
+    </div>
+    <button class="mp-cancel" onclick="closeModePickerM()">✕ CANCEL</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CHARACTERS — pixel art fighters
+// ══════════════════════════════════════════════════════
+const CHARACTERS = [
+  {
+    id:'megumi', name:'Megumi', clan:'Fushiguro',
+    color:'#1a6fa8', hairCol:'#1a1033', suitCol:'#1c1a2e',
+    eyeCol:'#3498db', skinCol:'#e8b48a',
+    desc:'Ten Shadows user. Calm and calculated.',
+  },
+  {
+    id:'yuji', name:'Yuji', clan:'Itadori',
+    color:'#e74c3c', hairCol:'#c0392b', suitCol:'#1c1a2e',
+    eyeCol:'#e74c3c', skinCol:'#f0c090',
+    desc:'Sukuna vessel. Superhuman strength.',
+  },
+  {
+    id:'gojo', name:'Gojo', clan:'Gojo',
+    color:'#3498db', hairCol:'#fff', suitCol:'#1c1a2e',
+    eyeCol:'#60a0ff', skinCol:'#f5d0a9',
+    desc:'The Strongest. Six Eyes & Infinity.',
+  },
+  {
+    id:'nobara', name:'Nobara', clan:'Kugisaki',
+    color:'#e67e22', hairCol:'#c0392b', suitCol:'#1c1a2e',
+    eyeCol:'#e67e22', skinCol:'#f0c090',
+    desc:'Straw Doll technique. Fierce fighter.',
+  },
+  {
+    id:'nanami', name:'Nanami', clan:'Nanami',
+    color:'#f39c12', hairCol:'#7d6608', suitCol:'#2c3e50',
+    eyeCol:'#f39c12', skinCol:'#e8b48a',
+    desc:'Ratio Technique. Salaryman sorcerer.',
+  },
+  {
+    id:'toji', name:'Toji', clan:'Zenin',
+    color:'#2ecc71', hairCol:'#1a1a1a', suitCol:'#1c2833',
+    eyeCol:'#2ecc71', skinCol:'#d4a574',
+    desc:'Heavenly Restriction. Zero cursed energy.',
+  },
+  {
+    id:'sukuna', name:'Sukuna', clan:'Ryomen',
+    color:'#e74c3c', hairCol:'#c0392b', suitCol:'#2c0a0a',
+    eyeCol:'#ff0000', skinCol:'#c9a87c',
+    desc:'King of Curses. 20 fingers of power.',
+  },
+  {
+    id:'yuta', name:'Yuta', clan:'Okkotsu',
+    color:'#9b59b6', hairCol:'#1a1033', suitCol:'#1c1a2e',
+    eyeCol:'#9b59b6', skinCol:'#f0c090',
+    desc:'Rika\'s vessel. Copycat technique.',
+  },
+];
+
+let selectedCharId = 'megumi';
+let pendingDuelTarget = null; // {pid, name, tech}
+
+// ── DRAW A CHARACTER ON A CANVAS ──
+function drawCharacter(canvas, charId, state='idle', facing=1){
+  const char = CHARACTERS.find(c=>c.id===charId) || CHARACTERS[0];
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const S = Math.max(1, Math.floor(Math.min(W,H)/28));
+  const bx = Math.floor(W/2);
+  const by = H - 2;
+  const t = Date.now();
+  const bob = Math.floor(t/500)%2;
+  const aSwing = Math.floor(t/600)%2;
+  const isAtk = state==='attack';
+
+  function P(gx,gy,col,w=1,h=1){
+    if(!col)return;
+    const rx = facing>0 ? bx+(gx-Math.floor(w/2))*S : bx+(-gx-Math.floor(w/2))*S;
+    const ry = by-gy*S;
+    ctx.fillStyle=col;
+    ctx.fillRect(rx,ry,w*S,h*S);
+  }
+  function glow(x,y,col,r){
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,col+'88');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+
+  if(char.id==='megumi'){
+    // Dark navy uniform, spiky black hair, tan skin
+    P(-2,1,'#7a4f1a',2,1);P(1,1,'#7a4f1a',2,1); // shoes
+    P(-3,2,'#1c1a2e',2,3+bob);P(1,2,'#1c1a2e',2,3-bob); // legs
+    P(-4,6,'#1c1a2e',8,5);P(-3,6,'#2a2744',2,5);P(-4,6,'#c9a227',8,1);P(0,8,'#c9a227');P(0,9,'#c9a227');P(-1,10,'#e8dfc4',2,1);
+    if(isAtk){P(4,9,'#1c1a2e',5,2);P(9,9,'#e8b48a',2,2);const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;glow(fx,fy,'#3498db',10);P(-6,9,'#1c1a2e',2,2);}
+    else{P(-6,9+aSwing,'#1c1a2e',2,3);P(-6,11+aSwing,'#e8b48a',1,2);P(4,9-aSwing,'#1c1a2e',2,3);P(5,11-aSwing,'#e8b48a',1,2);}
+    P(-3,11,'#e8b48a',6,5);P(-3,11,'#c98f62',1,5);
+    // eyes blue
+    ctx.fillStyle='#1a1033';ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);
+    ctx.fillStyle='#3498db';ctx.globalAlpha=.9;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // spiky dark hair
+    const h2=16;P(-3,h2,'#1a1033',6,3);P(-4,h2,'#1a1033',1,2);P(3,h2,'#1a1033',1,2);
+    P(-2,h2+2,'#1a1033',1,3);P(0,h2+2,'#2d1f55',1,2);P(2,h2+2,'#1a1033',1,3);
+    P(-4,h2+1,'#1a1033',1,4);P(4,h2+1,'#1a1033',1,4);P(-5,h2,'#1a1033',1,3);P(5,h2,'#1a1033',1,3);
+    P(-1,h2+4,'#1a1033',1,2);P(1,h2+3,'#1a1033',1,3);
+
+  } else if(char.id==='yuji'){
+    // Pink undercut hair, black jacket, muscular look
+    P(-2,1,'#2c2c2c',2,1);P(1,1,'#2c2c2c',2,1); // dark shoes
+    P(-3,2,'#1c1a2e',2,3+bob);P(1,2,'#1c1a2e',2,3-bob);
+    P(-4,6,'#1c1a2e',8,5);P(-3,6,'#252030',2,5);P(-4,6,'#c9a227',8,1);P(0,8,'#c9a227');P(0,9,'#c9a227');P(-1,10,'#e8dfc4',2,1);
+    if(isAtk){
+      P(4,9,'#1c1a2e',5,2);P(9,9,'#f0c090',2,2);
+      const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;
+      glow(fx,fy,'#e74c3c',12); // pink/red divergent fist
+      ctx.strokeStyle='#e74c3c';ctx.lineWidth=2;
+      for(let i=0;i<4;i++){const a=(i/4)*Math.PI*2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+Math.cos(a)*18,fy+Math.sin(a)*18);ctx.stroke();}
+      P(-6,9,'#1c1a2e',2,2);
+    } else{P(-6,9+aSwing,'#1c1a2e',2,3);P(-6,11+aSwing,'#f0c090',1,2);P(4,9-aSwing,'#1c1a2e',2,3);P(5,11-aSwing,'#f0c090',1,2);}
+    P(-3,11,'#f0c090',6,5);P(-3,11,'#d4956a',1,5);
+    ctx.fillStyle='#0d0b14';ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);
+    ctx.fillStyle='#e74c3c';ctx.globalAlpha=.85;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // pink undercut - short sides, pink on top
+    const hy=16;
+    P(-3,hy,'#c0392b',6,2);P(-2,hy+2,'#c0392b',4,2);P(-1,hy+3,'#e74c3c',2,2);
+    P(-4,hy,'#1a1a1a',1,2);P(3,hy,'#1a1a1a',1,2); // dark sides
+
+  } else if(char.id==='gojo'){
+    // White hair, blindfold, all-black outfit
+    P(-2,1,'#1a1a1a',2,1);P(1,1,'#1a1a1a',2,1);
+    P(-3,2,'#1c1a2e',2,3+bob);P(1,2,'#1c1a2e',2,3-bob);
+    P(-4,6,'#1c1a2e',8,5);P(-3,6,'#252030',2,5);P(-4,6,'#1a1a2e',8,1);P(-1,10,'#e8dfc4',2,1);
+    if(isAtk){
+      // Hollow purple — blue orb + red orb merging
+      const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;
+      glow(fx-6,fy,'#3498db',10);glow(fx+6,fy,'#e74c3c',10);glow(fx,fy,'#9b59b6',14);
+      P(4,9,'#1c1a2e',5,2);P(-6,9,'#1c1a2e',2,2);
+    } else{P(-6,9+aSwing,'#1c1a2e',2,3);P(-6,11+aSwing,'#f5d0a9',1,2);P(4,9-aSwing,'#1c1a2e',2,3);P(5,11-aSwing,'#f5d0a9',1,2);}
+    P(-3,11,'#f5d0a9',6,5);P(-3,11,'#d4a574',1,5);
+    // blindfold (no eyes visible)
+    ctx.fillStyle='#1a1a2e';ctx.fillRect(bx-3*S,by-15*S,6*S,Math.ceil(S*1.2));
+    ctx.fillStyle='rgba(52,152,219,.4)';ctx.fillRect(bx-3*S,by-15*S,6*S,Math.ceil(S*1.2));
+    // Six Eyes glow through blindfold
+    ctx.fillStyle='#60a0ff';ctx.globalAlpha=.3;ctx.fillRect(bx-2*S,by-15*S,S,S);ctx.fillRect(bx+S,by-15*S,S,S);ctx.globalAlpha=1;
+    // White spiky hair
+    const hy=16;
+    P(-3,hy,'#fff',6,3);P(-4,hy,'#fff',1,2);P(3,hy,'#fff',1,2);
+    P(-2,hy+2,'#fff',1,3);P(0,hy+2,'#d0d0ff',1,2);P(2,hy+2,'#fff',1,3);
+    P(-4,hy+1,'#fff',1,4);P(4,hy+1,'#fff',1,4);P(-5,hy,'#fff',1,3);P(5,hy,'#fff',1,3);
+    P(-1,hy+4,'#fff',1,2);P(1,hy+3,'#fff',1,3);
+
+  } else if(char.id==='sukuna'){
+    // SHIRTLESS, dark pants, tattoos, pink hair, extra eyes
+    P(-2,1,'#2c1a08',2,1);P(1,1,'#2c1a08',2,1); // sandal-ish
+    P(-3,2,'#2c3e6e',2,3+bob);P(1,2,'#2c3e6e',2,3-bob); // dark blue pants
+    P(-4,5,'#c9a87c',1,6);P(3,5,'#c9a87c',1,6); // exposed sides
+    // Torso shirtless — tattoo marks
+    P(-3,6,'#c9a87c',6,5); // skin torso
+    P(-3,6,'#a87842',1,5); // shadow left
+    P(2,6,'#a87842',1,5);  // shadow right
+    // Tattoo lines on torso
+    ctx.fillStyle='#2c0a0a';
+    ctx.fillRect(bx-S,by-8*S,Math.ceil(S*0.4),S*3); // center line
+    ctx.fillRect(bx-2*S,by-7*S,S*4,Math.ceil(S*0.4)); // horizontal
+    ctx.fillRect(bx-2*S,by-9*S,S,Math.ceil(S*0.4));ctx.fillRect(bx+S,by-9*S,S,Math.ceil(S*0.4));
+    // Waistband
+    P(-4,6,'#1a1a2e',8,1);
+    if(isAtk){
+      // Shrine slash — red slashes emanating
+      P(4,9,'#c9a87c',5,2);P(9,9,'#c9a87c',2,2);
+      const fx=bx+(facing>0?1:-1)*12*S,fy=by-10*S;
+      ctx.strokeStyle='#e74c3c';ctx.lineWidth=3;ctx.shadowColor='#e74c3c';ctx.shadowBlur=8;
+      [-.3,0,.3].forEach(a=>{ctx.beginPath();ctx.moveTo(fx-15,fy+a*20);ctx.lineTo(fx+15,fy+a*20);ctx.stroke();});
+      ctx.shadowBlur=0;P(-6,9,'#c9a87c',2,2);
+    } else{P(-6,9+aSwing,'#c9a87c',2,3);P(4,9-aSwing,'#c9a87c',2,3);}
+    // Head
+    P(-3,11,'#c9a87c',6,5);P(-3,11,'#a87842',1,5);
+    // Tattoo marks on face
+    ctx.fillStyle='#8b0000';ctx.fillRect(bx-2*S,by-12*S,S,Math.ceil(S*.5));ctx.fillRect(bx+S,by-12*S,S,Math.ceil(S*.5));
+    // Main eyes
+    ctx.fillStyle='#ff0000';ctx.globalAlpha=.9;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // Extra eyes below (sukuna)
+    ctx.fillStyle='#ff0000';ctx.globalAlpha=.7;ctx.fillRect(bx+(facing>0?-1:0)*S,by-12*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-12*S,S,S);ctx.globalAlpha=1;
+    // Pink-red hair spiky
+    const hy=16;
+    P(-3,hy,'#c0392b',6,2);P(-2,hy+2,'#c0392b',4,3);P(-1,hy+4,'#e74c3c',2,2);
+    P(-4,hy,'#a93226',1,3);P(3,hy,'#a93226',1,3);P(-5,hy+1,'#c0392b',1,2);P(4,hy+1,'#c0392b',1,2);
+
+  } else if(char.id==='nobara'){
+    // JJK uniform, red-brown hair, hammer
+    P(-2,1,'#7a4f1a',2,1);P(1,1,'#7a4f1a',2,1);
+    P(-3,2,'#1c1a2e',2,3+bob);P(1,2,'#1c1a2e',2,3-bob);
+    P(-4,6,'#1c1a2e',8,5);P(-3,6,'#2a2744',2,5);P(-4,6,'#c9a227',8,1);P(0,8,'#c9a227');P(0,9,'#c9a227');P(-1,10,'#e8dfc4',2,1);
+    if(isAtk){
+      // Straw doll nails shooting
+      const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;
+      glow(fx,fy,'#e67e22',8);
+      ctx.fillStyle='#888';ctx.fillRect(fx-1,fy-8,2,16); // nail
+      P(4,9,'#1c1a2e',3,2);P(-6,9,'#1c1a2e',2,2);
+    } else{P(-6,9+aSwing,'#1c1a2e',2,3);P(-6,11+aSwing,'#f0c090',1,2);P(4,9-aSwing,'#1c1a2e',2,3);P(5,11-aSwing,'#f0c090',1,2);}
+    P(-3,11,'#f0c090',6,5);P(-3,11,'#d4956a',1,5);
+    ctx.fillStyle='#0d0b14';ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);
+    ctx.fillStyle='#e67e22';ctx.globalAlpha=.85;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // Red hair pulled back, bun
+    const hy=16;P(-3,hy,'#a93226',6,2);P(-2,hy+2,'#c0392b',3,2);P(-1,hy+3,'#c0392b',2,1);
+    P(-4,hy+1,'#a93226',1,2);P(3,hy,'#a93226',2,3); // bun right side
+    P(4,hy+1,'#a93226',1,3);P(4,hy+2,'#c0392b',1,2);
+
+  } else if(char.id==='nanami'){
+    // Suit, tie, blonde swept hair, glasses
+    P(-2,1,'#2c2c2c',2,1);P(1,1,'#2c2c2c',2,1);
+    P(-3,2,'#2c3e50',2,3+bob);P(1,2,'#2c3e50',2,3-bob);
+    P(-4,6,'#2c3e50',8,5);P(-3,6,'#34495e',2,5);P(-4,7,'#f39c12',8,1); // tie color belt
+    P(-1,7,'#e74c3c',2,3); // red tie
+    if(isAtk){P(4,9,'#2c3e50',5,2);P(9,9,'#e8b48a',2,2);glow(bx+(facing>0?1:-1)*10*S,by-10*S,'#f39c12',10);P(-6,9,'#2c3e50',2,2);}
+    else{P(-6,9+aSwing,'#2c3e50',2,3);P(-6,11+aSwing,'#e8b48a',1,2);P(4,9-aSwing,'#2c3e50',2,3);P(5,11-aSwing,'#e8b48a',1,2);}
+    P(-3,11,'#e8b48a',6,5);P(-3,11,'#c98f62',1,5);
+    // Glasses
+    ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.strokeRect(bx-2*S,by-15*S,2*S,S+1);ctx.strokeRect(bx+S,by-15*S,2*S,S+1);
+    ctx.fillStyle='#f39c12';ctx.globalAlpha=.25;ctx.fillRect(bx-2*S,by-15*S,2*S,S);ctx.fillRect(bx+S,by-15*S,2*S,S);ctx.globalAlpha=1;
+    // Short blonde hair
+    const hy=16;P(-3,hy,'#7d6608',5,2);P(-3,hy+2,'#7d6608',3,1);P(2,hy+1,'#9a7a0a',1,2);
+
+  } else if(char.id==='toji'){
+    // Shirtless, black pants, scar on face, dark hair swept back
+    P(-2,1,'#1a1a1a',2,1);P(1,1,'#1a1a1a',2,1);
+    P(-3,2,'#1c2833',2,3+bob);P(1,2,'#1c2833',2,3-bob);
+    P(-4,5,'#d4a574',1,6);P(3,5,'#d4a574',1,6); // exposed torso sides
+    P(-3,6,'#d4a574',6,5);P(-3,6,'#a0784a',1,5);P(2,6,'#a0784a',1,5);
+    P(-4,6,'#1c2833',8,1); // waistband
+    if(isAtk){P(4,9,'#d4a574',5,2);P(9,9,'#d4a574',2,2);glow(bx+(facing>0?1:-1)*10*S,by-10*S,'#2ecc71',12);P(-6,9,'#d4a574',2,2);}
+    else{P(-6,9+aSwing,'#d4a574',2,3);P(4,9-aSwing,'#d4a574',2,3);}
+    P(-3,11,'#d4a574',6,5);P(-3,11,'#a0784a',1,5);
+    // Scar
+    ctx.fillStyle='#a0784a';ctx.fillRect(bx+(facing>0?0:S),by-12*S,Math.ceil(S*.4),S*2);
+    ctx.fillStyle='#2ecc71';ctx.globalAlpha=.9;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // Black swept back hair
+    const hy=16;P(-3,hy,'#1a1a1a',6,2);P(-2,hy+2,'#1a1a1a',3,1);P(2,hy+1,'#1a1a1a',2,2);P(3,hy,'#1a1a1a',2,1);
+
+  } else if(char.id==='yuta'){
+    // Dark cloak/coat, purple aura, dark hair
+    P(-2,1,'#1a1a2e',2,1);P(1,1,'#1a1a2e',2,1);
+    P(-3,2,'#1a1a2e',2,3+bob);P(1,2,'#1a1a2e',2,3-bob);
+    P(-4,6,'#1a1a2e',8,6);P(-3,7,'#16213e',2,5);P(-4,11,'#e8dfc4',2,1);
+    // Purple aura cloak edges
+    ctx.fillStyle='#9b59b6';ctx.globalAlpha=.3;ctx.fillRect(bx-5*S,by-6*S,S,5*S);ctx.fillRect(bx+4*S,by-6*S,S,5*S);ctx.globalAlpha=1;
+    if(isAtk){
+      const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;
+      glow(fx,fy,'#9b59b6',14);
+      // Rika ghost arm
+      ctx.fillStyle='rgba(155,89,182,.5)';ctx.fillRect(fx-4,fy-20,8,40);
+      P(4,9,'#1a1a2e',5,2);P(-6,9,'#1a1a2e',2,2);
+    } else{P(-6,9+aSwing,'#1a1a2e',2,3);P(-6,11+aSwing,'#f0c090',1,2);P(4,9-aSwing,'#1a1a2e',2,3);P(5,11-aSwing,'#f0c090',1,2);}
+    P(-3,11,'#f0c090',6,5);P(-3,11,'#d4956a',1,5);
+    ctx.fillStyle='#9b59b6';ctx.globalAlpha=.9;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
+    // Dark hair medium length
+    const hy=16;P(-3,hy,'#1a1033',6,3);P(-4,hy,'#1a1033',1,2);P(3,hy,'#1a1033',1,2);
+    P(-2,hy+2,'#1a1033',1,3);P(0,hy+2,'#2d1f55',1,2);P(2,hy+2,'#1a1033',1,3);
+    P(-4,hy+1,'#1a1033',1,3);P(4,hy+1,'#1a1033',1,3);
+    // Purple tinge on hair tips
+    ctx.fillStyle='#6c3483';ctx.globalAlpha=.4;ctx.fillRect(bx-S,by-hy*S,S*2,S);ctx.globalAlpha=1;
+  }
+}
+
+// ── CHARACTER SELECT UI ──
+function openCharSelect(){
+  const grid = document.getElementById('cs-grid');
+  grid.innerHTML = CHARACTERS.map(c=>`
+    <div class="cs-card ${c.id===selectedCharId?'selected':''}" id="csc-${c.id}" onclick="selectChar('${c.id}')">
+      <canvas class="cs-canvas" id="cscanv-${c.id}" width="80" height="100"></canvas>
+      <div class="cs-name">${c.name.toUpperCase()}</div>
+      <div class="cs-clan">${c.clan}</div>
+    </div>
+  `).join('');
+  document.getElementById('char-select-ov').classList.add('active');
+  // Draw all characters
+  CHARACTERS.forEach(c=>{
+    const canvas=document.getElementById(`cscanv-${c.id}`);
+    if(canvas)drawCharacter(canvas,c.id,'idle',1);
+  });
+  // Animate idle bob
+  charSelectAnimLoop();
+}
+
+let csAnimId=null;
+function charSelectAnimLoop(){
+  if(!document.getElementById('char-select-ov').classList.contains('active')){csAnimId=null;return;}
+  CHARACTERS.forEach(c=>{
+    const canvas=document.getElementById(`cscanv-${c.id}`);
+    if(canvas)drawCharacter(canvas,c.id,'idle',1);
+  });
+  csAnimId=requestAnimationFrame(charSelectAnimLoop);
+}
+
+function selectChar(id){
+  selectedCharId=id;
+  document.querySelectorAll('.cs-card').forEach(el=>el.classList.remove('selected'));
+  const card=document.getElementById(`csc-${id}`);
+  if(card)card.classList.add('selected');
+  // Save to player
+  if(player){player.charId=id;schedSave();}
+}
+
+function confirmCharSelect(){
+  if(player)player.charId=selectedCharId;
+  closeCharSelect();
+  toast('✦',`Character: ${CHARACTERS.find(c=>c.id===selectedCharId)?.name || selectedCharId}!`);
+  schedSave();
+}
+function closeCharSelect(){
+  document.getElementById('char-select-ov').classList.remove('active');
+}
+
+// ── GAMEMODE PICKER ──
+function openModePicker(pid, oppName, oppTech){
+  pendingDuelTarget={pid, name:oppName, tech:oppTech};
+  document.getElementById('mp-opp-name').textContent=`vs ${(oppName||'OPPONENT').toUpperCase()}`;
+  document.getElementById('mode-pick-ov').classList.add('active');
+}
+function closeModePickerM(){
+  document.getElementById('mode-pick-ov').classList.remove('active');
+  pendingDuelTarget=null;
+}
+function pickMode(mode){
+  const target=pendingDuelTarget;
+  closeModePickerM();
+  if(!target)return;
+  if(mode==='undertale'){
+    openUTBattle(target.name, target.tech, false);
+  } else if(mode==='arena'){
+    openArena(target.name,'#e74c3c',false);
+  } else if(mode==='classic'){
+    startPvp(target.pid);
+  }
+}
+
+// ── HOOK INTO PLAYER LIST ── (replace challenge button to use mode picker)
+const _origRenderPlayers=renderPlayers;
+renderPlayers=function(){
+  const el=document.getElementById('plist');if(!el)return;
+  const p=player;
+  let h=`<div class="pc me">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="display:flex;align-items:center;gap:6px">
+        <canvas id="my-char-mini" width="30" height="40" style="image-rendering:pixelated"></canvas>
+        <span class="pn text-gold">${p.name} <span style="font-size:9px;color:var(--mut)">YOU</span></span>
+      </span>
+      <span style="display:flex;gap:5px;align-items:center">
+        <span class="text-mut" style="font-size:11px">Lv.${p.level}</span>
+        <button style="padding:3px 8px;background:rgba(201,162,39,.08);border:1px solid var(--acc);color:var(--acc);font-family:'Cinzel',serif;font-size:8px;letter-spacing:.06em;border-radius:4px;cursor:pointer" onclick="openCharSelect()">✦ CHAR</button>
+      </span>
+    </div>
+    <div class="ps">HP:${p.hp}/${p.maxHp} | ${p.tech||'No technique'}</div>
+  </div>`;
+  for(const pid in others){
+    const op=others[pid];
+    h+=`<div class="pc">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="display:flex;align-items:center;gap:6px">
+          <canvas id="ochar-${pid}" width="30" height="40" style="image-rendering:pixelated"></canvas>
+          <span class="pn">${op.name}</span>
+        </span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="text-mut" style="font-size:11px">Lv.${op.level||1}</span>
+          <button class="pvpbtn" onclick="openModePicker('${pid}','${op.name}','${op.tech||''}')">⚔ Duel</button>
+          <button class="rkbtn" onclick="startRanked('${pid}')">🏆</button>
+        </div>
+      </div>
+      <div class="ps">${op.tech||'?'} | Kills:${op.kills||0}</div>
+    </div>`;
+  }
+  if(!Object.keys(others).length)h+=`<div style="font-size:11px;text-align:center;padding:10px;color:var(--mut);font-style:italic">Share room code to play with others</div>`;
+  el.innerHTML=h;
+  // Draw mini characters
+  setTimeout(()=>{
+    const myC=document.getElementById('my-char-mini');
+    if(myC)drawCharacter(myC,player?.charId||'megumi','idle',1);
+    for(const pid in others){
+      const oc=document.getElementById(`ochar-${pid}`);
+      if(oc)drawCharacter(oc,others[pid]?.charId||'megumi','idle',1);
+    }
+  },50);
+};
+
+// ── UPDATE UT ENEMY CANVAS TO SHOW OPPONENT'S CHARACTER ──
+const _origUtDrawEnemy=utDrawEnemy;
+utDrawEnemy=function(){
+  const canvas=document.getElementById('ut-enemy-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width||640, H=canvas.height||200;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  // Glow aura
+  const t=Date.now();
+  const oppChar=pendingDuelTarget?.charId || CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)].id;
+  const char=CHARACTERS.find(c=>c.id===oppChar)||CHARACTERS[0];
+  const ag=ctx.createRadialGradient(W*.5,H*.5,10,W*.5,H*.5,90);
+  ag.addColorStop(0,char.color+'33'); ag.addColorStop(1,'transparent');
+  ctx.fillStyle=ag;ctx.beginPath();ctx.arc(W*.5,H*.5,90,0,Math.PI*2);ctx.fill();
+
+  // Draw character big in center
+  const fakeCanvas=document.createElement('canvas');
+  fakeCanvas.width=200;fakeCanvas.height=200;
+  const state=UT.phase==='dodging'?'attack':'idle';
+  drawCharacter(fakeCanvas,oppChar,state,-1);
+  ctx.drawImage(fakeCanvas,W/2-100,H/2-110,200,200);
+
+  // HP bar
+  const bw=180,bh=10,bx2=W/2-bw/2,by2=10;
+  ctx.fillStyle='#333';ctx.fillRect(bx2,by2,bw,bh);
+  ctx.fillStyle='#3cff3c';ctx.fillRect(bx2,by2,bw*(UT.oppHp/Math.max(1,UT.oppMaxHp)),bh);
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(bx2,by2,bw,bh);
+  ctx.font='7px "Press Start 2P",monospace';ctx.fillStyle='#fff';ctx.textAlign='center';
+  ctx.fillText(`${Math.max(0,UT.oppHp)} / ${UT.oppMaxHp}`,W/2,by2-3);
+
+  // Phase label
+  if(UT.phase==='dodging'){
+    ctx.font='8px "Press Start 2P",monospace';
+    ctx.fillStyle='#e74c3c';ctx.shadowColor='#e74c3c';ctx.shadowBlur=8;
+    ctx.textAlign='center';
+    ctx.fillText('* ATTACKING!',W/2,H-8);
+    ctx.shadowBlur=0;
+  }
+};
+
+// Add char select button to world tab buttons section
+document.addEventListener('DOMContentLoaded',()=>{
+  // Load saved char
+  if(player?.charId)selectedCharId=player.charId;
+});
+
+// Also draw MY character in the UT stats area
+const _origUtUpdateStats=utUpdateStats;
+utUpdateStats=function(){
+  _origUtUpdateStats();
+  // Draw player character mini in stats
+  let el=document.getElementById('ut-my-char-mini');
+  if(!el){
+    el=document.createElement('canvas');
+    el.id='ut-my-char-mini';
+    el.width=36;el.height=48;
+    el.style.cssText='image-rendering:pixelated;flex-shrink:0';
+    const stats=document.getElementById('ut-stats');
+    if(stats)stats.prepend(el);
+  }
+  drawCharacter(el,player?.charId||'megumi','idle',1);
+};
 </script>
 </body>
 </html>
