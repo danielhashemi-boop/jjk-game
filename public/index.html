@@ -760,8 +760,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           <button class="boss-btn" id="toji-btn" onclick="startBoss('toji')">⚔ Boss: Toji Zenin</button>
           <button class="boss-btn sk" id="suk-btn" onclick="startBoss('sukuna')">👁 Boss: KING OF CURSES</button>
           <button class="boss-btn" style="border-color:var(--acc);color:var(--acc2);background:rgba(201,162,39,.08);margin-bottom:6px" onclick="openCharSelect()">✦ Choose Character</button>
-          <button class="boss-btn" style="border-color:#3cff3c;color:#3cff3c;background:rgba(60,255,60,.08);margin-bottom:6px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.05em" onclick="startUTBattle(null,null)">★ CURSED BATTLE (UNDERTALE PVP)</button>
-          <button class="boss-btn" style="border-color:#e8c84a;color:#e8c84a;background:rgba(201,162,39,.1);margin-bottom:6px" onclick="joinArenaQueue()">⚔ WASD Arena — Real-time PvP</button>
+          <button class="boss-btn" style="border-color:#3cff3c;color:#3cff3c;background:rgba(60,255,60,.08);margin-bottom:6px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.05em" onclick="joinUTQueue()">❤ CURSED BATTLE — Live PvP</button>
+          <button class="boss-btn" style="border-color:#e8c84a;color:#e8c84a;background:rgba(201,162,39,.1);margin-bottom:6px" onclick="joinArenaQueue('arena')">⚔ WASD Arena — Live PvP</button>
           <button class="boss-btn" style="border-color:#aaa;color:#aaa;background:rgba(150,150,150,.08);margin-bottom:6px" onclick="startArenaBotMatch()">🤖 Arena vs Bot (Practice)</button>
           <button class="boss-btn" style="border-color:#5dade2;color:#5dade2;background:rgba(93,173,226,.08)" onclick="open2v2Lobby()">⚔⚔ 2v2 Team Battle</button>
           <div id="lfights"></div>
@@ -1866,6 +1866,35 @@ function handleWS(msg){
     chatLine(`⚔⚔ 2V2: ${msg.team1?.map(p=>p.name).join(' & ')} VS ${msg.team2?.map(p=>p.name).join(' & ')}!`,'#5dade2');
   }
   if(msg.type==='arena_match_found')handleArenaMatchFound(msg);
+  if(msg.type==='arena_queue_update'){
+    const el=document.getElementById('arena-queue-status');
+    if(el)el.textContent=`In queue — ${msg.count} player(s) waiting...`;
+  }
+  // ── UT LIVE PVP ──
+  if(msg.type==='ut_match_found')handleUTMatchFound(msg);
+  if(msg.type==='ut_incoming_attack'&&UT.active&&UT.phase==='dodging'){
+    // Opponent fired a skill — spawn bullets for us to dodge
+    utSpawnAttack(msg.skillIdx,{name:'Attack',dmg:10},msg.techName||'');
+  }
+  if(msg.type==='ut_hp_update'&&UT.active){
+    const isP1=UT.isP1;
+    UT.myHp=isP1?msg.p1Hp:msg.p2Hp;
+    UT.oppHp=isP1?msg.p2Hp:msg.p1Hp;
+    UT.soulHp=UT.myHp;
+    utUpdateStats();
+  }
+  if(msg.type==='ut_your_turn'&&UT.active){
+    // Server says it's our attack turn now
+    UT.myHp=msg.myHp;UT.oppHp=msg.oppHp;UT.soulHp=UT.myHp;
+    utUpdateStats();
+    utShowBanner('YOUR ATTACK TURN!','#3cff3c');
+    utSetText('* Your turn! Spam Q/E/R/F for 10 seconds!');
+    setTimeout(()=>utStartAttackTurnOnline(),800);
+  }
+  if(msg.type==='ut_match_end'&&UT.active){
+    const iWin=msg.winner===player.name;
+    utShowResult(iWin);
+  }
   if(msg.type==='arena_state'&&arenaActive&&arenaOnline&&arenaF2){
     arenaF2.x=msg.x;arenaF2.y=msg.y;arenaF2.hp=msg.hp;
     arenaF2.facing=msg.facing;arenaF2.vx=msg.vx;arenaF2.vy=msg.vy;
@@ -4969,21 +4998,30 @@ function startArenaBotMatch(){
 
 // ── ARENA QUEUE (online) ──
 let arenaQueueInt=null;
-function joinArenaQueue(){
+function joinArenaQueue(mode){
   if(!player)return;
   arenaInQueue=true;
   document.getElementById('arena-queue-ov').classList.add('active');
   document.getElementById('arena-queue-status').textContent='Searching for opponent...';
   if(ws&&ws.readyState===1){
-    ws.send(JSON.stringify({type:'arena_queue_join',name:player.name,roomCode:player.roomCode,level:player.level,tech:player.tech}));
+    ws.send(JSON.stringify({
+      type:'arena_queue_join',
+      name:player.name,
+      roomCode:player.roomCode,
+      level:player.level,
+      tech:player.tech,
+      charId:player.charId||selectedCharId||'megumi',
+      mode:mode||'arena',
+      playerId:player.playerId
+    }));
   }
-  // Simulate finding match after 3s if no opponent (vs bot)
+  // Fallback to bot after 8s if no opponent found
   arenaQueueInt=setTimeout(()=>{
     if(arenaInQueue){
-      document.getElementById('arena-queue-status').textContent='No opponent found — starting vs BOT';
+      document.getElementById('arena-queue-status').textContent='No opponent — starting vs BOT';
       setTimeout(()=>{leaveArenaQueue();startArenaBotMatch();},1200);
     }
-  },3000);
+  },8000);
 }
 function leaveArenaQueue(){
   arenaInQueue=false;
@@ -5001,8 +5039,13 @@ function handleArenaMatchFound(msg){
   document.getElementById('arena-queue-ov').classList.remove('active');
   const isP1=msg.p1Name===player.name;
   const oppName=isP1?msg.p2Name:msg.p1Name;
-  const oppColor=isP1?'#e74c3c':'#3498db';
+  const oppCharId=isP1?msg.p2CharId:msg.p1CharId;
+  const oppChar=(typeof CHARACTERS!=='undefined')&&CHARACTERS.find(c=>c.id===oppCharId);
+  const oppColor=oppChar?.color||'#e74c3c';
+  toast('⚔',`Match found! vs ${oppName}`);
   openArena(oppName,oppColor,true);
+  // Set opponent charId
+  if(arenaF2)arenaF2.charId=oppCharId||'sukuna';
 }
 
 function arenaSendState(){
@@ -6040,6 +6083,132 @@ function utSetupDpad(){
 function startUTBattle(oppName, oppTech){
   openUTBattle(oppName||'OPPONENT', oppTech||'Shrine', false);
 }
+
+// ── UT ONLINE QUEUE ──
+let utInQueue=false, utQueueInt=null;
+function joinUTQueue(){
+  if(!player)return;
+  utInQueue=true;
+  document.getElementById('arena-queue-ov').classList.add('active');
+  document.getElementById('arena-queue-status').textContent='Searching for Cursed Battle opponent...';
+  if(ws&&ws.readyState===1){
+    ws.send(JSON.stringify({
+      type:'ut_queue_join',
+      name:player.name,
+      roomCode:player.roomCode,
+      level:player.level,
+      tech:player.tech,
+      charId:player.charId||selectedCharId||'megumi',
+      playerId:player.playerId
+    }));
+  }
+  utQueueInt=setTimeout(()=>{
+    if(utInQueue){
+      document.getElementById('arena-queue-status').textContent='No opponent — starting vs BOT';
+      setTimeout(()=>{leaveUTQueue();startUTBattle(null,null);},1200);
+    }
+  },8000);
+}
+function leaveUTQueue(){
+  utInQueue=false;
+  clearTimeout(utQueueInt);
+  document.getElementById('arena-queue-ov').classList.remove('active');
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ut_queue_leave',roomCode:player?.roomCode}));
+}
+function handleUTMatchFound(msg){
+  if(!utInQueue)return;
+  clearTimeout(utQueueInt);
+  utInQueue=false;
+  document.getElementById('arena-queue-ov').classList.remove('active');
+  const isP1=msg.p1Name===player.name;
+  UT.isP1=isP1;
+  UT.matchId=msg.matchId;
+  const oppName=isP1?msg.p2Name:msg.p1Name;
+  const oppCharId=isP1?msg.p2CharId:msg.p1CharId;
+  const oppTech=isP1?msg.p2Tech:msg.p1Tech;
+  toast('❤',`Cursed Battle! vs ${oppName}`);
+  // Open battle — p1 attacks first
+  openUTBattle(oppName,oppTech,true);
+  pendingDuelTarget={name:oppName,charId:oppCharId,tech:oppTech};
+  if(isP1){
+    // P1 attacks first
+    setTimeout(()=>utStartAttackTurnOnline(),1500);
+  } else {
+    // P2 dodges first
+    UT.phase='dodging';
+    UT.soulHp=UT.myHp;
+    UT.soul={x:UTB.x+UTB.w/2,y:UTB.y+UTB.h/2,r:7,vx:0,vy:0};
+    UT.bullets=[];
+    utShowBanner("DODGE!","#ff4444");
+    utSetText('* Opponent is attacking!\n* DODGE with arrow keys!');
+    utStartDodgeTimer();
+  }
+}
+
+function utStartAttackTurnOnline(){
+  UT.phase='attacking';
+  UT.skillCds=[0,0,0,0];
+  UT.turnTimer=10;
+  UT.bullets=[];
+  document.getElementById('ut-btns').style.display='none';
+  document.getElementById('ut-attack-panel').style.display='flex';
+  document.getElementById('ut-arrow').style.display='none';
+  utUpdateSkillBtns();
+  utSetText('* YOUR TURN — Spam Q/E/R/F for 10 seconds!');
+  clearInterval(UT.turnInt);
+  UT.turnInt=setInterval(()=>{
+    UT.turnTimer--;
+    const el=document.getElementById('ut-timer');
+    if(el){el.textContent=UT.turnTimer;el.className=UT.turnTimer<=3?'urgent':'';}
+    for(let i=0;i<4;i++)if(UT.skillCds[i]>0){UT.skillCds[i]-=1000;if(UT.skillCds[i]<0)UT.skillCds[i]=0;}
+    utUpdateSkillBtns();
+    if(UT.turnTimer<=0){clearInterval(UT.turnInt);utEndOnlineAttackTurn();}
+  },1000);
+}
+
+function utEndOnlineAttackTurn(){
+  UT.phase='wait';
+  document.getElementById('ut-attack-panel').style.display='none';
+  UT.bullets=[];
+  // Report damage to server
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({
+    type:'ut_turn_end',matchId:UT.matchId,name:player.name,
+    roomCode:player.roomCode,oppHp:UT.soulHp
+  }));
+  utSetText('* Turn over! Waiting for opponent to dodge...');
+}
+
+function utStartDodgeTimer(){
+  UT.turnTimer=10;
+  clearInterval(UT.turnInt);
+  UT.turnInt=setInterval(()=>{
+    UT.turnTimer--;
+    const el=document.getElementById('ut-timer');
+    if(el){el.textContent=UT.turnTimer;el.className=UT.turnTimer<=3?'urgent':'';}
+    if(UT.turnTimer<=0){
+      clearInterval(UT.turnInt);
+      UT.bullets=[];
+      // Report our remaining HP
+      if(ws&&ws.readyState===1)ws.send(JSON.stringify({
+        type:'ut_damage',matchId:UT.matchId,name:player.name,
+        roomCode:player.roomCode,hp:UT.soulHp
+      }));
+      utSetText('* Dodge phase over! Waiting for opponent...');
+    }
+  },1000);
+}
+
+// Override utFireSkill to relay to opponent when online
+const _origUtFireSkill=utFireSkill;
+utFireSkill=function(idx){
+  _origUtFireSkill(idx);
+  if(UT.online&&UT.matchId&&UT.phase==='attacking'&&ws&&ws.readyState===1){
+    ws.send(JSON.stringify({
+      type:'ut_attack',matchId:UT.matchId,name:player.name,
+      roomCode:player.roomCode,skillIdx:idx,techName:player?.tech||''
+    }));
+  }
+};
 </script>
 
 <!-- ══════════════════════════════════════════════════════
@@ -6166,46 +6335,22 @@ const CHARACTERS = [
     desc:'Ten Shadows user. Calm and calculated.',
   },
   {
-    id:'yuji', name:'Yuji', clan:'Itadori',
-    color:'#e74c3c', hairCol:'#c0392b', suitCol:'#1c1a2e',
-    eyeCol:'#e74c3c', skinCol:'#f0c090',
-    desc:'Sukuna vessel. Superhuman strength.',
-  },
-  {
-    id:'gojo', name:'Gojo', clan:'Gojo',
-    color:'#3498db', hairCol:'#fff', suitCol:'#1c1a2e',
-    eyeCol:'#60a0ff', skinCol:'#f5d0a9',
-    desc:'The Strongest. Six Eyes & Infinity.',
-  },
-  {
-    id:'nobara', name:'Nobara', clan:'Kugisaki',
-    color:'#e67e22', hairCol:'#c0392b', suitCol:'#1c1a2e',
-    eyeCol:'#e67e22', skinCol:'#f0c090',
-    desc:'Straw Doll technique. Fierce fighter.',
-  },
-  {
-    id:'nanami', name:'Nanami', clan:'Nanami',
-    color:'#f39c12', hairCol:'#7d6608', suitCol:'#2c3e50',
-    eyeCol:'#f39c12', skinCol:'#e8b48a',
-    desc:'Ratio Technique. Salaryman sorcerer.',
-  },
-  {
-    id:'toji', name:'Toji', clan:'Zenin',
-    color:'#2ecc71', hairCol:'#1a1a1a', suitCol:'#1c2833',
-    eyeCol:'#2ecc71', skinCol:'#d4a574',
-    desc:'Heavenly Restriction. Zero cursed energy.',
-  },
-  {
     id:'sukuna', name:'Sukuna', clan:'Ryomen',
-    color:'#e74c3c', hairCol:'#c0392b', suitCol:'#2c0a0a',
+    color:'#c0392b', hairCol:'#c0392b', suitCol:'#2c3e6e',
     eyeCol:'#ff0000', skinCol:'#c9a87c',
     desc:'King of Curses. 20 fingers of power.',
   },
   {
-    id:'yuta', name:'Yuta', clan:'Okkotsu',
-    color:'#9b59b6', hairCol:'#1a1033', suitCol:'#1c1a2e',
-    eyeCol:'#9b59b6', skinCol:'#f0c090',
-    desc:'Rika\'s vessel. Copycat technique.',
+    id:'rika', name:'Rika', clan:'Okkotsu',
+    color:'#ec4899', hairCol:'#f48fb1', suitCol:'#ffffff',
+    eyeCol:'#ec4899', skinCol:'#fce4ec',
+    desc:'Cursed spirit of love. Unstoppable power.',
+  },
+  {
+    id:'aqua', name:'Aqua', clan:'Unknown',
+    color:'#0891b2', hairCol:'#0e7490', suitCol:'#1e3a5f',
+    eyeCol:'#38bdf8', skinCol:'#f5e6d8',
+    desc:'Mysterious water sorcerer.',
   },
 ];
 
@@ -6390,28 +6535,106 @@ function drawCharacter(canvas, charId, state='idle', facing=1){
     // Black swept back hair
     const hy=16;P(-3,hy,'#1a1a1a',6,2);P(-2,hy+2,'#1a1a1a',3,1);P(2,hy+1,'#1a1a1a',2,2);P(3,hy,'#1a1a1a',2,1);
 
-  } else if(char.id==='yuta'){
-    // Dark cloak/coat, purple aura, dark hair
-    P(-2,1,'#1a1a2e',2,1);P(1,1,'#1a1a2e',2,1);
-    P(-3,2,'#1a1a2e',2,3+bob);P(1,2,'#1a1a2e',2,3-bob);
-    P(-4,6,'#1a1a2e',8,6);P(-3,7,'#16213e',2,5);P(-4,11,'#e8dfc4',2,1);
-    // Purple aura cloak edges
-    ctx.fillStyle='#9b59b6';ctx.globalAlpha=.3;ctx.fillRect(bx-5*S,by-6*S,S,5*S);ctx.fillRect(bx+4*S,by-6*S,S,5*S);ctx.globalAlpha=1;
+  } else if(char.id==='rika'){
+    // ── RIKA — chibi pink girl, white/pink outfit ──
+    // Chibi style: big head, small body
+    const cS = S; // same scale
+    // Tiny legs
+    P(-2,1,'#1a1a2e',2,1);P(1,1,'#1a1a2e',2,1); // dark shoes
+    P(-2,2,'#1a1a2e',2,2+bob);P(1,2,'#1a1a2e',2,2-bob);
+    // White dress/coat body — wider
+    P(-5,4,'#ffffff',10,6);
+    P(-4,4,'#f8bbd0',2,6); // pink tint left
+    P(3,4,'#f8bbd0',2,6);  // pink tint right
+    P(-1,5,'#ec4899',2,3); // pink bow/ribbon center
+    P(-4,4,'#e0e0e0',10,1); // collar line
+    // Arms short chibi
     if(isAtk){
-      const fx=bx+(facing>0?1:-1)*10*S,fy=by-10*S;
-      glow(fx,fy,'#9b59b6',14);
-      // Rika ghost arm
-      ctx.fillStyle='rgba(155,89,182,.5)';ctx.fillRect(fx-4,fy-20,8,40);
-      P(4,9,'#1a1a2e',5,2);P(-6,9,'#1a1a2e',2,2);
-    } else{P(-6,9+aSwing,'#1a1a2e',2,3);P(-6,11+aSwing,'#f0c090',1,2);P(4,9-aSwing,'#1a1a2e',2,3);P(5,11-aSwing,'#f0c090',1,2);}
-    P(-3,11,'#f0c090',6,5);P(-3,11,'#d4956a',1,5);
-    ctx.fillStyle='#9b59b6';ctx.globalAlpha=.9;ctx.fillRect(bx+(facing>0?-1:0)*S,by-14*S,S,S);ctx.fillRect(bx+(facing>0?1:-2)*S,by-14*S,S,S);ctx.globalAlpha=1;
-    // Dark hair medium length
-    const hy=16;P(-3,hy,'#1a1033',6,3);P(-4,hy,'#1a1033',1,2);P(3,hy,'#1a1033',1,2);
-    P(-2,hy+2,'#1a1033',1,3);P(0,hy+2,'#2d1f55',1,2);P(2,hy+2,'#1a1033',1,3);
-    P(-4,hy+1,'#1a1033',1,3);P(4,hy+1,'#1a1033',1,3);
-    // Purple tinge on hair tips
-    ctx.fillStyle='#6c3483';ctx.globalAlpha=.4;ctx.fillRect(bx-S,by-hy*S,S*2,S);ctx.globalAlpha=1;
+      P(5,6,'#fce4ec',3,2);P(8,6,'#fce4ec',2,2);
+      const fx=bx+(facing>0?1:-1)*9*S,fy=by-7*S;
+      glow(fx,fy,'#ec4899',14);
+      ctx.strokeStyle='#ec4899';ctx.lineWidth=2;
+      for(let i=0;i<6;i++){const a=(i/6)*Math.PI*2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+Math.cos(a)*20,fy+Math.sin(a)*20);ctx.stroke();}
+    } else {
+      P(-7,6+aSwing,'#fce4ec',2,2);P(5,6-aSwing,'#fce4ec',2,2);
+    }
+    // Big chibi head
+    P(-5,10,'#fce4ec',10,8);
+    P(-5,10,'#f8c5a0',1,8); // shadow
+    // Blush
+    ctx.fillStyle='#f48fb1';ctx.globalAlpha=.4;
+    ctx.beginPath();ctx.ellipse(bx-3*S,by-13*S,S*1.2,S*.7,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(bx+2*S,by-13*S,S*1.2,S*.7,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    // Big eyes
+    ctx.fillStyle='#1a0a0a';
+    ctx.fillRect(bx-3*S,by-15*S,2*S,2*S);ctx.fillRect(bx+S,by-15*S,2*S,2*S);
+    ctx.fillStyle='#ec4899';ctx.globalAlpha=.9;
+    ctx.fillRect(bx-3*S,by-15*S,2*S,2*S);ctx.fillRect(bx+S,by-15*S,2*S,2*S);
+    // Eye shine
+    ctx.fillStyle='#fff';ctx.globalAlpha=.8;
+    ctx.fillRect(bx-2*S,by-15*S,S,S);ctx.fillRect(bx+S,by-15*S,S,S);
+    ctx.globalAlpha=1;
+    // Pink hair — round big chibi hair
+    const hy=18;
+    P(-5,hy,'#f48fb1',10,4);
+    P(-6,hy+1,'#f48fb1',2,3);P(4,hy+1,'#f48fb1',2,3);
+    P(-4,hy+3,'#f48fb1',1,3);P(3,hy+3,'#f48fb1',1,3);
+    P(-5,hy+2,'#ec4899',1,2);P(4,hy+2,'#ec4899',1,2);
+    // Hair highlight
+    ctx.fillStyle='#ffc1e3';ctx.globalAlpha=.5;ctx.fillRect(bx-S,by-hy*S,2*S,2*S);ctx.globalAlpha=1;
+    // Hair accessories — yellow stars
+    P(-3,hy+3,'#ffd700',1,1);P(2,hy+3,'#ffd700',1,1);
+
+  } else if(char.id==='aqua'){
+    // ── AQUA — chibi blue girl, dark navy outfit, blue hair ──
+    P(-2,1,'#0c1a2e',2,1);P(1,1,'#0c1a2e',2,1); // dark shoes
+    P(-2,2,'#1e3a5f',2,2+bob);P(1,2,'#1e3a5f',2,2-bob);
+    // Navy blue dress/coat
+    P(-5,4,'#1e3a5f',10,6);
+    P(-4,4,'#263f6e',2,6);
+    P(3,4,'#0f2040',2,6);
+    P(-1,5,'#dc2626',2,2); // red ribbon
+    P(-4,4,'#0a1628',10,1);
+    if(isAtk){
+      P(5,6,'#f5e6d8',3,2);P(8,6,'#f5e6d8',2,2);
+      const fx=bx+(facing>0?1:-1)*9*S,fy=by-7*S;
+      glow(fx,fy,'#38bdf8',14);
+      // Water droplets
+      for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;ctx.fillStyle='#7dd3fc';ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(fx+Math.cos(a)*18,fy+Math.sin(a)*18,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+    } else {
+      P(-7,6+aSwing,'#f5e6d8',2,2);P(5,6-aSwing,'#f5e6d8',2,2);
+    }
+    // Big chibi head — slightly bigger
+    P(-5,10,'#f5e6d8',10,8);
+    P(-5,10,'#e8c9a8',1,8);
+    // Blush
+    ctx.fillStyle='#93c5fd';ctx.globalAlpha=.35;
+    ctx.beginPath();ctx.ellipse(bx-3*S,by-13*S,S*1.2,S*.7,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(bx+2*S,by-13*S,S*1.2,S*.7,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    // Big eyes — blue
+    ctx.fillStyle='#0c1a2e';
+    ctx.fillRect(bx-3*S,by-15*S,2*S,2*S);ctx.fillRect(bx+S,by-15*S,2*S,2*S);
+    ctx.fillStyle='#38bdf8';ctx.globalAlpha=.9;
+    ctx.fillRect(bx-3*S,by-15*S,2*S,2*S);ctx.fillRect(bx+S,by-15*S,2*S,2*S);
+    ctx.fillStyle='#fff';ctx.globalAlpha=.8;
+    ctx.fillRect(bx-2*S,by-15*S,S,S);ctx.fillRect(bx+S,by-15*S,S,S);
+    ctx.globalAlpha=1;
+    // Blue-navy hair — large round chibi with two side pieces
+    const hy=18;
+    P(-5,hy,'#0e7490',10,4);
+    P(-6,hy+1,'#0e7490',2,4);P(4,hy+1,'#0e7490',2,4);
+    P(-7,hy+2,'#0c6080',1,3);P(5,hy+2,'#0c6080',1,3);
+    P(-5,hy+4,'#0e7490',1,3);P(4,hy+4,'#0e7490',1,3);
+    // White/light blue streaks
+    ctx.fillStyle='#bae6fd';ctx.globalAlpha=.5;
+    ctx.fillRect(bx-2*S,by-hy*S,S,3*S);ctx.fillRect(bx+S,by-hy*S,S,2*S);
+    ctx.globalAlpha=1;
+    // Eyelashes (half-closed chibi look)
+    ctx.fillStyle='#0c1a2e';
+    ctx.fillRect(bx-3*S,by-16*S,2*S,Math.ceil(S*.4));
+    ctx.fillRect(bx+S,by-16*S,2*S,Math.ceil(S*.4));
   }
 }
 
@@ -6477,13 +6700,15 @@ function closeModePickerM(){
 function pickMode(mode){
   const target=pendingDuelTarget;
   closeModePickerM();
-  if(!target)return;
   if(mode==='undertale'){
-    openUTBattle(target.name, target.tech, false);
+    // Direct challenge — open UT vs this specific player (bot for now, online when both click)
+    if(target)openUTBattle(target.name,target.tech||'',false);
+    else joinUTQueue();
   } else if(mode==='arena'){
-    openArena(target.name,'#e74c3c',false);
+    if(target)openArena(target.name,'#e74c3c',false);
+    else joinArenaQueue('arena');
   } else if(mode==='classic'){
-    startPvp(target.pid);
+    if(target)startPvp(target.pid);
   }
 }
 
