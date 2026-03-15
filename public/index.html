@@ -4397,9 +4397,9 @@ function leaveV2Queue(){
 // ══════════════════════════════════════════════════════
 
 const ARENA_W = 900, ARENA_H = 420;
-const ARENA_FLOOR = ARENA_H - 80;
-const ARENA_GRAVITY = 0.55;
-const ARENA_JUMP_FORCE = -13;
+const ARENA_FLOOR = ARENA_H - 70;
+const ARENA_GRAVITY = 1.1;
+const ARENA_JUMP_FORCE = -16;
 const ARENA_SPEED = 4.2;
 const ARENA_DASH_DIST = 110;
 const ARENA_DASH_DUR = 160; // ms
@@ -4460,8 +4460,8 @@ window.addEventListener('keyup', e=>{
 function handleArenaKeyDown(code){
   if(!arenaActive||!arenaF1||arenaF1.dead)return;
   const f=arenaF1;
-  // Jump
-  if((code==='KeyW'||code==='ArrowUp'||code==='Space')&&f.onGround&&code!=='Space'){
+  // Jump — only on keydown, not hold
+  if((code==='KeyW'||code==='ArrowUp')&&f.onGround){
     f.vy=ARENA_JUMP_FORCE; f.onGround=false;
   }
   // Dash — Space
@@ -4483,7 +4483,7 @@ function arenaUseSkill(f, idx){
   if(f.skillCds[idx]>0||f.stunTimer>0)return;
   const sk = f.skills[idx];
   if(!sk)return;
-  if(f.ce<sk.cost){arenaSpawnDmgNum('NO CE',f.x,f.y-80,'#e74c3c',false);return;}
+  if(f.ce<sk.cost){arenaSpawnDmgNum('NO CE',f.x,f.y-80,'#e74c3c',false,f);return;}
   f.ce=Math.max(0,f.ce-sk.cost);
   f.skillCds[idx]=sk.cd;
   f.attackAnim=300;
@@ -4500,7 +4500,7 @@ function arenaUseSkill(f, idx){
     if(!opp.blocking){opp.vx=f.facing*4;opp.vy=-3;}
     if(sk.stun)opp.stunTimer=sk.stun;
     arenaSpawnEffect(opp,'hit',sk.color||'#e8c84a');
-    arenaSpawnDmgNum(crit?`${dmg}!`:dmg,opp.x,opp.y-60,sk.color||'#e8c84a',crit);
+    arenaSpawnDmgNum(crit?`${dmg}!`:dmg,opp.x,opp.y-60,sk.color||'#e8c84a',crit,opp);
     f.combo++;
     if(f===arenaF1&&arenaOnline)arenaSendState();
   }
@@ -4516,10 +4516,10 @@ function arenaUseSkill(f, idx){
 function arenaSpawnEffect(f, type, color){
   f.effects.push({type,timer:350,maxTimer:350,color});
 }
-function arenaSpawnDmgNum(val, x, y, color, crit){
-  const list=arenaF1?arenaF1.dmgNumbers:[];
-  list.push({val:String(val),x,y,timer:900,vy:-1.2,color,crit});
-  if(arenaF2)arenaF2.dmgNumbers.push({val:String(val),x,y,timer:900,vy:-1.2,color,crit});
+function arenaSpawnDmgNum(val, x, y, color, crit, targetFighter){
+  const target = targetFighter || arenaF2;
+  if(!target)return;
+  target.dmgNumbers.push({val:String(val),x,y,timer:900,vy:-1.2,color,crit});
 }
 
 function arenaKill(f){
@@ -4636,7 +4636,7 @@ function arenaUpdate(dt){
           opp.hp=Math.max(0,opp.hp-dmg);
           opp.hitAnim=150; opp.vx=f.facing*2;
           arenaSpawnEffect(opp,'hit','#e07060');
-          arenaSpawnDmgNum(crit?`${dmg}!!`:dmg,opp.x,opp.y-50,'#ff8060',crit);
+          arenaSpawnDmgNum(crit?`${dmg}!!`:dmg,opp.x,opp.y-50,'#ff8060',crit,opp);
           f.attackAnim=200; f.combo++;
           f.comboTimer=1800;
           if(opp.hp<=0&&!opp.dead)arenaKill(opp);
@@ -4746,150 +4746,257 @@ function arenaDraw(){
   // Draw fighters
   if(arenaF2)arenaDrawFighter(ctx,arenaF2);
   if(arenaF1)arenaDrawFighter(ctx,arenaF1);
-  // Draw damage numbers (global layer)
-  [[arenaF1],[arenaF2]].forEach(([f])=>{
-    if(!f)return;
-    f.dmgNumbers.forEach(d=>{
-      const alpha=Math.min(1,d.timer/300);
-      ctx.save();
-      ctx.globalAlpha=alpha;
-      ctx.font=`${d.crit?'900':'700'} ${d.crit?20:15}px 'Cinzel',serif`;
-      ctx.fillStyle=d.color;
-      ctx.textAlign='center';
-      if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=12;}
-      ctx.fillText(d.val,d.x,d.y);
-      ctx.restore();
-    });
-  });
 }
 
 function arenaDrawFighter(ctx, f){
   ctx.save();
+
   const hitFlash = f.hitAnim>0 && Math.floor(f.hitAnim/40)%2===0;
-  const alpha = f.dead ? Math.max(0,(f.hp+200)/200) : 1;
+  const alpha = f.dead ? Math.max(0, f.vy > 0 ? 0.3 : 1) : 1;
   ctx.globalAlpha = alpha;
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,.4)';
-  ctx.beginPath();ctx.ellipse(f.x,ARENA_FLOOR+4,f.w*.7,6,0,0,Math.PI*2);ctx.fill();
-  // Blocking shield aura
-  if(f.blocking){
-    ctx.save();
-    ctx.globalAlpha=.25+Math.sin(Date.now()*.006)*.1;
-    ctx.strokeStyle='#3498db';ctx.lineWidth=3;
-    ctx.beginPath();ctx.ellipse(f.x-f.facing*8,f.y-f.h/2,f.w*.7,f.h*.6,0,0,Math.PI*2);ctx.stroke();
-    ctx.restore();
+
+  // Fighter "feet" are at f.y, body goes UP from there
+  const bx = Math.round(f.x);
+  const by = Math.round(f.y); // feet level
+  const sc = 3; // pixel scale — each "pixel" is 3x3 real px
+  const dir = f.facing; // 1=right, -1=left
+
+  // PIXEL ART — 12×20 grid sorcerer sprite
+  // Colors
+  const skinCol   = hitFlash ? '#fff' : '#f5cba7';
+  const hairCol   = hitFlash ? '#fff' : f.color;
+  const robeCol   = hitFlash ? '#fff' : shadeColor(f.color, -40);
+  const beltCol   = hitFlash ? '#fff' : '#c9a227';
+  const eyeCol    = '#0d0b14';
+  const glowCol   = f.color;
+
+  // Animate walk cycle
+  const t = Date.now();
+  const moving = Math.abs(f.vx) > 0.5 && f.onGround;
+  const walkT = moving ? Math.floor(t / 120) % 4 : 0;
+  const blocking = f.blocking;
+  const attacking = f.attackAnim > 0;
+  const airborne = !f.onGround;
+
+  // Helper: draw one "pixel" at grid position (px, py) from feet
+  function px(gx, gy, col){
+    const rx = bx + (dir > 0 ? gx - 6 : 5 - gx) * sc;
+    const ry = by - gy * sc;
+    ctx.fillStyle = col;
+    ctx.fillRect(rx, ry, sc, sc);
   }
-  // Dash trail
-  if(f.dashing){
-    for(let t=1;t<=4;t++){
-      ctx.save();ctx.globalAlpha=alpha*(.15*t);
-      ctx.fillStyle='rgba(150,220,255,.4)';
-      ctx.fillRect(f.x-f.w/2-f.dashDir*t*14,f.y-f.h,f.w,f.h);
-      ctx.restore();
-    }
+
+  // Glow aura under feet
+  if(!f.dead){
+    const grd = ctx.createRadialGradient(bx, by+2, 0, bx, by+2, 28);
+    grd.addColorStop(0, glowCol + '55');
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd;
+    ctx.beginPath();ctx.ellipse(bx, by+2, 28, 8, 0, 0, Math.PI*2);ctx.fill();
   }
-  // Stun stars
-  if(f.stunTimer>0){
-    for(let s=0;s<3;s++){
-      const sa=Date.now()*.005+s*2.1;
-      const sx=f.x+Math.cos(sa)*20, sy=f.y-f.h-10+Math.sin(sa)*6;
-      ctx.fillStyle='#f1c40f';ctx.font='12px serif';
-      ctx.textAlign='center';ctx.fillText('★',sx,sy);
-    }
-  }
-  // Body
-  const bodyColor = hitFlash ? '#fff' : f.color;
-  // Legs
-  const legY = f.y - 12;
-  const walkPhase = (Date.now()*.01)%(Math.PI*2);
-  const moving = Math.abs(f.vx)>0.5;
-  if(moving&&f.onGround){
-    ctx.fillStyle=bodyColor;
-    // Left leg
-    ctx.fillRect(f.x-10,legY,10,20+Math.sin(walkPhase)*8);
-    // Right leg
-    ctx.fillRect(f.x,legY,10,20-Math.sin(walkPhase)*8);
+
+  // Shadow on ground
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(bx, by+3, f.onGround?18:10, f.onGround?5:3, 0, 0, Math.PI*2);ctx.fill();
+
+  // ── LEGS (rows 0-6 from feet) ──
+  if(blocking){
+    // Crouched legs
+    px(4,1,robeCol); px(5,1,robeCol); px(6,1,robeCol); px(7,1,robeCol);
+    px(4,2,robeCol); px(5,2,robeCol); px(6,2,robeCol); px(7,2,robeCol);
+    px(3,3,robeCol); px(4,3,robeCol); px(7,3,robeCol); px(8,3,robeCol);
+  } else if(airborne){
+    // Tuck legs
+    px(4,1,robeCol); px(5,1,robeCol); px(6,1,robeCol); px(7,1,robeCol);
+    px(3,2,robeCol); px(4,2,robeCol); px(7,2,robeCol); px(8,2,robeCol);
+    px(3,3,robeCol); px(8,3,robeCol);
   } else {
-    ctx.fillStyle=bodyColor;
-    ctx.fillRect(f.x-10,legY,10,18);
-    ctx.fillRect(f.x,legY,10,18);
+    const lOff = [0,1,2,1][walkT]; // left leg offset
+    const rOff = [2,1,0,1][walkT]; // right leg offset
+    // Left leg
+    px(4, 1+lOff, robeCol); px(5, 1+lOff, robeCol);
+    px(4, 2+lOff, robeCol); px(5, 2+lOff, robeCol);
+    px(4, 3, '#d5d8dc');     px(5, 3, '#d5d8dc'); // shoe
+    // Right leg
+    px(6, 1+rOff, robeCol); px(7, 1+rOff, robeCol);
+    px(6, 2+rOff, robeCol); px(7, 2+rOff, robeCol);
+    px(6, 3, '#d5d8dc');     px(7, 3, '#d5d8dc'); // shoe
   }
-  // Torso
-  const torsoH = 32;
-  const tiltX = f.attackAnim>0 ? f.facing*5 : 0;
-  const airTilt = !f.onGround ? f.vy*.5 : 0;
-  ctx.save();
-  ctx.translate(f.x+tiltX, f.y-f.h/2-6);
-  ctx.rotate(airTilt*.04);
-  ctx.fillStyle=bodyColor;
-  ctx.fillRect(-f.w/2, -torsoH/2, f.w, torsoH);
-  // Torso shimmer
-  ctx.fillStyle=`rgba(255,255,255,.07)`;
-  ctx.fillRect(-f.w/2,-torsoH/2,f.w/2,torsoH);
-  ctx.restore();
-  // Head
-  const headX = f.x + (f.facing>0?3:-3) + tiltX;
-  const headY = f.y - f.h + 4;
-  ctx.fillStyle=bodyColor;
-  ctx.beginPath();ctx.arc(headX, headY, 14, 0, Math.PI*2);ctx.fill();
-  // Eyes
-  ctx.fillStyle='#fff';
-  const eyeX = headX + f.facing*5;
-  ctx.beginPath();ctx.arc(eyeX, headY-2, 3.5, 0, Math.PI*2);ctx.fill();
-  ctx.fillStyle='#000';
-  ctx.beginPath();ctx.arc(eyeX+f.facing*1.2, headY-2, 2, 0, Math.PI*2);ctx.fill();
-  // Attack effect
-  if(f.attackAnim>0){
-    const prog=f.attackAnim/300;
+
+  // ── ROBE BODY (rows 4-11) ──
+  const bodyRows = blocking ? 8 : 10;
+  for(let row = 4; row <= bodyRows; row++){
+    px(3, row, robeCol); px(4, row, robeCol); px(5, row, robeCol);
+    px(6, row, robeCol); px(7, row, robeCol); px(8, row, robeCol);
+    // Robe highlight edge
+    px(3, row, shadeColor(f.color, -20));
+    px(8, row, shadeColor(f.color, -50));
+    // Center line
+    if(row===7||row===8) px(5, row, beltCol), px(6, row, beltCol);
+  }
+  // Belt buckle
+  px(5, 7, beltCol); px(6, 7, beltCol);
+
+  // ── ARMS ──
+  const armY = blocking ? 8 : 9;
+  if(attacking){
+    // Attack pose — arm extends forward
+    px(9, armY,   robeCol); px(10, armY,   robeCol);
+    px(9, armY+1, robeCol); px(10, armY+1, skinCol);
+    // Energy ball at fist
+    const fx = bx + dir*36, fy = by - armY*sc;
+    const eg = ctx.createRadialGradient(fx,fy,1,fx,fy,10);
+    eg.addColorStop(0,'#fff');
+    eg.addColorStop(0.4, f.color);
+    eg.addColorStop(1,'transparent');
+    ctx.fillStyle=eg;
+    ctx.beginPath();ctx.arc(fx,fy,10,0,Math.PI*2);ctx.fill();
+    // Back arm
+    px(2, armY, robeCol); px(1, armY, robeCol);
+    px(2, armY+1, robeCol);
+  } else if(blocking){
+    // Guard pose — both arms up
+    px(2, armY+2, robeCol); px(1, armY+2, skinCol);
+    px(9, armY+2, robeCol); px(10, armY+2, skinCol);
+    px(2, armY+1, robeCol); px(9, armY+1, robeCol);
+    // Cursed energy shield
     ctx.save();
-    ctx.globalAlpha=prog*.7;
-    ctx.strokeStyle=f.color;
-    ctx.lineWidth=3;
+    ctx.globalAlpha = 0.3 + Math.sin(t*.008)*.1;
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(f.x+f.facing*30, f.y-f.h*.4, 25+prog*20, -Math.PI*.4, Math.PI*.4);
+    ctx.ellipse(bx - dir*12, by - armY*sc, 22, 32, 0, 0, Math.PI*2);
     ctx.stroke();
     ctx.restore();
+  } else {
+    // Idle/walk arms swing
+    const aSwing = moving ? Math.sin(t*.015)*3 : 0;
+    px(2, armY + Math.round(aSwing), robeCol);
+    px(2, armY+1 + Math.round(aSwing), skinCol);
+    px(9, armY - Math.round(aSwing), robeCol);
+    px(9, armY+1 - Math.round(aSwing), skinCol);
   }
-  // Hit effects
+
+  // ── HEAD (rows 11-16) ──
+  const headBase = blocking ? 9 : 11;
+  // Hair / hood top
+  px(4, headBase+5, hairCol); px(5, headBase+5, hairCol);
+  px(6, headBase+5, hairCol); px(7, headBase+5, hairCol);
+  px(3, headBase+4, hairCol); px(4, headBase+4, hairCol);
+  px(7, headBase+4, hairCol); px(8, headBase+4, hairCol);
+  // Hair spikes (top)
+  px(4, headBase+6, hairCol); px(6, headBase+6, hairCol);
+  px(5, headBase+7, hairCol);
+  // Face
+  px(3, headBase+3, skinCol); px(4, headBase+3, skinCol);
+  px(5, headBase+3, skinCol); px(6, headBase+3, skinCol);
+  px(7, headBase+3, skinCol); px(8, headBase+3, skinCol);
+  px(3, headBase+2, skinCol); px(4, headBase+2, skinCol);
+  px(5, headBase+2, skinCol); px(6, headBase+2, skinCol);
+  px(7, headBase+2, skinCol); px(8, headBase+2, skinCol);
+  // Eyes
+  const eyeAnim = attacking ? headBase+2 : headBase+3;
+  px(5, eyeAnim, eyeCol); px(6, eyeAnim, eyeCol);
+  // Eye glow
+  px(5, eyeAnim, f.color); px(6, eyeAnim, f.color);
+  // Mouth
+  if(attacking) {px(5, headBase+1, eyeCol); px(6, headBase+1, eyeCol);}
+  // Collar
+  px(4, headBase, robeCol); px(5, headBase, robeCol);
+  px(6, headBase, robeCol); px(7, headBase, robeCol);
+
+  // ── CURSED ENERGY AURA (when low HP or attacking) ──
+  if(f.hp < f.maxHp * 0.35 || attacking){
+    const auraAlpha = attacking ? 0.6 : 0.25 + Math.sin(t*.01)*.15;
+    const auraR = attacking ? 36 : 24;
+    ctx.save();
+    ctx.globalAlpha = auraAlpha;
+    const ag = ctx.createRadialGradient(bx, by - headBase*sc/2, 5, bx, by - headBase*sc/2, auraR);
+    ag.addColorStop(0, f.color+'aa');
+    ag.addColorStop(1, 'transparent');
+    ctx.fillStyle = ag;
+    ctx.beginPath();ctx.arc(bx, by - headBase*sc/2, auraR, 0, Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
+  // ── STUN STARS ──
+  if(f.stunTimer > 0){
+    for(let s=0;s<3;s++){
+      const sa = t*.005 + s*2.1;
+      const sx = bx + Math.cos(sa)*16, sy = by - (headBase+8)*sc + Math.sin(sa)*4;
+      ctx.font = '10px serif'; ctx.fillStyle='#f1c40f';
+      ctx.textAlign='center'; ctx.fillText('★', sx, sy);
+    }
+  }
+
+  // ── COMBO TEXT ──
+  if(f.combo >= 3 && f.comboTimer > 0){
+    ctx.font = `900 ${Math.min(16, 10+f.combo)}px 'Cinzel',serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e8c84a';
+    ctx.shadowColor = 'rgba(201,162,39,.9)'; ctx.shadowBlur = 14;
+    ctx.fillText(`${f.combo}× COMBO`, bx, by - (headBase+10)*sc);
+    ctx.shadowBlur = 0;
+  }
+
+  // ── HIT BURST PARTICLES ──
   f.effects.forEach(ef=>{
-    const prog=ef.timer/ef.maxTimer;
+    const prog = ef.timer/ef.maxTimer;
     if(ef.type==='hit'){
-      ctx.save();ctx.globalAlpha=prog*.8;
-      for(let p=0;p<6;p++){
-        const a=(p/6)*Math.PI*2+Date.now()*.01;
-        const r=20+prog*30;
-        ctx.strokeStyle=ef.color;ctx.lineWidth=2;
+      ctx.save(); ctx.globalAlpha = prog * .9;
+      for(let p=0;p<8;p++){
+        const a = (p/8)*Math.PI*2;
+        const r = (1-prog)*30;
+        ctx.strokeStyle = ef.color; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(f.x+Math.cos(a)*10,f.y-f.h/2+Math.sin(a)*10);
-        ctx.lineTo(f.x+Math.cos(a)*r,f.y-f.h/2+Math.sin(a)*r);
+        ctx.moveTo(bx+Math.cos(a)*5, by-headBase*sc/2+Math.sin(a)*5);
+        ctx.lineTo(bx+Math.cos(a)*r, by-headBase*sc/2+Math.sin(a)*r);
         ctx.stroke();
       }
       ctx.restore();
     }
     if(ef.type==='dash'){
-      ctx.save();ctx.globalAlpha=prog*.5;
-      ctx.strokeStyle=ef.color;ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(f.x,f.y-f.h/2,30+prog*20,0,Math.PI*2);ctx.stroke();
+      ctx.save(); ctx.globalAlpha = prog * .45;
+      ctx.strokeStyle = '#7ec8e3'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(bx, by - headBase*sc/2, 28 + (1-prog)*20, 0, Math.PI*2);
+      ctx.stroke();
       ctx.restore();
     }
   });
-  // Name tag
-  ctx.globalAlpha=1;
-  ctx.font='bold 10px Cinzel,serif';
-  ctx.textAlign='center';
-  ctx.fillStyle=f.color;
-  ctx.shadowColor=f.color;ctx.shadowBlur=8;
-  ctx.fillText(f.name.toUpperCase(),f.x,f.y-f.h-8);
-  ctx.shadowBlur=0;
-  // Combo
-  if(f.combo>=3&&f.comboTimer>0){
-    ctx.font=`bold ${12+Math.min(f.combo,8)}px Cinzel,serif`;
-    ctx.fillStyle='#e8c84a';
-    ctx.shadowColor='rgba(201,162,39,.8)';ctx.shadowBlur=12;
-    ctx.fillText(`${f.combo}×COMBO`,f.x,f.y-f.h-22);
-    ctx.shadowBlur=0;
-  }
+
+  // ── DAMAGE NUMBERS ──
+  f.dmgNumbers.forEach(d=>{
+    const a = Math.min(1, d.timer/250);
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.font = `${d.crit?'900':'700'} ${d.crit?20:15}px 'Cinzel',serif`;
+    ctx.fillStyle = d.color; ctx.textAlign='center';
+    if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=12;}
+    ctx.fillText(d.val, d.x, d.y);
+    ctx.restore();
+  });
+
+  // ── NAME TAG ──
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 9px Cinzel,serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = f.color;
+  ctx.shadowColor = f.color; ctx.shadowBlur = 8;
+  ctx.fillText(f.name.toUpperCase(), bx, by - (headBase+12)*sc);
+  ctx.shadowBlur = 0;
+
   ctx.restore();
+}
+
+// Color utility
+function shadeColor(col, amt){
+  try{
+    const num=parseInt(col.replace('#',''),16);
+    const r=Math.min(255,Math.max(0,(num>>16)+amt));
+    const g=Math.min(255,Math.max(0,((num>>8)&0xff)+amt));
+    const b=Math.min(255,Math.max(0,(num&0xff)+amt));
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }catch{return col;}
 }
 
 // ── OPEN / CLOSE ARENA ──
