@@ -755,6 +755,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           <div class="pt">Online Players</div>
           <button class="boss-btn" id="toji-btn" onclick="startBoss('toji')">⚔ Boss: Toji Zenin</button>
           <button class="boss-btn sk" id="suk-btn" onclick="startBoss('sukuna')">👁 Boss: KING OF CURSES</button>
+          <button class="boss-btn" style="border-color:#3cff3c;color:#3cff3c;background:rgba(60,255,60,.08);margin-bottom:6px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.05em" onclick="startUTBattle(null,null)">★ CURSED BATTLE (UNDERTALE PVP)</button>
           <button class="boss-btn" style="border-color:#e8c84a;color:#e8c84a;background:rgba(201,162,39,.1);margin-bottom:6px" onclick="joinArenaQueue()">⚔ WASD Arena — Real-time PvP</button>
           <button class="boss-btn" style="border-color:#aaa;color:#aaa;background:rgba(150,150,150,.08);margin-bottom:6px" onclick="startArenaBotMatch()">🤖 Arena vs Bot (Practice)</button>
           <button class="boss-btn" style="border-color:#5dade2;color:#5dade2;background:rgba(93,173,226,.08)" onclick="open2v2Lobby()">⚔⚔ 2v2 Team Battle</button>
@@ -5142,6 +5143,1009 @@ function arenaSendState(){
     else handleArenaKeyDown(`Key${k.toUpperCase()}`);
   });
 });
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     UNDERTALE-STYLE JJK PVP BATTLE
+     ══════════════════════════════════════════════════════ -->
+<style>
+/* ── FONT: pixel/monospace ── */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+.ut{font-family:'Press Start 2P',monospace}
+
+#ut-ov{
+  position:fixed;inset:0;z-index:600;
+  background:#000;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;
+}
+#ut-ov.active{display:flex}
+
+/* ── ENEMY SPRITE AREA ── */
+#ut-top{
+  width:640px;max-width:98vw;
+  height:200px;
+  background:#000;
+  border:3px solid #3cff3c;
+  border-bottom:none;
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.ut-enemy-name{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;color:#3cff3c;
+  text-shadow:0 0 8px #3cff3c;
+  white-space:nowrap;
+}
+#ut-enemy-canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+}
+
+/* ── BATTLE BOX (where SOUL dodges) ── */
+#ut-mid{
+  width:640px;max-width:98vw;
+  background:#000;
+  border:3px solid #3cff3c;
+  position:relative;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+#ut-battle-canvas{
+  display:block;
+}
+
+/* ── TEXT BOX ── */
+#ut-textbox{
+  width:640px;max-width:98vw;
+  min-height:90px;
+  background:#000;
+  border:3px solid #fff;
+  padding:14px 18px;
+  position:relative;
+  flex-shrink:0;
+}
+#ut-text{
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;
+  color:#fff;
+  line-height:2;
+  min-height:40px;
+}
+#ut-arrow{
+  position:absolute;bottom:10px;right:14px;
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;color:#fff;
+  animation:utBlink .6s infinite;
+}
+@keyframes utBlink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── STATS BAR ── */
+#ut-stats{
+  width:640px;max-width:98vw;
+  background:#000;
+  padding:8px 18px;
+  display:flex;align-items:center;gap:16px;
+  flex-shrink:0;
+}
+.ut-lv{font-family:'Press Start 2P',monospace;font-size:9px;color:#ff9900}
+.ut-hp-lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:#ff9900}
+#ut-hpbar-wrap{flex:1;max-width:200px;height:14px;background:#000;border:2px solid #ff9900;position:relative}
+#ut-hpbar{height:100%;background:#ff9900;transition:width .3s}
+#ut-hp-txt{font-family:'Press Start 2P',monospace;font-size:9px;color:#ff9900;white-space:nowrap}
+.ut-name-lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;flex:1;text-align:right}
+
+/* ── BUTTONS ── */
+#ut-btns{
+  width:640px;max-width:98vw;
+  background:#000;
+  display:flex;gap:8px;padding:8px 18px 16px;
+  flex-shrink:0;
+}
+.ut-btn{
+  flex:1;padding:10px 6px;
+  background:#000;
+  border:2px solid #ff9900;
+  color:#ff9900;
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;
+  cursor:pointer;
+  text-align:center;
+  transition:background .1s,color .1s;
+  letter-spacing:.05em;
+}
+.ut-btn:hover,.ut-btn.sel{background:#ff9900;color:#000}
+.ut-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── TURN BANNER ── */
+#ut-turn-banner{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Press Start 2P',monospace;font-size:22px;
+  color:#3cff3c;text-shadow:0 0 20px #3cff3c;
+  z-index:700;pointer-events:none;
+  display:none;
+  text-align:center;
+  background:rgba(0,0,0,.85);padding:20px 32px;
+  border:3px solid #3cff3c;
+}
+
+/* ── ATTACK SPAM BUTTONS (attacker turn) ── */
+#ut-attack-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,.92);
+  border-top:2px solid #3cff3c;
+  padding:10px 12px;
+  display:none;
+  flex-wrap:wrap;gap:6px;
+  z-index:5;
+}
+.ut-atk-btn{
+  padding:7px 10px;
+  background:#000;border:2px solid #3cff3c;
+  color:#3cff3c;font-family:'Press Start 2P',monospace;font-size:7px;
+  cursor:pointer;transition:all .1s;flex:1;min-width:80px;text-align:center;
+}
+.ut-atk-btn:hover{background:#3cff3c;color:#000}
+.ut-atk-btn:disabled{opacity:.3;cursor:not-allowed;animation:none}
+.ut-atk-btn.fired{animation:atkFlash .2s forwards}
+@keyframes atkFlash{0%{background:#3cff3c;color:#000}100%{background:#000;color:#3cff3c}}
+
+/* ── TIMER ── */
+#ut-timer{
+  position:absolute;top:8px;right:12px;
+  font-family:'Press Start 2P',monospace;font-size:12px;color:#3cff3c;
+  text-shadow:0 0 10px #3cff3c;z-index:10;
+}
+#ut-timer.urgent{color:#ff4444;text-shadow:0 0 10px #ff4444;animation:timerPulse .4s infinite}
+@keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* ── MOBILE DPAD FOR SOUL ── */
+#ut-dpad{
+  display:none;
+  position:absolute;bottom:8px;left:8px;z-index:6;
+}
+.ut-dp-grid{display:grid;grid-template-columns:36px 36px 36px;grid-template-rows:36px 36px 36px;gap:2px}
+.ut-dp-btn{background:rgba(60,255,60,.1);border:1px solid #3cff3c;color:#3cff3c;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;user-select:none;-webkit-user-select:none}
+.ut-dp-btn:active{background:rgba(60,255,60,.4)}
+@media(hover:none) and (pointer:coarse){#ut-dpad{display:block}}
+</style>
+
+<!-- Turn banner -->
+<div id="ut-turn-banner"></div>
+
+<!-- Main battle overlay -->
+<div id="ut-ov">
+  <!-- Enemy sprite area -->
+  <div id="ut-top">
+    <div class="ut-enemy-name" id="ut-enemy-name">???</div>
+    <canvas id="ut-enemy-canvas"></canvas>
+    <div id="ut-timer">10</div>
+    <!-- Attack panel shown during attacker's turn -->
+    <div id="ut-attack-panel">
+      <button class="ut-atk-btn" id="utbtn-q">Q — SKILL 1</button>
+      <button class="ut-atk-btn" id="utbtn-e">E — SKILL 2</button>
+      <button class="ut-atk-btn" id="utbtn-r">R — SKILL 3</button>
+      <button class="ut-atk-btn" id="utbtn-f">F — DOMAIN</button>
+    </div>
+  </div>
+
+  <!-- Battle box -->
+  <div id="ut-mid">
+    <canvas id="ut-battle-canvas" width="600" height="240"></canvas>
+    <!-- Mobile dpad -->
+    <div id="ut-dpad">
+      <div class="ut-dp-grid">
+        <div></div>
+        <div class="ut-dp-btn" id="ut-dp-up">▲</div>
+        <div></div>
+        <div class="ut-dp-btn" id="ut-dp-left">◀</div>
+        <div></div>
+        <div class="ut-dp-btn" id="ut-dp-right">▶</div>
+        <div></div>
+        <div class="ut-dp-btn" id="ut-dp-down">▼</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text box -->
+  <div id="ut-textbox">
+    <div id="ut-text">* ...</div>
+    <div id="ut-arrow">▼</div>
+  </div>
+
+  <!-- Stats -->
+  <div id="ut-stats">
+    <span class="ut-lv" id="ut-lv-txt">LV 1</span>
+    <span class="ut-hp-lbl">HP</span>
+    <div id="ut-hpbar-wrap"><div id="ut-hpbar" style="width:100%"></div></div>
+    <span id="ut-hp-txt">20 / 20</span>
+    <span class="ut-name-lbl" id="ut-pname-txt">YOU</span>
+  </div>
+
+  <!-- Action buttons -->
+  <div id="ut-btns">
+    <button class="ut-btn" id="ut-fight-btn" onclick="utStartAttackTurn()">⚔ FIGHT</button>
+    <button class="ut-btn" onclick="utDoAct()">✦ ACT</button>
+    <button class="ut-btn" onclick="utDoItem()">✦ ITEM</button>
+    <button class="ut-btn" onclick="utForfeit()" style="border-color:#888;color:#888">✗ MERCY</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// UNDERTALE JJK PVP BATTLE SYSTEM
+// ══════════════════════════════════════════════════════
+
+const UT = {
+  active: false,
+  online: false,
+  matchId: null,
+
+  // Players
+  p1: null, // attacker this round
+  p2: null, // dodger this round (SOUL)
+  isP1: true, // am I p1?
+
+  // HP
+  myHp: 100, myMaxHp: 100,
+  oppHp: 100, oppMaxHp: 100,
+
+  // Turn state
+  phase: 'menu', // menu | attacking | dodging | result
+  turnTimer: 10,
+  turnInt: null,
+  round: 1,
+  maxRounds: 3,
+
+  // SOUL
+  soul: {x:300, y:120, r:7, vx:0, vy:0},
+  soulInvuln: 0,
+  soulHp: 100,
+  soulMaxHp: 100,
+
+  // Bullets this turn
+  bullets: [],
+  animId: null,
+
+  // Keys
+  keys: {},
+
+  // Skill cooldowns for attack turn
+  skillCds: [0,0,0,0],
+  skillCdMax: [1200,1800,1500,4000],
+  skillUsed: [false,false,false,false],
+};
+
+// Battle box dimensions
+const UTW = 600, UTH = 240;
+// Inner box where SOUL is confined
+const UTB = { x:160, y:20, w:280, h:200 };
+
+// ── TEXT TYPEWRITER ──
+let utTextQ = [], utTextTO = null;
+function utSetText(lines, cb){
+  const el = document.getElementById('ut-text');
+  if(!el)return;
+  const full = Array.isArray(lines) ? lines.join('\n') : lines;
+  el.textContent = '';
+  let i = 0;
+  if(utTextTO)clearTimeout(utTextTO);
+  function type(){
+    el.textContent = full.slice(0,i);
+    i++;
+    if(i<=full.length) utTextTO=setTimeout(type, 28);
+    else if(cb) setTimeout(cb, 600);
+  }
+  type();
+}
+
+// ── OPEN BATTLE ──
+function openUTBattle(opponentName, opponentTech, online=false){
+  UT.active = true;
+  UT.online = online;
+  UT.phase = 'menu';
+  UT.round = 1;
+  UT.bullets = [];
+  UT.skillCds = [0,0,0,0];
+  UT.skillUsed = [false,false,false,false];
+
+  // HP scaled to player
+  const lvl = player?.level || 1;
+  UT.myMaxHp = UT.myHp = Math.floor(80 + lvl * 8);
+  UT.oppMaxHp = UT.oppHp = Math.floor(80 + lvl * 8);
+  UT.soulMaxHp = UT.soulHp = UT.myMaxHp;
+  UT.soul = {x: UTB.x+UTB.w/2, y: UTB.y+UTB.h/2, r:7, vx:0, vy:0};
+
+  // Set up canvases
+  const bc = document.getElementById('ut-battle-canvas');
+  bc.width = UTW; bc.height = UTH;
+  const ec = document.getElementById('ut-enemy-canvas');
+  ec.width = ec.offsetWidth || 640;
+  ec.height = ec.offsetHeight || 200;
+
+  // Names
+  document.getElementById('ut-enemy-name').textContent = opponentName?.toUpperCase() || '???';
+
+  // Stats
+  utUpdateStats();
+
+  // Show overlay
+  document.getElementById('ut-ov').classList.add('active');
+  document.getElementById('ut-btns').style.display = 'flex';
+  document.getElementById('ut-attack-panel').style.display = 'none';
+
+  // Keys
+  UT.keys = {};
+  window.addEventListener('keydown', utKeyDown);
+  window.addEventListener('keyup', utKeyUp);
+
+  // Mobile dpad
+  utSetupDpad();
+
+  // Start draw loop
+  if(UT.animId) cancelAnimationFrame(UT.animId);
+  UT.animId = requestAnimationFrame(utLoop);
+
+  // Intro text then menu
+  utSetText([
+    `* ${opponentName?.toUpperCase()||'??'} wants to fight!`,
+    `* [${player?.tech||'???'}] VS [${opponentTech||'???'}]`,
+    `* Each player attacks for 10 seconds.`,
+    `* Dodge or suffer the consequences...`
+  ].join('\n'), ()=>{
+    utShowMenu();
+  });
+
+  logLine(`⚔ UNDERTALE BATTLE started vs ${opponentName}!`,'#3cff3c');
+}
+
+function utShowMenu(){
+  UT.phase = 'menu';
+  document.getElementById('ut-btns').style.display = 'flex';
+  document.getElementById('ut-attack-panel').style.display = 'none';
+  document.getElementById('ut-fight-btn').disabled = false;
+  utSetText(`* Round ${UT.round} / ${UT.maxRounds}\n* FIGHT — send your attacks!\n* The opponent must dodge your cursed energy.`);
+  document.getElementById('ut-arrow').style.display='block';
+}
+
+// ── ATTACK TURN — I spam attacks for 10s, opponent dodges ──
+function utStartAttackTurn(){
+  UT.phase = 'attacking';
+  UT.skillCds = [0,0,0,0];
+  UT.skillUsed = [false,false,false,false];
+  UT.turnTimer = 10;
+
+  document.getElementById('ut-btns').style.display = 'none';
+  document.getElementById('ut-attack-panel').style.display = 'flex';
+  document.getElementById('ut-arrow').style.display = 'none';
+
+  utUpdateSkillBtns();
+  utSetText(`* YOUR TURN — 10 seconds!\n* Spam your cursed techniques!\n* Press Q / E / R / F or click the buttons.`);
+  utShowBanner('YOUR ATTACK TURN!', '#3cff3c');
+
+  // Reset SOUL to center for opponent
+  UT.soul = {x: UTB.x+UTB.w/2, y: UTB.y+UTB.h/2, r:7, vx:0, vy:0};
+  UT.soulHp = UT.oppHp;
+  UT.bullets = [];
+
+  // Start countdown
+  clearInterval(UT.turnInt);
+  UT.turnInt = setInterval(()=>{
+    UT.turnTimer--;
+    const el = document.getElementById('ut-timer');
+    if(el){ el.textContent = UT.turnTimer; el.className = UT.turnTimer<=3?'urgent':''; }
+    // Cooldown tick
+    for(let i=0;i<4;i++) if(UT.skillCds[i]>0){ UT.skillCds[i]-=1000; if(UT.skillCds[i]<0)UT.skillCds[i]=0; }
+    utUpdateSkillBtns();
+    if(UT.turnTimer<=0){ clearInterval(UT.turnInt); utEndAttackTurn(); }
+  },1000);
+}
+
+function utFireSkill(idx){
+  if(UT.phase!=='attacking')return;
+  if(UT.skillCds[idx]>0)return;
+  const skills = player?.skills || [];
+  const sk = skills[idx] || defaultArenaSkills()[idx];
+  if(!sk)return;
+  UT.skillCds[idx] = UT.skillCdMax[idx];
+  utUpdateSkillBtns();
+
+  // Spawn bullets based on technique
+  utSpawnAttack(idx, sk, player?.tech||'');
+
+  // Animate button
+  const keys=['q','e','r','f'];
+  const btn = document.getElementById(`utbtn-${keys[idx]}`);
+  if(btn){ btn.classList.add('fired'); setTimeout(()=>btn.classList.remove('fired'),200); }
+
+  utSetText(`* ${sk.name}!\n* Cursed energy floods the arena!`);
+
+  // If online, send to opponent
+  if(UT.online && UT.matchId){
+    if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'ut_attack',matchId:UT.matchId,skillIdx:idx,techName:player?.tech||''}));
+  }
+}
+
+function utSpawnAttack(skillIdx, sk, techName){
+  const cx = UTB.x+UTB.w/2, cy = UTB.y+UTB.h/2;
+  const patterns = {
+    0: ()=>{ // Skill 1 — straight bullets from left
+      for(let i=0;i<5;i++){
+        setTimeout(()=>{
+          UT.bullets.push({x:UTB.x-10, y:UTB.y+30+i*28, vx:4.5, vy:0, r:7, color:'#e8c84a', dmg:6, type:'ball'});
+        }, i*120);
+      }
+    },
+    1: ()=>{ // Skill 2 — spread from center
+      for(let i=0;i<7;i++){
+        const a = -Math.PI/2 + (i-3)*0.22;
+        UT.bullets.push({x:cx, y:UTB.y-10, vx:Math.cos(a)*3.2, vy:Math.sin(a)*3.2+1, r:8, color:'#9b59b6', dmg:9, type:'ball'});
+      }
+    },
+    2: ()=>{ // Skill 3 — horizontal sweep laser
+      UT.bullets.push({type:'laser-h', y:UTB.y+UTB.h*0.35, h:16, color:'#3498db', life:1800, dmg:12, alpha:0});
+      UT.bullets.push({type:'laser-h', y:UTB.y+UTB.h*0.65, h:16, color:'#3498db', life:1800, dmg:12, alpha:0});
+    },
+    3: ()=>{ // Domain — multiple patterns at once
+      // Ring of orbs
+      for(let i=0;i<12;i++){
+        const a = (i/12)*Math.PI*2;
+        const r=120;
+        UT.bullets.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r, vx:-Math.cos(a)*2.2, vy:-Math.sin(a)*2.2, r:10, color:'#d7bde2', dmg:15, type:'ball', glow:true});
+      }
+      // Plus a vertical laser
+      setTimeout(()=>{
+        UT.bullets.push({type:'laser-v', x:UTB.x+UTB.w*0.3, w:14, color:'#9b59b6', life:1200, dmg:18, alpha:0});
+        UT.bullets.push({type:'laser-v', x:UTB.x+UTB.w*0.7, w:14, color:'#9b59b6', life:1200, dmg:18, alpha:0});
+      },400);
+    },
+  };
+
+  // Technique-specific overrides
+  const techOverrides = {
+    'Infinity': ()=>{
+      // Blue orbs + red orbs converging (Red + Blue = Hollow Purple)
+      for(let i=0;i<4;i++){
+        UT.bullets.push({x:UTB.x-10, y:UTB.y+40+i*38, vx:3.8, vy:0, r:9, color:'#3498db', dmg:8, type:'ball', glow:true});
+        setTimeout(()=>{
+          UT.bullets.push({x:UTB.x+UTB.w+10, y:UTB.y+40+i*38, vx:-3.8, vy:0, r:9, color:'#e74c3c', dmg:8, type:'ball', glow:true});
+        },600);
+      }
+      // After 1.2s — purple explosion
+      setTimeout(()=>{
+        for(let i=0;i<16;i++){
+          const a=(i/16)*Math.PI*2;
+          UT.bullets.push({x:cx,y:cy,vx:Math.cos(a)*4,vy:Math.sin(a)*4,r:12,color:'#9b59b6',dmg:20,type:'ball',glow:true,life:800});
+        }
+      },1400);
+    },
+    'Shrine': ()=>{
+      // Slash lines — fast horizontal and diagonal cuts
+      for(let i=0;i<3;i++){
+        setTimeout(()=>{
+          UT.bullets.push({type:'slash', x:UTB.x, y:UTB.y+50+i*50, ex:UTB.x+UTB.w, ey:UTB.y+50+i*50, color:'#e74c3c', dmg:14, life:600});
+          setTimeout(()=>{
+            UT.bullets.push({type:'slash', x:UTB.x, y:UTB.y+20, ex:UTB.x+UTB.w, ey:UTB.y+UTB.h, color:'#e74c3c', dmg:10, life:500});
+          },200);
+        }, i*350);
+      }
+    },
+    'Black Sparks': ()=>{
+      // Lightning bolts (instant vertical lines)
+      for(let i=0;i<5;i++){
+        setTimeout(()=>{
+          const lx = UTB.x+30+Math.random()*(UTB.w-60);
+          UT.bullets.push({type:'bolt', x:lx, color:'#f1c40f', dmg:16, life:700});
+        }, i*300+200);
+      }
+    },
+    'Shadow Monarch': ()=>{
+      // Shadows rise from the bottom
+      for(let i=0;i<6;i++){
+        setTimeout(()=>{
+          const sx = UTB.x+20+Math.random()*(UTB.w-40);
+          UT.bullets.push({x:sx, y:UTB.y+UTB.h+10, vx:0, vy:-3, r:10, color:'#6c3483', dmg:11, type:'ball', glow:true});
+        }, i*200+100);
+      }
+    },
+    'Star Rage': ()=>{
+      // Plasma balls bouncing around
+      for(let i=0;i<4;i++){
+        const a = Math.random()*Math.PI*2;
+        UT.bullets.push({x:cx, y:cy, vx:Math.cos(a)*3.5, vy:Math.sin(a)*3.5, r:11, color:'#fff176', dmg:12, type:'ball', bounce:true, glow:true});
+      }
+    },
+    'Flame Manipulation': ()=>{
+      // Fire rain from top
+      for(let i=0;i<8;i++){
+        setTimeout(()=>{
+          const fx = UTB.x+20+Math.random()*(UTB.w-40);
+          UT.bullets.push({x:fx, y:UTB.y-10, vx:(Math.random()-.5)*.8, vy:3.2, r:9, color:'#e67e22', dmg:10, type:'ball', glow:true});
+        }, i*180);
+      }
+    },
+    'Private Pure Love Train': ()=>{
+      // Hearts from all sides
+      for(let i=0;i<10;i++){
+        setTimeout(()=>{
+          const side=Math.floor(Math.random()*4);
+          let x,y,vx,vy;
+          if(side===0){x=Math.random()*UTB.w+UTB.x;y=UTB.y-10;vx=(Math.random()-.5);vy=2.8;}
+          else if(side===1){x=UTB.x+UTB.w+10;y=Math.random()*UTB.h+UTB.y;vx=-2.8;vy=(Math.random()-.5);}
+          else if(side===2){x=Math.random()*UTB.w+UTB.x;y=UTB.y+UTB.h+10;vx=(Math.random()-.5);vy=-2.8;}
+          else{x=UTB.x-10;y=Math.random()*UTB.h+UTB.y;vx=2.8;vy=(Math.random()-.5);}
+          UT.bullets.push({x,y,vx,vy,r:8,color:'#ff69b4',dmg:8,type:'heart'});
+        }, i*150);
+      }
+    },
+  };
+
+  const fn = techOverrides[techName] || patterns[skillIdx] || patterns[0];
+  fn();
+}
+
+function utEndAttackTurn(){
+  UT.phase = 'wait';
+  clearInterval(UT.turnInt);
+  document.getElementById('ut-attack-panel').style.display='none';
+  UT.bullets = [];
+
+  // Apply damage dealt this turn
+  const dmgDealt = UT.oppHp - UT.soulHp;
+  UT.oppHp = Math.max(0, UT.soulHp);
+
+  utUpdateStats();
+
+  if(UT.oppHp<=0){
+    utShowResult(true);
+    return;
+  }
+
+  utSetText(`* Your turn is over!\n* ${dmgDealt>0?`Dealt ${dmgDealt} damage!`:`The opponent dodged everything!`}\n* Now it's their turn to attack...`);
+  utShowBanner("OPPONENT'S TURN!", '#ff4444');
+
+  setTimeout(()=>{
+    // Opponent attacks — auto-generate their pattern
+    utOpponentAttackTurn();
+  }, 2000);
+}
+
+// ── DODGE TURN — I dodge, opponent attacks ──
+function utOpponentAttackTurn(){
+  UT.phase = 'dodging';
+  UT.turnTimer = 10;
+  UT.bullets = [];
+  UT.soulHp = UT.myHp;
+  UT.soul = {x: UTB.x+UTB.w/2, y: UTB.y+UTB.h/2, r:7, vx:0, vy:0};
+  UT.soulInvuln = 0;
+
+  document.getElementById('ut-btns').style.display = 'none';
+  document.getElementById('ut-attack-panel').style.display = 'none';
+
+  utSetText(`* DODGE! Use arrow keys or WASD!\n* Survive for 10 seconds!`);
+
+  // Fire opponent patterns continuously
+  let elapsed = 0;
+  const oppTech = UT.p2?.tech || 'Shrine';
+  const attackInterval = 1800;
+
+  clearInterval(UT.turnInt);
+  UT.turnInt = setInterval(()=>{
+    UT.turnTimer--;
+    elapsed += 1000;
+    const el = document.getElementById('ut-timer');
+    if(el){ el.textContent = UT.turnTimer; el.className = UT.turnTimer<=3?'urgent':''; }
+    // Spawn new attack wave
+    if(elapsed % attackInterval < 1000) utSpawnAttack(Math.floor(Math.random()*4), {name:'Attack',dmg:8}, oppTech);
+    if(UT.turnTimer<=0){ clearInterval(UT.turnInt); utEndDodgeTurn(); }
+  },1000);
+}
+
+function utEndDodgeTurn(){
+  UT.phase = 'wait';
+  UT.bullets = [];
+
+  const dmgTaken = UT.myHp - UT.soulHp;
+  UT.myHp = Math.max(0, UT.soulHp);
+  utUpdateStats();
+
+  if(UT.myHp<=0){
+    utShowResult(false);
+    return;
+  }
+
+  UT.round++;
+  if(UT.round > UT.maxRounds){
+    // Winner is whoever has more HP
+    utShowResult(UT.myHp >= UT.oppHp);
+    return;
+  }
+
+  utSetText(`* Round ${UT.round-1} over!\n* ${dmgTaken>0?`You took ${dmgTaken} damage!`:`Perfect dodge!`}\n* Round ${UT.round} begins!`);
+  setTimeout(()=>utShowMenu(), 2000);
+}
+
+// ── SOUL MOVEMENT UPDATE ──
+function utUpdateSoul(dt){
+  if(UT.phase!=='dodging')return;
+  const s = UT.soul;
+  const spd = 3.2;
+  let dx=0,dy=0;
+  if(UT.keys['ArrowLeft']||UT.keys['KeyA']||UT.keys['ut_left'])dx-=spd;
+  if(UT.keys['ArrowRight']||UT.keys['KeyD']||UT.keys['ut_right'])dx+=spd;
+  if(UT.keys['ArrowUp']||UT.keys['KeyW']||UT.keys['ut_up'])dy-=spd;
+  if(UT.keys['ArrowDown']||UT.keys['KeyS']||UT.keys['ut_down'])dy+=spd;
+  // Normalize diagonal
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  s.x+=dx; s.y+=dy;
+  // Confine to battle box
+  s.x=Math.max(UTB.x+s.r, Math.min(UTB.x+UTB.w-s.r, s.x));
+  s.y=Math.max(UTB.y+s.r, Math.min(UTB.y+UTB.h-s.r, s.y));
+  // Invuln timer
+  if(UT.soulInvuln>0)UT.soulInvuln-=dt;
+}
+
+// ── BULLET UPDATE ──
+function utUpdateBullets(dt){
+  const now = Date.now();
+  const s = UT.soul;
+  for(let i=UT.bullets.length-1;i>=0;i--){
+    const b = UT.bullets[i];
+    if(b.type==='ball'||b.type==='heart'){
+      b.x+=b.vx; b.y+=b.vy;
+      if(b.bounce){
+        if(b.x-b.r<UTB.x||b.x+b.r>UTB.x+UTB.w)b.vx*=-1;
+        if(b.y-b.r<UTB.y||b.y+b.r>UTB.y+UTB.h)b.vy*=-1;
+      }
+      if(b.life){b.life-=dt;if(b.life<=0){UT.bullets.splice(i,1);continue;}}
+      // Off screen
+      if(b.x<UTB.x-30||b.x>UTB.x+UTB.w+30||b.y<UTB.y-30||b.y>UTB.y+UTB.h+30){
+        if(!b.bounce){UT.bullets.splice(i,1);continue;}
+      }
+      // Collision with SOUL (only during dodge phase)
+      if(UT.phase==='dodging'&&UT.soulInvuln<=0){
+        const dx=s.x-b.x, dy=s.y-b.y;
+        if(dx*dx+dy*dy<(s.r+b.r-2)*(s.r+b.r-2)){
+          UT.soulHp=Math.max(0, UT.soulHp-b.dmg);
+          UT.soulInvuln=600;
+          utUpdateStats();
+          UT.bullets.splice(i,1);
+          if(UT.soulHp<=0){clearInterval(UT.turnInt);utEndDodgeTurn();}
+          continue;
+        }
+      }
+    } else if(b.type==='laser-h'||b.type==='laser-v'){
+      // Fade in then out
+      if(b.alpha<1)b.alpha+=0.06; else b.alpha=1;
+      b.life-=dt;
+      if(b.life<400)b.alpha=b.life/400;
+      if(b.life<=0){UT.bullets.splice(i,1);continue;}
+      // Hit check
+      if(UT.phase==='dodging'&&UT.soulInvuln<=0){
+        let hit=false;
+        if(b.type==='laser-h'){hit=s.y>b.y&&s.y<b.y+b.h&&s.x>UTB.x&&s.x<UTB.x+UTB.w;}
+        if(b.type==='laser-v'){hit=s.x>b.x&&s.x<b.x+b.w&&s.y>UTB.y&&s.y<UTB.y+UTB.h;}
+        if(hit){UT.soulHp=Math.max(0,UT.soulHp-b.dmg*(dt/200));utUpdateStats();if(UT.soulHp<=0){clearInterval(UT.turnInt);utEndDodgeTurn();}}
+      }
+    } else if(b.type==='slash'){
+      b.life-=dt;
+      if(b.life<=0){UT.bullets.splice(i,1);continue;}
+      // Hit check — is SOUL near the slash line?
+      if(UT.phase==='dodging'&&UT.soulInvuln<=0){
+        const t2=((s.x-b.x)*(b.ex-b.x)+(s.y-b.y)*(b.ey-b.y))/((b.ex-b.x)**2+(b.ey-b.y)**2+.0001);
+        const tc=Math.max(0,Math.min(1,t2));
+        const cx2=b.x+tc*(b.ex-b.x), cy2=b.y+tc*(b.ey-b.y);
+        const dist2=Math.sqrt((s.x-cx2)**2+(s.y-cy2)**2);
+        if(dist2<s.r+8){
+          UT.soulHp=Math.max(0,UT.soulHp-b.dmg);
+          UT.soulInvuln=500;
+          utUpdateStats();
+          UT.bullets.splice(i,1);
+          if(UT.soulHp<=0){clearInterval(UT.turnInt);utEndDodgeTurn();}
+        }
+      }
+    } else if(b.type==='bolt'){
+      b.life-=dt;
+      if(b.life<=0){UT.bullets.splice(i,1);continue;}
+      // Wide lightning bolt — hit if near x
+      if(UT.phase==='dodging'&&UT.soulInvuln<=0&&b.life>b.life*.3){
+        if(Math.abs(s.x-b.x)<18){
+          UT.soulHp=Math.max(0,UT.soulHp-b.dmg);
+          UT.soulInvuln=700;
+          utUpdateStats();
+        }
+      }
+    }
+  }
+}
+
+// ── DRAW ──
+let utLastTime = 0;
+function utLoop(ts){
+  if(!UT.active){UT.animId=null;return;}
+  const dt=Math.min(ts-utLastTime,50); utLastTime=ts;
+  utUpdateSoul(dt);
+  utUpdateBullets(dt);
+  utDrawBattle();
+  utDrawEnemy();
+  UT.animId=requestAnimationFrame(utLoop);
+}
+
+function utDrawBattle(){
+  const canvas=document.getElementById('ut-battle-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,UTW,UTH);
+
+  // Battle box border
+  ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+  ctx.strokeRect(UTB.x, UTB.y, UTB.w, UTB.h);
+
+  // Draw bullets
+  UT.bullets.forEach(b=>{
+    ctx.save();
+    if(b.type==='ball'){
+      if(b.glow){ctx.shadowColor=b.color;ctx.shadowBlur=14;}
+      ctx.fillStyle=b.color;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+    } else if(b.type==='heart'){
+      // Draw heart shape
+      ctx.fillStyle=b.color;
+      ctx.shadowColor=b.color; ctx.shadowBlur=8;
+      const hx=b.x, hy=b.y, hr=b.r;
+      ctx.beginPath();
+      ctx.moveTo(hx,hy+hr*.8);
+      ctx.bezierCurveTo(hx-hr*1.5,hy-hr*.5, hx-hr*2.5,hy+hr*.3, hx,hy+hr*1.8);
+      ctx.bezierCurveTo(hx+hr*2.5,hy+hr*.3, hx+hr*1.5,hy-hr*.5, hx,hy+hr*.8);
+      ctx.fill();
+    } else if(b.type==='laser-h'){
+      ctx.globalAlpha=b.alpha||1;
+      ctx.fillStyle=b.color; ctx.shadowColor=b.color; ctx.shadowBlur=12;
+      ctx.fillRect(UTB.x, b.y, UTB.w, b.h);
+    } else if(b.type==='laser-v'){
+      ctx.globalAlpha=b.alpha||1;
+      ctx.fillStyle=b.color; ctx.shadowColor=b.color; ctx.shadowBlur=12;
+      ctx.fillRect(b.x, UTB.y, b.w, UTB.h);
+    } else if(b.type==='slash'){
+      const prog = b.life/600;
+      ctx.globalAlpha=prog;
+      ctx.strokeStyle=b.color; ctx.lineWidth=4;
+      ctx.shadowColor=b.color; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.ex,b.ey); ctx.stroke();
+    } else if(b.type==='bolt'){
+      ctx.globalAlpha = b.life>200?1:b.life/200;
+      ctx.strokeStyle=b.color; ctx.shadowColor=b.color; ctx.shadowBlur=16;
+      ctx.lineWidth=3+Math.random()*3;
+      // Jagged lightning line
+      ctx.beginPath(); ctx.moveTo(b.x,UTB.y);
+      let cy2=UTB.y;
+      while(cy2<UTB.y+UTB.h){
+        cy2+=20+Math.random()*20;
+        ctx.lineTo(b.x+(Math.random()-.5)*20, cy2);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // SOUL — red heart
+  const s=UT.soul;
+  const soulVisible = UT.phase==='dodging' || UT.phase==='attacking';
+  if(soulVisible){
+    ctx.save();
+    const invFlash = UT.soulInvuln>0 && Math.floor(Date.now()/80)%2===0;
+    if(!invFlash){
+      // Draw red heart soul
+      ctx.fillStyle='#ff0000'; ctx.shadowColor='#ff0000'; ctx.shadowBlur=12;
+      const hr=s.r;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y+hr*.8);
+      ctx.bezierCurveTo(s.x-hr*1.5, s.y-hr*.5, s.x-hr*2.5, s.y+hr*.3, s.x, s.y+hr*1.8);
+      ctx.bezierCurveTo(s.x+hr*2.5, s.y+hr*.3, s.x+hr*1.5, s.y-hr*.5, s.x, s.y+hr*.8);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function utDrawEnemy(){
+  const canvas=document.getElementById('ut-enemy-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  const t=Date.now();
+  // Draw a pixel art cursed spirit silhouette
+  const cx=W*0.5, cy=H*0.5;
+  // Aura glow
+  const g=ctx.createRadialGradient(cx,cy,10,cx,cy,80);
+  g.addColorStop(0,'rgba(155,89,182,.25)');
+  g.addColorStop(1,'transparent');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,80,0,Math.PI*2); ctx.fill();
+
+  // Simple pixel enemy face
+  const S=5, bob=Math.sin(t*.002)*4;
+  const ex=cx, ey=cy+bob;
+  ctx.fillStyle='#2d1b4e';
+  // Body
+  ctx.fillRect(ex-5*S,ey-4*S,10*S,8*S);
+  // Head
+  ctx.fillRect(ex-3*S,ey-8*S,6*S,5*S);
+  // Eyes (glowing)
+  ctx.fillStyle='#9b59b6'; ctx.shadowColor='#9b59b6'; ctx.shadowBlur=10;
+  ctx.fillRect(ex-2*S,ey-7*S,S,S);
+  ctx.fillRect(ex+S,ey-7*S,S,S);
+  ctx.shadowBlur=0;
+  // Arms
+  ctx.fillStyle='#2d1b4e';
+  ctx.fillRect(ex-8*S,ey-3*S,3*S,4*S);
+  ctx.fillRect(ex+5*S,ey-3*S,3*S,4*S);
+  // Legs
+  ctx.fillRect(ex-4*S,ey+4*S,3*S,5*S);
+  ctx.fillRect(ex+S,ey+4*S,3*S,5*S);
+
+  // HP bar above enemy
+  if(UT.phase!=='menu'){
+    const bw=160,bh=10,bx=cx-bw/2,by2=ey-10*S-20;
+    ctx.fillStyle='#333'; ctx.fillRect(bx,by2,bw,bh);
+    ctx.fillStyle='#3cff3c'; ctx.fillRect(bx,by2,bw*(UT.oppHp/UT.oppMaxHp),bh);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(bx,by2,bw,bh);
+    ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
+    ctx.fillText(`${UT.oppHp} / ${UT.oppMaxHp}`, cx, by2-4);
+  }
+  // Phase text
+  if(UT.phase==='dodging'){
+    ctx.font='9px "Press Start 2P",monospace';
+    ctx.fillStyle='#e74c3c'; ctx.shadowColor='#e74c3c'; ctx.shadowBlur=8;
+    ctx.textAlign='center';
+    ctx.fillText('* ATTACKING!', cx, ey+9*S+20);
+    ctx.shadowBlur=0;
+  }
+}
+
+function utUpdateStats(){
+  const maxHp=UT.myMaxHp;
+  const hp = UT.phase==='dodging'?UT.soulHp:UT.myHp;
+  const pct = Math.max(0,hp/maxHp);
+  const hpBar=document.getElementById('ut-hpbar');
+  const hpTxt=document.getElementById('ut-hp-txt');
+  const lvTxt=document.getElementById('ut-lv-txt');
+  const nameTxt=document.getElementById('ut-pname-txt');
+  if(hpBar)hpBar.style.width=`${pct*100}%`;
+  if(hpTxt)hpTxt.textContent=`${Math.max(0,Math.floor(hp))} / ${maxHp}`;
+  if(lvTxt)lvTxt.textContent=`LV ${player?.level||1}`;
+  if(nameTxt)nameTxt.textContent=(player?.name||'YOU').toUpperCase();
+  // Color HP bar
+  if(hpBar)hpBar.style.background=pct>0.5?'#ff9900':pct>0.25?'#ffff00':'#ff0000';
+}
+
+function utUpdateSkillBtns(){
+  const skills=player?.skills||[];
+  const defaultSk=defaultArenaSkills();
+  const keys=['q','e','r','f'];
+  const labels=['Q','E','R','F'];
+  keys.forEach((k,i)=>{
+    const btn=document.getElementById(`utbtn-${k}`);
+    if(!btn)return;
+    const sk=skills[i]||defaultSk[i];
+    const ready=UT.skillCds[i]<=0;
+    btn.disabled=!ready;
+    btn.textContent=`${labels[i]} — ${sk?.name||'SKILL '+(i+1)}${ready?'':' ('+Math.ceil(UT.skillCds[i]/1000)+'s)'}`;
+  });
+}
+
+function utShowBanner(text, color='#3cff3c'){
+  const b=document.getElementById('ut-turn-banner');
+  if(!b)return;
+  b.textContent=text; b.style.color=color; b.style.borderColor=color;
+  b.style.textShadow=`0 0 20px ${color}`;
+  b.style.display='block';
+  setTimeout(()=>b.style.display='none',1800);
+}
+
+function utShowResult(iWin){
+  UT.phase='result';
+  UT.bullets=[];
+  clearInterval(UT.turnInt);
+  if(UT.animId){cancelAnimationFrame(UT.animId);UT.animId=null;}
+
+  document.getElementById('ut-btns').style.display='flex';
+  document.getElementById('ut-attack-panel').style.display='none';
+  document.getElementById('ut-fight-btn').disabled=true;
+
+  if(iWin){
+    const coins=150+UT.round*50, xp=200+UT.round*80;
+    if(player){player.coins+=coins;player.xp+=xp;player.spins+=3;checkLevelUp();schedSave();}
+    utShowBanner('* YOU WIN!','#3cff3c');
+    utSetText(`* Your cursed technique overwhelmed them!\n* +${xp} XP  +${coins} COINS  +3 SPINS`);
+    logLine(`🏆 Undertale PvP: VICTORY! +${xp}XP +${coins}💰 +3🎲`,'#3cff3c');
+  } else {
+    utShowBanner('* YOU LOSE...','#ff4444');
+    utSetText(`* Their cursed energy was too strong...\n* Better luck next time, sorcerer.`);
+    logLine(`💀 Undertale PvP: Defeated.`,'#e74c3c');
+  }
+
+  // Show close button
+  document.getElementById('ut-fight-btn').textContent='✓ CLOSE';
+  document.getElementById('ut-fight-btn').disabled=false;
+  document.getElementById('ut-fight-btn').onclick=closeUTBattle;
+}
+
+function closeUTBattle(){
+  UT.active=false;
+  UT.bullets=[];
+  clearInterval(UT.turnInt);
+  if(UT.animId){cancelAnimationFrame(UT.animId);UT.animId=null;}
+  document.getElementById('ut-ov').classList.remove('active');
+  window.removeEventListener('keydown',utKeyDown);
+  window.removeEventListener('keyup',utKeyUp);
+  document.getElementById('ut-fight-btn').textContent='⚔ FIGHT';
+  document.getElementById('ut-fight-btn').onclick=utStartAttackTurn;
+  renderAll();
+}
+
+function utDoAct(){
+  if(UT.phase!=='menu')return;
+  utSetText(`* You observe your opponent...\n* Their cursed energy fluctuates.\n* [Nothing else happens]`);
+}
+function utDoItem(){
+  if(UT.phase!=='menu')return;
+  if(player&&player.hp<player.maxHp){
+    const heal=Math.floor(UT.myMaxHp*.3);
+    UT.myHp=Math.min(UT.myMaxHp,UT.myHp+heal);
+    utUpdateStats();
+    utSetText(`* Used a CE Potion!\n* Recovered ${heal} HP!`);
+  } else {
+    utSetText(`* No items to use right now.`);
+  }
+}
+function utForfeit(){
+  utShowResult(false);
+}
+
+// Key events
+function utKeyDown(e){
+  if(!UT.active)return;
+  UT.keys[e.code]=true;
+  if(UT.phase==='attacking'){
+    if(e.code==='KeyQ')utFireSkill(0);
+    if(e.code==='KeyE')utFireSkill(1);
+    if(e.code==='KeyR')utFireSkill(2);
+    if(e.code==='KeyF')utFireSkill(3);
+  }
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+}
+function utKeyUp(e){ UT.keys[e.code]=false; }
+
+// Mobile dpad
+function utSetupDpad(){
+  [['up','ut_up'],['down','ut_down'],['left','ut_left'],['right','ut_right']].forEach(([dir,key])=>{
+    const el=document.getElementById(`ut-dp-${dir}`);
+    if(!el)return;
+    el.addEventListener('pointerdown',()=>{UT.keys[key]=true;});
+    el.addEventListener('pointerup',()=>{UT.keys[key]=false;});
+    el.addEventListener('pointerleave',()=>{UT.keys[key]=false;});
+  });
+}
+
+// Skill buttons
+['q','e','r','f'].forEach((k,i)=>{
+  const btn=document.getElementById(`utbtn-${k}`);
+  if(btn)btn.addEventListener('click',()=>utFireSkill(i));
+});
+
+// Open from world tab
+function startUTBattle(oppName, oppTech){
+  openUTBattle(oppName||'OPPONENT', oppTech||'Shrine', false);
+}
 </script>
 </body>
 </html>
