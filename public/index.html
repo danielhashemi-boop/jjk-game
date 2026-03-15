@@ -335,7 +335,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .plt-immortal-badge{display:inline-block;padding:3px 10px;background:rgba(255,215,0,.15);border:1px solid #ffd700;color:#ffd700;font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;animation:immortalGlow 1s infinite}
 @keyframes immortalGlow{0%,100%{box-shadow:0 0 5px rgba(255,215,0,.3)}50%{box-shadow:0 0 20px rgba(255,215,0,.8)}}
 #toasts{position:fixed;top:56px;right:14px;z-index:100;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-/* ── QUESTS ── */
+/* ── TRAINING MINIGAMES ── */
+.train-hold-btn{width:100%;padding:9px;margin-bottom:5px;background:rgba(52,152,219,.12);border:1px solid var(--blue2);color:var(--blue3);font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .1s;user-select:none;-webkit-user-select:none;touch-action:none}
+.train-hold-btn:active,.train-hold-btn.holding{background:rgba(52,152,219,.3);box-shadow:0 0 16px rgba(52,152,219,.4);transform:scale(.98)}
+.train-tap-btn{width:100%;padding:9px;margin-bottom:5px;background:rgba(192,57,43,.12);border:1px solid var(--red2);color:var(--red3);font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .1s;user-select:none;-webkit-user-select:none}
+.train-tap-btn:active{background:rgba(192,57,43,.3);transform:scale(.96)}
+@keyframes agiBlink{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes trainPop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
 .qchain{background:var(--s2);border:1px solid var(--b1);border-radius:4px;margin-bottom:12px;overflow:hidden}
 .qchain-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:rgba(201,162,39,.04)}
 .qchain-hdr:hover{background:rgba(201,162,39,.08)}
@@ -380,152 +386,126 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 
 /* ── RESPONSIVE / IPAD / MOBILE ── */
 @media (max-width: 900px){
-  /* Topbar — stack into 2 rows */
   #topbar{height:auto;flex-wrap:wrap;padding:8px 12px;gap:6px}
   .tb-logo{font-size:11px;letter-spacing:2px;width:100%}
   .tb-info{flex-wrap:wrap;gap:7px;font-size:9px;width:100%}
   .tbbtn{padding:5px 10px;font-size:9px}
-  /* Tabs — fill width */
-  #tabnav{padding:0 8px}
-  .tnb{padding:9px 10px;font-size:9px;letter-spacing:1px}
-  /* Content padding */
+  /* Scrollable tab bar */
+  #tabnav{padding:0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tabnav::-webkit-scrollbar{display:none}
+  .tnb{padding:9px 10px;font-size:9px;letter-spacing:1px;white-space:nowrap;flex-shrink:0}
   #tc{padding:8px}
-  /* Combat layout — stack vertically */
   #pane-c{flex-direction:column!important;overflow-y:auto}
   .cl{overflow-y:visible}
   .cr{width:100%!important}
-  /* World layout — stack */
   #pane-w{flex-direction:column!important;overflow-y:auto}
   .wl{width:100%!important}
   .wr{width:100%}
-  /* Stats */
   .sc{min-width:55px;padding:6px 8px}
   .scv{font-size:15px}
   .bars{min-width:140px}
-  /* Skill grid — 2 cols on small tablets */
   .skgrid{grid-template-columns:repeat(2,1fr)}
-  /* Mode buttons */
   .mrow{grid-template-columns:repeat(2,1fr);gap:5px}
-  /* Enemy list items */
   .eli{padding:6px 8px}
-  /* Fight modal */
   .fm{width:95vw!important;padding:16px 14px!important}
   .fname{font-size:12px}
   .vs-t{font-size:18px}
   .flog{height:100px}
   .mgrid{grid-template-columns:repeat(2,1fr)}
   .skrow{grid-template-columns:repeat(2,1fr)}
-  /* Shop */
   .shgrid{grid-template-columns:1fr 1fr}
-  /* Overlay boxes */
   .ob{padding:18px 14px;width:95vw!important}
-  /* Dodge arena */
   #dodge-canvas{width:100%!important;max-width:360px!important;height:280px!important}
-  /* PLT */
   .plt-wrap{padding:20px 14px}
   .plt-reels{gap:7px}
   .plt-reel{width:85px;height:105px}
   .plt-sym{font-size:40px;height:88px}
+  /* Training grid 1 col on small screens */
+  #train-pane>div:first-child{grid-template-columns:1fr 1fr}
+  .train-hold-btn,.train-tap-btn{padding:12px;font-size:10px}
 }
 
 @media (max-width: 768px){
-  /* iPad portrait and smaller */
   html,body{font-size:13px}
   #topbar{padding:7px 10px}
   .tb-logo{font-size:12px}
-  /* Bigger tap targets */
   .atk{padding:13px;font-size:13px}
   .rbtn{padding:12px;font-size:11px}
   .l-btn{padding:14px;font-size:12px}
-  /* Train grid stays 2 cols but bigger */
-  .tgrid{gap:8px}
-  .tc2{padding:14px 10px}
-  .tc2-t{font-size:12px}
-  .tc2-s{font-size:10px}
-  /* Roll buttons bigger */
+  .tc2{padding:12px 8px}
+  .tc2-t{font-size:11px}
+  .tc2-s{font-size:9px}
   .rbtns{flex-direction:column;gap:10px}
   .rbtn{padding:14px;font-size:12px;letter-spacing:1px}
-  /* Skill buttons bigger */
   .skb{padding:10px 5px}
   .skb-n{font-size:10px}
-  .skb-i{font-size:10px}
-  /* Stat cards */
   .sc{min-width:60px;padding:8px 10px}
   .scl{font-size:9px}
   .scv{font-size:17px}
-  /* Bars taller */
   .bar{height:20px}
   .bl{font-size:10px}
-  /* Mode buttons */
   .mbtn{padding:10px 4px;font-size:9px}
-  /* Chat */
   .chatin{font-size:13px;padding:10px}
   .chatsend{padding:10px 14px;font-size:10px}
-  /* Tab buttons */
-  .tnb{padding:11px 12px;font-size:10px}
-  /* Mission items */
-  .mis-t{font-size:11px}
-  .mis-d{font-size:11px}
-  .cbtn{padding:8px;font-size:11px}
-  /* Achievement items */
-  .ach-ic{font-size:20px}
-  /* Panel title */
+  .tnb{padding:10px 10px;font-size:9px}
   .pt{font-size:11px;padding-bottom:8px;margin-bottom:12px}
-  /* Fight modal */
   .fact{gap:6px}
   .fab{padding:10px;font-size:10px}
-  /* Login */
   .lw{width:95vw;padding:32px 24px}
   .l-logo{font-size:19px}
   .lf input{padding:12px 14px;font-size:16px}
-  /* Scrollable pane */
   #pane-s{-webkit-overflow-scrolling:touch}
-  /* Bigger boss buttons */
-  .bbtn{padding:13px;font-size:11px}
-  .pvpbtn,.rkbtn{padding:5px 10px;font-size:9px}
+  /* Training hold/tap buttons bigger for thumbs */
+  .train-hold-btn,.train-tap-btn{padding:14px;font-size:11px;letter-spacing:1px}
+  /* Clash/parry overlays */
+  #clash-ov,#parry-ov{padding:20px 12px}
+  #clash-mash-btn{padding:16px 32px;font-size:14px}
 }
 
 @media (max-width: 480px){
-  /* Phone */
-  .tb-info .tbbtn:nth-child(n+4){display:none} /* hide extra topbar buttons on phone */
+  .tb-info .tbbtn:nth-child(n+4){display:none}
   .skgrid{grid-template-columns:repeat(2,1fr);gap:5px}
   .stat-strip{gap:4px}
   .sc{min-width:50px;padding:6px 6px}
   .scv{font-size:14px}
   .bars{min-width:120px}
   .bar{height:18px}
-  .tnb{padding:9px 8px;font-size:9px;letter-spacing:0}
-  .tgrid{grid-template-columns:1fr 1fr;gap:6px}
+  .tnb{padding:9px 7px;font-size:8px;letter-spacing:0}
   #dodge-canvas{max-width:320px!important;height:240px!important}
   .plt-reel{width:70px;height:90px}
   .plt-sym{font-size:34px;height:75px}
   .mrow{grid-template-columns:1fr 1fr}
+  /* Training stacks to 1 col on phone */
+  #train-pane>div:first-child{grid-template-columns:1fr!important}
+  .outfit-list{grid-template-columns:1fr 1fr}
 }
 
-/* iPad landscape — use full width nicely */
 @media (min-width:768px) and (max-width:1024px) and (orientation:landscape){
   #pane-c{flex-direction:row!important}
   .cr{width:220px!important}
   #pane-w{flex-direction:row!important}
   .wl{width:240px!important}
   .skgrid{grid-template-columns:repeat(4,1fr)}
+  #train-pane>div:first-child{grid-template-columns:1fr 1fr 1fr 1fr!important}
 }
 
-/* Bigger touch targets everywhere on touch devices */
 @media (hover:none) and (pointer:coarse){
-  .tc2{padding:16px 10px;cursor:default}
+  .tc2{padding:14px 10px;cursor:default}
   .atk{padding:14px}
   .skb{padding:11px 5px;min-height:56px}
   .rbtn{padding:15px}
   .eli{padding:11px 10px}
   .fab{padding:12px}
-  button{min-height:36px}
+  button{min-height:38px}
   .mbtn{padding:12px 4px;font-size:9px}
   .abtn{padding:4px 8px;font-size:9px;bottom:4px;right:4px}
-  /* Prevent text selection on tap */
+  .train-hold-btn,.train-tap-btn{min-height:48px;font-size:11px}
   *{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
-  /* Scrollable areas */
   .logb,.chatbox,.flog{-webkit-overflow-scrolling:touch}
+  /* Clash mash button huge on touch */
+  #clash-mash-btn{min-height:64px;font-size:18px;padding:20px 40px}
+  /* Parry button huge */
+  #parry-btn{min-height:60px;font-size:16px}
 }
 .cinzel{font-family:'Cinzel',serif}
 .mono{font-family:'Share Tech Mono',monospace}
@@ -606,13 +586,95 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           </div>
         </div>
         <div id="train-pane">
-          <div class="train-grid">
-            <div class="tc2" id="tc-ce" onclick="doTrain('ce')"><div class="tc2-t">CE Train</div><div class="tc2-s">Refine cursed output</div><div class="tc2-g">+CE</div><button class="abtn" id="ab-ce" onclick="toggleAuto(event,'ce')">AUTO</button></div>
-            <div class="tc2" id="tc-str" onclick="doTrain('str')"><div class="tc2-t">Body Training</div><div class="tc2-s">Physical combat</div><div class="tc2-g">+STR/END</div><button class="abtn" id="ab-str" onclick="toggleAuto(event,'str')">AUTO</button></div>
-            <div class="tc2" id="tc-agi" onclick="doTrain('agi')"><div class="tc2-t">Agility Drills</div><div class="tc2-s">Speed & reflex</div><div class="tc2-g">+AGI</div><button class="abtn" id="ab-agi" onclick="toggleAuto(event,'agi')">AUTO</button></div>
-            <div class="tc2" id="tc-med" onclick="doTrain('med')"><div class="tc2-t">Meditate</div><div class="tc2-s">Expand CE capacity</div><div class="tc2-g">+Max CE</div><button class="abtn" id="ab-med" onclick="toggleAuto(event,'med')">AUTO</button></div>
+          <!-- INTERACTIVE TRAINING -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+
+            <!-- CE TRAINING — Hold button minigame -->
+            <div class="tc2" id="tc-ce" style="position:relative;overflow:hidden">
+              <div class="tc2-t">⚡ CE Refinement</div>
+              <div class="tc2-s">Hold to channel cursed energy</div>
+              <div style="margin:8px 0;background:rgba(0,0,0,.4);border:1px solid var(--b2);height:8px;border-radius:4px;overflow:hidden">
+                <div id="ce-charge-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--pur));transition:width .05s;border-radius:4px"></div>
+              </div>
+              <button class="train-hold-btn" id="btn-ce"
+                onpointerdown="startHoldTrain('ce')" onpointerup="releaseHoldTrain('ce')" onpointerleave="releaseHoldTrain('ce')"
+                ontouchstart="startHoldTrain('ce')" ontouchend="releaseHoldTrain('ce')">
+                HOLD TO CHARGE
+              </button>
+              <div class="tc2-g" id="ce-gain-txt">+CE per charge</div>
+              <button class="abtn" id="ab-ce" onclick="toggleAuto(event,'ce')">AUTO</button>
+            </div>
+
+            <!-- STR TRAINING — Tap rapidly -->
+            <div class="tc2" id="tc-str" style="position:relative;overflow:hidden">
+              <div class="tc2-t">💪 Body Training</div>
+              <div class="tc2-s">Tap rapidly to train!</div>
+              <div style="margin:8px 0;display:flex;align-items:center;gap:6px">
+                <div style="flex:1;background:rgba(0,0,0,.4);border:1px solid var(--b2);height:8px;border-radius:4px;overflow:hidden">
+                  <div id="str-combo-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--red),#ff6b00);transition:width .1s;border-radius:4px"></div>
+                </div>
+                <span id="str-combo-cnt" style="font-family:'Cinzel',serif;font-size:11px;color:var(--red2);min-width:20px">0</span>
+              </div>
+              <button class="train-tap-btn" id="btn-str"
+                onclick="tapTrain('str')"
+                ontouchstart="e=>{e.preventDefault();tapTrain('str')}">
+                TAP! TAP! TAP!
+              </button>
+              <div class="tc2-g" id="str-gain-txt">+STR/END per tap</div>
+              <button class="abtn" id="ab-str" onclick="toggleAuto(event,'str')">AUTO</button>
+            </div>
+
+            <!-- AGI TRAINING — Reaction game -->
+            <div class="tc2" id="tc-agi" style="position:relative;overflow:hidden">
+              <div class="tc2-t">💨 Agility Drills</div>
+              <div class="tc2-s">Hit the target when it appears!</div>
+              <div id="agi-target-wrap" style="height:36px;position:relative;margin:6px 0;background:rgba(0,0,0,.3);border:1px solid var(--b1);border-radius:4px;overflow:hidden;cursor:pointer" onclick="hitAgiTarget()">
+                <div id="agi-target" style="position:absolute;width:28px;height:28px;border-radius:50%;background:var(--grn);top:4px;left:10%;display:none;align-items:center;justify-content:center;font-size:14px;cursor:pointer;animation:agiBlink .3s infinite">⚡</div>
+                <div id="agi-idle-txt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);font-style:italic">→ waiting for target...</div>
+              </div>
+              <div class="tc2-g" id="agi-gain-txt">+AGI on hit</div>
+              <button class="abtn" id="ab-agi" onclick="toggleAuto(event,'agi')">AUTO</button>
+            </div>
+
+            <!-- MEDITATE — Rhythm game -->
+            <div class="tc2" id="tc-med" style="position:relative;overflow:hidden">
+              <div class="tc2-t">🧘 Meditate</div>
+              <div class="tc2-s">Tap in rhythm to expand CE!</div>
+              <div style="margin:6px 0;position:relative">
+                <div style="background:rgba(0,0,0,.4);border:1px solid var(--b2);height:28px;border-radius:4px;overflow:hidden;position:relative">
+                  <div id="med-pulse" style="position:absolute;left:0;width:16px;height:100%;background:var(--pur);opacity:.7;border-radius:4px;transition:left .05s linear"></div>
+                  <div id="med-zone" style="position:absolute;right:8px;width:24px;height:100%;background:rgba(201,162,39,.25);border:1px solid var(--acc);border-radius:3px"></div>
+                  <div id="med-feedback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:1px;color:var(--acc);opacity:0"></div>
+                </div>
+              </div>
+              <button class="train-tap-btn" id="btn-med" style="background:rgba(142,68,173,.15);border-color:var(--pur)"
+                onclick="tapMeditate()"
+                ontouchstart="e=>{e.preventDefault();tapMeditate()}">
+                TAP WITH THE PULSE
+              </button>
+              <div class="tc2-g" id="med-gain-txt">+Max CE on perfect</div>
+              <button class="abtn" id="ab-med" onclick="toggleAuto(event,'med')">AUTO</button>
+            </div>
           </div>
-          <div class="idle-n">💤 Idle: +1 CE every 2s</div>
+
+          <!-- SPECIAL TRAINING — unlocks at higher levels -->
+          <div id="special-train" style="display:none">
+            <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span style="flex:1;height:1px;background:var(--b2)"></span>ADVANCED<span style="flex:1;height:1px;background:var(--b2)"></span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="tc2" onclick="doTrain('domain_train')">
+                <div class="tc2-t">🌀 Domain Practice</div>
+                <div class="tc2-s">Train domain control</div>
+                <div class="tc2-g">+Domain charge</div>
+              </div>
+              <div class="tc2" onclick="doTrain('cursed_refine')">
+                <div class="tc2-t">✦ Cursed Refinement</div>
+                <div class="tc2-s">Purify your cursed energy</div>
+                <div class="tc2-g">+All stats slightly</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="idle-n">💤 Idle: +1 CE every 2s • Streak bonus: tap fast for combos!</div>
         </div>
         <div id="rolls-pane" style="display:none">
           <div class="rar-row">
@@ -686,6 +748,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
           <div class="pt">Online Players</div>
           <button class="boss-btn" id="toji-btn" onclick="startBoss('toji')">⚔ Boss: Toji Zenin</button>
           <button class="boss-btn sk" id="suk-btn" onclick="startBoss('sukuna')">👁 Boss: KING OF CURSES</button>
+          <button class="boss-btn" style="border-color:#5dade2;color:#5dade2;background:rgba(93,173,226,.08)" onclick="open2v2Lobby()">⚔⚔ 2v2 Team Battle</button>
           <div id="lfights"></div>
           <div id="plist"></div>
         </div>
@@ -726,7 +789,83 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 </div>
 
 
-<!-- FIGHT OVERLAY -->
+<!-- 2v2 LOBBY -->
+<div class="ov" id="v2-ov" style="display:none">
+  <div class="ob" style="width:500px">
+    <div class="ot" style="color:#5dade2">⚔⚔ 2V2 TEAM BATTLE</div>
+    <button class="ox" onclick="document.getElementById('v2-ov').style.display='none'">✕</button>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:16px;font-style:italic">Form a team with another player and battle another duo!</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div style="background:var(--s2);border:1px solid #5dade2;padding:14px;text-align:center">
+        <div style="font-family:'Cinzel',serif;font-size:10px;color:#5dade2;letter-spacing:2px;margin-bottom:8px">TEAM ALPHA</div>
+        <div id="v2-team1" style="font-size:12px;color:var(--mut);font-style:italic">Waiting...</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--red2);padding:14px;text-align:center">
+        <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--red2);letter-spacing:2px;margin-bottom:8px">TEAM BETA</div>
+        <div id="v2-team2" style="font-size:12px;color:var(--mut);font-style:italic">Waiting...</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:12px;text-align:center">Share your room code with a teammate. Both teams need 2 players.</div>
+    <button class="rbtn" style="width:100%;margin-bottom:8px" onclick="joinV2Queue()">⚔ Join 2v2 Queue</button>
+    <button class="rbtn" style="width:100%;background:rgba(192,57,43,.08);border-color:var(--red2);color:var(--red2)" onclick="leaveV2Queue()">✕ Leave Queue</button>
+    <div id="v2-status" style="text-align:center;font-size:11px;color:var(--mut);margin-top:10px;font-style:italic"></div>
+  </div>
+</div>
+
+<!-- PVP MINIGAME: CLASH BARS -->
+<div id="clash-ov" style="display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="font-family:'Cinzel',serif;font-size:24px;color:var(--acc);letter-spacing:6px;font-weight:900" id="clash-title">⚡ TECHNIQUE CLASH ⚡</div>
+  <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--mut);letter-spacing:3px" id="clash-sub">MASH THE BUTTON FASTER THAN YOUR OPPONENT!</div>
+  <!-- clash bar -->
+  <div style="width:480px;max-width:90vw;position:relative">
+    <div style="display:flex;justify-content:space-between;font-family:'Cinzel',serif;font-size:11px;margin-bottom:6px">
+      <span id="clash-p1name" style="color:#5dade2">You</span>
+      <span id="clash-p2name" style="color:var(--red2)">Opponent</span>
+    </div>
+    <div style="height:32px;background:rgba(0,0,0,.6);border:1px solid #444;border-radius:4px;overflow:hidden;position:relative">
+      <div id="clash-bar-p1" style="position:absolute;left:0;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#2980b9,#5dade2);transition:width .1s;border-radius:4px 0 0 4px"></div>
+      <div id="clash-bar-p2" style="position:absolute;right:0;top:0;bottom:0;width:50%;background:linear-gradient(90deg,var(--red2),#e74c3c);transition:width .1s;border-radius:0 4px 4px 0"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:18px">⚡</div>
+    </div>
+    <div style="width:2px;height:40px;background:var(--acc);position:absolute;left:50%;top:-4px;transform:translateX(-50%)"></div>
+  </div>
+  <div style="display:flex;gap:16px;font-family:'Cinzel',serif;font-size:14px">
+    <span id="clash-p1score" style="color:#5dade2">0</span>
+    <span style="color:var(--mut)">vs</span>
+    <span id="clash-p2score" style="color:var(--red2)">0</span>
+  </div>
+  <div style="width:300px;background:rgba(0,0,0,.5);border:1px solid #333;height:6px;border-radius:3px;overflow:hidden">
+    <div id="clash-timer-bar" style="height:100%;background:var(--acc);transition:width .1s;width:100%"></div>
+  </div>
+  <button id="clash-mash-btn"
+    style="padding:18px 48px;font-family:'Cinzel',serif;font-size:16px;letter-spacing:4px;cursor:pointer;border:2px solid #5dade2;color:#5dade2;background:rgba(93,173,226,.12);transition:all .1s;user-select:none;-webkit-user-select:none;touch-action:manipulation"
+    onclick="clashMash()" ontouchstart="e=>{e.preventDefault();clashMash()}">
+    ⚡ CLASH! ⚡
+  </button>
+  <div id="clash-result" style="font-family:'Cinzel',serif;font-size:22px;letter-spacing:4px;min-height:30px;text-align:center"></div>
+</div>
+
+<!-- PVP MINIGAME: PARRY -->
+<div id="parry-ov" style="display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="font-family:'Cinzel',serif;font-size:22px;color:#ff6b00;letter-spacing:5px;font-weight:900">⚔ PARRY WINDOW ⚔</div>
+  <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--mut);letter-spacing:2px">TIME YOUR PARRY — TAP WHEN THE BAR HITS THE GOLD ZONE!</div>
+  <div style="width:400px;max-width:90vw;position:relative">
+    <div style="height:48px;background:rgba(0,0,0,.6);border:2px solid #444;border-radius:8px;overflow:hidden;position:relative">
+      <div id="parry-zone" style="position:absolute;right:12px;width:40px;top:0;bottom:0;background:rgba(201,162,39,.25);border:2px solid var(--acc)"></div>
+      <div id="parry-cursor" style="position:absolute;width:12px;top:4px;bottom:4px;background:#fff;border-radius:3px;left:0;transition:left .016s linear;box-shadow:0 0 12px #fff"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:'Cinzel',serif;font-size:9px;color:var(--mut);margin-top:4px;letter-spacing:1px">
+      <span>← TOO EARLY</span><span style="color:var(--acc)">PERFECT ZONE</span><span>TOO LATE →</span>
+    </div>
+  </div>
+  <button id="parry-btn"
+    style="padding:16px 44px;font-family:'Cinzel',serif;font-size:15px;letter-spacing:4px;cursor:pointer;border:2px solid var(--acc);color:var(--acc);background:rgba(201,162,39,.1);user-select:none;-webkit-user-select:none;touch-action:manipulation"
+    onclick="doParry()" ontouchstart="e=>{e.preventDefault();doParry()}">
+    ⚔ PARRY
+  </button>
+  <div id="parry-result" style="font-family:'Cinzel',serif;font-size:20px;letter-spacing:4px;min-height:28px;text-align:center"></div>
+</div>
+
 <div class="ov" id="fight-ov" style="display:none">
   <div class="ob fm">
     <div class="ot" id="fight-title">— BATTLE —</div>
@@ -1515,6 +1654,8 @@ function initGame(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('game-screen').style.display='flex';
   loadDailyMissions();renderAll();connectWS();startIdle();
+  // Start training minigames
+  setTimeout(()=>{startAgiGame();startMedGame();},500);
   setInterval(()=>savePlayer(),30000);savePlayer();
   renderAch();renderMissions();renderElist();renderShop();
   prevKills=player.kills;prevCoins=player.coins;prevLevel=player.level;prevTrains=player.trainCount||0;
@@ -1541,6 +1682,46 @@ function handleWS(msg){
   }
   if(msg.type==='pvp'){const f=msg.fightId;if(f&&liveFs[f]){delete liveFs[f];renderLiveFs();}chatLine(`⚔ ${msg.summary}`,'var(--red2)');if(activeFight===f)pollFight();}
   if(msg.type==='fight_update'){if(activeFight===msg.fight?.fightId)renderFight(msg.fight);}
+
+  // ── 2V2 EVENTS ──
+  if(msg.type==='v2_queue_update'){
+    const t1=document.getElementById('v2-team1');
+    const t2=document.getElementById('v2-team2');
+    const st=document.getElementById('v2-status');
+    if(t1&&msg.team1)t1.innerHTML=msg.team1.map(p=>`<div style="color:var(--txt);font-size:12px">${p.name} Lv.${p.level}</div>`).join('');
+    if(t2&&msg.team2)t2.innerHTML=msg.team2.map(p=>`<div style="color:var(--txt);font-size:12px">${p.name} Lv.${p.level}</div>`).join('');
+    if(st)st.textContent=msg.status||'';
+  }
+  if(msg.type==='v2_match_found'){
+    document.getElementById('v2-ov').style.display='none';
+    toast('⚔⚔',`2v2 Match found! ${msg.team1?.map(p=>p.name).join(' & ')} vs ${msg.team2?.map(p=>p.name).join(' & ')}`);
+    chatLine(`⚔⚔ 2V2: ${msg.team1?.map(p=>p.name).join(' & ')} VS ${msg.team2?.map(p=>p.name).join(' & ')}!`,'#5dade2');
+  }
+
+  // ── CLASH MINIGAME EVENT ──
+  if(msg.type==='pvp_clash_start'&&msg.fightId===activeFight){
+    logLine('⚡ TECHNIQUE CLASH — MASH THE BUTTON!','rainbow');
+    openClashMinigame(player.name,'Opponent').then(result=>{
+      fetch(`/api/fights/${activeFight}/clash-result`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({playerId:player.playerId,power:result.power,won:result.won})
+      }).catch(()=>{});
+    }).catch(()=>{});
+  }
+
+  // ── PARRY EVENT ──
+  if(msg.type==='pvp_parry_window'&&msg.fightId===activeFight){
+    const isTarget=msg.targetId===player.playerId;
+    if(isTarget){
+      logLine(`⚔ ${msg.attackerName} attacks! PARRY WINDOW!`,'#ff6b00');
+      openParryMinigame().then(result=>{
+        fetch(`/api/fights/${activeFight}/parry-result`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({playerId:player.playerId,result:result.result,dmgMult:result.dmgMult})
+        }).catch(()=>{});
+      }).catch(()=>{});
+    }
+  }
 
   // ── DOMAIN CLASH — defender must dodge winner's domain ──
   if(msg.type==='pvp_dodge_required'&&msg.fightId===activeFight){
@@ -1761,31 +1942,208 @@ function renderStatusBars(){
 // ══════════════════════════════════════════════════════
 // TRAINING
 // ══════════════════════════════════════════════════════
-function doTrain(type){
-  const p=player;
-  if(type==='ce')p.ce=Math.min(p.maxCe,p.ce+ri(3,8));
-  else if(type==='str'){p.str+=.1;p.end+=.05;p.str=+p.str.toFixed(2);p.end=+p.end.toFixed(2);p.maxHp=Math.floor(100+p.end*10);}
-  else if(type==='agi'){p.agi+=.1;p.agi=+p.agi.toFixed(2);}
-  else if(type==='med'){p.maxCe=Math.floor(p.maxCe+.5);p.ce=Math.min(p.maxCe,p.ce+2);}
-  p.trainCount=(p.trainCount||0)+1;
-  updateDailyP('trainCount',1);renderAll();schedSave();
+// ══════════════════════════════════════════════════════
+// INTERACTIVE TRAINING SYSTEM
+// ══════════════════════════════════════════════════════
+let holdInterval=null, holdCharge=0, strCombo=0, strComboTimer=null;
+let agiActive=false, agiTimeout=null, agiInterval=null;
+let medPulsePos=0, medPulseDir=1, medPulseInt=null, medCombo=0;
+
+// ── CE: HOLD TO CHARGE ──
+function startHoldTrain(type){
+  if(type!=='ce')return;
+  if(holdInterval)return;
+  document.getElementById('btn-ce').classList.add('holding');
+  holdCharge=0;
+  holdInterval=setInterval(()=>{
+    holdCharge=Math.min(100,holdCharge+4);
+    document.getElementById('ce-charge-bar').style.width=holdCharge+'%';
+  },50);
 }
+function releaseHoldTrain(type){
+  if(type!=='ce'||!holdInterval)return;
+  clearInterval(holdInterval);holdInterval=null;
+  document.getElementById('btn-ce').classList.remove('holding');
+  document.getElementById('ce-charge-bar').style.width='0%';
+  if(!player)return;
+  const gain=Math.floor((holdCharge/100)*ri(15,30));
+  player.ce=Math.min(player.maxCe,(player.ce||0)+gain);
+  // Bonus STR/XP on full charge
+  if(holdCharge>=95){
+    player.xp+=5;
+    showTrainPop(`⚡ FULL CHARGE! +${gain} CE`,player,true);
+  } else {
+    showTrainPop(`+${gain} CE`,player,false);
+  }
+  holdCharge=0;
+  _doTrainCommon();
+}
+
+// ── STR: TAP RAPIDLY ──
+function tapTrain(type){
+  if(!player)return;
+  strCombo++;
+  const combo=Math.min(strCombo,20);
+  const bar=document.getElementById('str-combo-bar');
+  const cnt=document.getElementById('str-combo-cnt');
+  if(bar)bar.style.width=(combo/20*100)+'%';
+  if(cnt)cnt.textContent=strCombo;
+  // Gain scales with combo
+  const mult=1+combo*.15;
+  player.str+=+((.08*mult).toFixed(3));
+  player.end+=+((.04*mult).toFixed(3));
+  player.maxHp=Math.floor(100+player.end*10+player.level*5);
+  // Bonus at combo milestones
+  if(strCombo%10===0){
+    player.xp+=10;showTrainPop(`🔥 ${strCombo}-COMBO! +XP`,player,true);
+  } else {
+    showTrainPop(`💪 +STR ×${mult.toFixed(1)}`,player,false);
+  }
+  // Reset combo after 1.2s of no tapping
+  clearTimeout(strComboTimer);
+  strComboTimer=setTimeout(()=>{strCombo=0;if(bar)bar.style.width='0%';if(cnt)cnt.textContent='0';},1200);
+  _doTrainCommon();
+}
+
+// ── AGI: REACTION GAME ──
+function startAgiGame(){
+  if(agiInterval)return;
+  const wrap=document.getElementById('agi-target-wrap');
+  const target=document.getElementById('agi-target');
+  const idle=document.getElementById('agi-idle-txt');
+  if(!wrap)return;
+  agiInterval=setInterval(()=>{
+    if(agiActive)return;
+    // Random delay before showing target
+    const delay=ri(800,2200);
+    setTimeout(()=>{
+      if(!agiInterval)return;
+      agiActive=true;
+      const pct=ri(5,70);
+      target.style.left=pct+'%';
+      target.style.display='flex';
+      if(idle)idle.style.display='none';
+      // Auto-miss after 1s
+      agiTimeout=setTimeout(()=>{
+        if(agiActive){missAgiTarget();}
+      },900);
+    },delay);
+  },500);
+}
+function hitAgiTarget(){
+  if(!agiActive||!player)return;
+  clearTimeout(agiTimeout);
+  agiActive=false;
+  const target=document.getElementById('agi-target');
+  const idle=document.getElementById('agi-idle-txt');
+  if(target)target.style.display='none';
+  if(idle)idle.style.display='flex';
+  player.agi+=.15;player.agi=+player.agi.toFixed(3);
+  showTrainPop('⚡ HIT! +AGI',player,true);
+  _doTrainCommon();
+}
+function missAgiTarget(){
+  agiActive=false;
+  const target=document.getElementById('agi-target');
+  const idle=document.getElementById('agi-idle-txt');
+  if(target){target.style.background='var(--red)';setTimeout(()=>{target.style.background='var(--grn)';target.style.display='none';if(idle)idle.style.display='flex';},300);}
+}
+function stopAgiGame(){
+  clearInterval(agiInterval);agiInterval=null;clearTimeout(agiTimeout);agiTimeout=null;agiActive=false;
+  const target=document.getElementById('agi-target');if(target)target.style.display='none';
+  const idle=document.getElementById('agi-idle-txt');if(idle)idle.style.display='flex';
+}
+
+// ── MEDITATE: RHYTHM ──
+function startMedGame(){
+  if(medPulseInt)return;
+  medPulsePos=0;medPulseDir=1;
+  const speed=1.8;
+  medPulseInt=setInterval(()=>{
+    medPulsePos+=speed*medPulseDir;
+    if(medPulsePos>=100){medPulsePos=100;medPulseDir=-1;}
+    if(medPulsePos<=0){medPulsePos=0;medPulseDir=1;}
+    const pulse=document.getElementById('med-pulse');
+    if(pulse)pulse.style.left=medPulsePos+'%';
+  },16);
+}
+function tapMeditate(){
+  if(!player)return;
+  // Zone is at right side (75-100%)
+  const inZone=medPulsePos>=72;
+  const fb=document.getElementById('med-feedback');
+  if(inZone){
+    medCombo++;
+    const bonus=Math.min(medCombo,5);
+    player.maxCe=Math.floor(player.maxCe+0.4+bonus*.1);
+    player.ce=Math.min(player.maxCe,player.ce+5);
+    if(fb){fb.textContent=medCombo>=3?`PERFECT ×${medCombo}!`:'GOOD!';fb.style.color=medCombo>=3?'var(--acc)':'var(--grn3)';fb.style.opacity='1';setTimeout(()=>fb.style.opacity='0',600);}
+    showTrainPop(medCombo>=3?`🌀 PERFECT ×${medCombo}! +Max CE`:`🧘 +Max CE`,player,medCombo>=3);
+  } else {
+    medCombo=0;
+    if(fb){fb.textContent='TOO EARLY';fb.style.color='var(--red2)';fb.style.opacity='1';setTimeout(()=>fb.style.opacity='0',500);}
+    player.ce=Math.min(player.maxCe,(player.ce||0)+1);
+  }
+  _doTrainCommon();
+}
+function stopMedGame(){clearInterval(medPulseInt);medPulseInt=null;medCombo=0;}
+
+function _doTrainCommon(){
+  if(!player)return;
+  player.trainCount=(player.trainCount||0)+1;
+  updateDailyP('trainCount',1);
+  // Show special training at level 15+
+  const sp=document.getElementById('special-train');
+  if(sp)sp.style.display=(player.level>=15)?'block':'none';
+  renderAll();schedSave();
+}
+
+function doTrain(type){
+  if(!player)return;
+  const p=player;
+  if(type==='ce'){p.ce=Math.min(p.maxCe,(p.ce||0)+ri(5,12));}
+  else if(type==='str'){p.str+=.1;p.end+=.05;p.str=+p.str.toFixed(2);p.end=+p.end.toFixed(2);p.maxHp=Math.floor(100+p.end*10+p.level*5);}
+  else if(type==='agi'){p.agi+=.1;p.agi=+p.agi.toFixed(2);}
+  else if(type==='med'){p.maxCe=Math.floor(p.maxCe+.5);p.ce=Math.min(p.maxCe,(p.ce||0)+2);}
+  else if(type==='domain_train'){p.domainCharge=(p.domainCharge||0)+1;if(p.domainCharge>=10){p.ce=p.maxCe;p.domainCharge=0;toast('🌀','Domain fully charged!');}}
+  else if(type==='cursed_refine'){p.str+=.05;p.agi+=.05;p.end+=.05;p.maxCe=Math.floor(p.maxCe+.2);}
+  _doTrainCommon();
+}
+
+function showTrainPop(text,p,big){
+  // Flash the stat bar
+  const el=document.getElementById('bar-ce');
+  if(el){el.style.boxShadow='0 0 10px var(--blue)';setTimeout(()=>el.style.boxShadow='',400);}
+}
+
 function toggleAuto(e,type){
   e.stopPropagation();
   if(autoAction===type){stopAuto();return;}
   stopAuto();autoAction=type;
-  document.getElementById(`ab-${type}`).classList.add('on');
-  document.getElementById(`tc-${type}`).classList.add('auto-on');
-  document.getElementById('auto-hdr').style.display='inline';
-  doTrain(type);autoInt=setInterval(()=>doTrain(type),1000);
+  const ab=document.getElementById(`ab-${type}`);if(ab)ab.classList.add('on');
+  const tc=document.getElementById(`tc-${type}`);if(tc)tc.classList.add('ao');
+  const hdr=document.getElementById('auto-hdr');if(hdr)hdr.style.display='inline';
+  // Start the right minigame in auto mode
+  if(type==='agi')startAgiGame();
+  if(type==='med')startMedGame();
+  doTrain(type);
+  autoInt=setInterval(()=>{
+    if(type==='agi'){if(!agiActive){}else hitAgiTarget();}
+    else if(type==='med'){tapMeditate();}
+    else if(type==='ce'){player.ce=Math.min(player.maxCe,(player.ce||0)+ri(3,8));_doTrainCommon();renderAll();}
+    else doTrain(type);
+  },900);
 }
 function stopAuto(){
   if(autoInt){clearInterval(autoInt);autoInt=null;}
+  stopAgiGame();stopMedGame();
+  clearInterval(holdInterval);holdInterval=null;
   if(autoAction){
     const ab=document.getElementById(`ab-${autoAction}`);if(ab)ab.classList.remove('on');
-    const tc=document.getElementById(`tc-${autoAction}`);if(tc)tc.classList.remove('auto-on');
+    const tc=document.getElementById(`tc-${autoAction}`);if(tc)tc.classList.remove('ao');
   }
-  autoAction=null;document.getElementById('auto-hdr').style.display='none';
+  autoAction=null;
+  const hdr=document.getElementById('auto-hdr');if(hdr)hdr.style.display='none';
 }
 function startIdle(){
   if(idleInt)clearInterval(idleInt);
@@ -3371,6 +3729,106 @@ function dodgeEnd(outcome){
 // ══════════════════════════════════════════════════════
 
 // PvP dodge signals handled in handleWS below
+
+// ══════════════════════════════════════════════════════
+// PVP MINIGAME: CLASH BARS
+// ══════════════════════════════════════════════════════
+let clashResolve=null,clashP1=50,clashActive=false,clashTimerInt=null,clashTimeLeft=0;
+const CLASH_DURATION=5000;
+function openClashMinigame(p1Name,p2Name){
+  return new Promise(resolve=>{
+    clashResolve=resolve;clashP1=50;clashActive=true;clashTimeLeft=CLASH_DURATION;
+    document.getElementById('clash-p1name').textContent=p1Name;
+    document.getElementById('clash-p2name').textContent=p2Name;
+    document.getElementById('clash-p1score').textContent='0';
+    document.getElementById('clash-p2score').textContent='0';
+    document.getElementById('clash-result').textContent='';
+    document.getElementById('clash-bar-p1').style.width='50%';
+    document.getElementById('clash-bar-p2').style.width='50%';
+    document.getElementById('clash-timer-bar').style.width='100%';
+    document.getElementById('clash-ov').style.display='flex';
+    clashTimerInt=setInterval(()=>{
+      clashTimeLeft-=50;
+      if(clashP1>50)clashP1=Math.max(50,clashP1-.3);
+      if(clashP1<50)clashP1=Math.min(50,clashP1+.3);
+      updateClashBars();
+      document.getElementById('clash-timer-bar').style.width=(clashTimeLeft/CLASH_DURATION*100)+'%';
+      if(clashTimeLeft<=0)finishClash();
+    },50);
+  });
+}
+function clashMash(){
+  if(!clashActive)return;
+  clashP1=Math.min(95,clashP1+2.5);
+  const s=document.getElementById('clash-mash-btn');
+  s.style.transform='scale(.94)';setTimeout(()=>s.style.transform='',80);
+  document.getElementById('clash-p1score').textContent=Math.floor((clashP1-50)*2);
+  updateClashBars();
+}
+function updateClashBars(){
+  document.getElementById('clash-bar-p1').style.width=clashP1+'%';
+  document.getElementById('clash-bar-p2').style.width=(100-clashP1)+'%';
+}
+function finishClash(){
+  if(!clashActive)return;
+  clashActive=false;clearInterval(clashTimerInt);
+  const won=clashP1>50;
+  const r=document.getElementById('clash-result');
+  r.textContent=won?'⚡ YOU WIN THE CLASH!':'💀 OPPONENT WINS!';
+  r.style.color=won?'var(--grn3)':'var(--red2)';
+  setTimeout(()=>{
+    document.getElementById('clash-ov').style.display='none';
+    if(clashResolve){clashResolve({won,power:clashP1});clashResolve=null;}
+  },1400);
+}
+
+// ══════════════════════════════════════════════════════
+// PVP MINIGAME: PARRY
+// ══════════════════════════════════════════════════════
+let parryResolve=null,parryPos=0,parryDir=1,parryInt=null,parryDone=false;
+function openParryMinigame(){
+  return new Promise(resolve=>{
+    parryResolve=resolve;parryPos=0;parryDir=1;parryDone=false;
+    document.getElementById('parry-result').textContent='';
+    document.getElementById('parry-ov').style.display='flex';
+    parryInt=setInterval(()=>{
+      parryPos+=2.2*parryDir;
+      if(parryPos>=100){parryPos=100;parryDir=-1;}
+      if(parryPos<=0){parryPos=0;parryDir=1;}
+      document.getElementById('parry-cursor').style.left=parryPos+'%';
+    },16);
+    setTimeout(()=>{if(!parryDone)doParry();},4000);
+  });
+}
+function doParry(){
+  if(parryDone)return;
+  parryDone=true;clearInterval(parryInt);
+  const perfect=parryPos>=74&&parryPos<=96;
+  const good=parryPos>=60&&parryPos<74;
+  const r=document.getElementById('parry-result');
+  let result='miss',dmgMult=1.0;
+  if(perfect){r.textContent='✨ PERFECT PARRY!';r.style.color='var(--acc)';result='perfect';dmgMult=0;}
+  else if(good){r.textContent='⚔ GOOD PARRY!';r.style.color='var(--grn3)';result='good';dmgMult=0.4;}
+  else{r.textContent='💢 MISSED!';r.style.color='var(--red2)';result='miss';dmgMult=1.0;}
+  setTimeout(()=>{
+    document.getElementById('parry-ov').style.display='none';
+    if(parryResolve){parryResolve({result,dmgMult});parryResolve=null;}
+  },1200);
+}
+
+// ══════════════════════════════════════════════════════
+// 2V2 SYSTEM
+// ══════════════════════════════════════════════════════
+function open2v2Lobby(){document.getElementById('v2-ov').style.display='flex';}
+function joinV2Queue(){
+  if(!player)return;
+  document.getElementById('v2-status').textContent='🔍 Searching for teammates and opponents...';
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'v2_join',playerId:player.playerId,name:player.name,roomCode:player.roomCode,level:player.level}));
+}
+function leaveV2Queue(){
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'v2_leave',playerId:player.playerId}));
+  document.getElementById('v2-status').textContent='Left queue.';
+}
 </script>
 </body>
 </html>
