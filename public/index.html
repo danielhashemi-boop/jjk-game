@@ -4722,26 +4722,50 @@ function arenaDraw(){
   // Background
   ctx.fillStyle='#06050a';
   ctx.fillRect(0,0,W,H);
-  // Ground
-  const grad=ctx.createLinearGradient(0,ARENA_FLOOR,0,H);
-  grad.addColorStop(0,'#1a1628'); grad.addColorStop(1,'#0d0b14');
-  ctx.fillStyle=grad; ctx.fillRect(0,ARENA_FLOOR,W,H-ARENA_FLOOR);
-  ctx.strokeStyle='rgba(201,162,39,.3)'; ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,ARENA_FLOOR);ctx.lineTo(W,ARENA_FLOOR);ctx.stroke();
-  // Background pillars / atmosphere
-  for(let i=0;i<5;i++){
-    const px=80+i*160;
-    ctx.strokeStyle=`rgba(201,162,39,${.04+i*.01})`;
+
+  // Sky gradient (dark cursed energy atmosphere)
+  const sky=ctx.createLinearGradient(0,0,0,ARENA_FLOOR);
+  sky.addColorStop(0,'#0a0515');
+  sky.addColorStop(0.5,'#070310');
+  sky.addColorStop(1,'#0d0b14');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,ARENA_FLOOR);
+
+  // Cursed energy wisps in background
+  const t2=Date.now()*.0005;
+  for(let i=0;i<12;i++){
+    const wx=((i*173+t2*15)%W);
+    const wy=30+Math.sin(t2*1.2+i)*80;
+    const wg=ctx.createRadialGradient(wx,wy,0,wx,wy,18+Math.sin(t2+i)*6);
+    wg.addColorStop(0,`rgba(155,89,182,${0.06+Math.sin(t2*2+i)*.04})`);
+    wg.addColorStop(1,'transparent');
+    ctx.fillStyle=wg; ctx.beginPath(); ctx.arc(wx,wy,18,0,Math.PI*2); ctx.fill();
+  }
+
+  // Background pillars
+  for(let i=0;i<6;i++){
+    const px=60+i*156;
+    ctx.strokeStyle=`rgba(201,162,39,${.025+i*.004})`;
     ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,ARENA_FLOOR);ctx.stroke();
   }
-  // Cursed energy particles in background
-  const t=Date.now()*.001;
-  for(let i=0;i<8;i++){
-    const px=((i*137+t*20)%W);
-    const py=50+Math.sin(t+i)*100;
-    ctx.fillStyle=`rgba(155,89,182,${.05+Math.sin(t*2+i)*.03})`;
-    ctx.beginPath();ctx.arc(px,py,2+Math.sin(t+i),0,Math.PI*2);ctx.fill();
+
+  // Ground
+  const grd=ctx.createLinearGradient(0,ARENA_FLOOR,0,H);
+  grd.addColorStop(0,'#1a1628');
+  grd.addColorStop(0.3,'#141020');
+  grd.addColorStop(1,'#0d0b14');
+  ctx.fillStyle=grd; ctx.fillRect(0,ARENA_FLOOR,W,H-ARENA_FLOOR);
+
+  // Ground line with glow
+  ctx.strokeStyle='rgba(201,162,39,.4)'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,ARENA_FLOOR);ctx.lineTo(W,ARENA_FLOOR);ctx.stroke();
+  ctx.strokeStyle='rgba(201,162,39,.08)'; ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(0,ARENA_FLOOR);ctx.lineTo(W,ARENA_FLOOR);ctx.stroke();
+
+  // Ground tiles
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(let i=0;i<W;i+=60){
+    ctx.beginPath();ctx.moveTo(i,ARENA_FLOOR);ctx.lineTo(i,H);ctx.stroke();
   }
   // Draw fighters
   if(arenaF2)arenaDrawFighter(ctx,arenaF2);
@@ -4750,240 +4774,229 @@ function arenaDraw(){
 
 function arenaDrawFighter(ctx, f){
   ctx.save();
-
-  const hitFlash = f.hitAnim>0 && Math.floor(f.hitAnim/40)%2===0;
-  const alpha = f.dead ? Math.max(0, f.vy > 0 ? 0.3 : 1) : 1;
-  ctx.globalAlpha = alpha;
-
-  // Fighter "feet" are at f.y, body goes UP from there
+  const S = 3;
   const bx = Math.round(f.x);
-  const by = Math.round(f.y); // feet level
-  const sc = 3; // pixel scale — each "pixel" is 3x3 real px
-  const dir = f.facing; // 1=right, -1=left
-
-  // PIXEL ART — 12×20 grid sorcerer sprite
-  // Colors
-  const skinCol   = hitFlash ? '#fff' : '#f5cba7';
-  const hairCol   = hitFlash ? '#fff' : f.color;
-  const robeCol   = hitFlash ? '#fff' : shadeColor(f.color, -40);
-  const beltCol   = hitFlash ? '#fff' : '#c9a227';
-  const eyeCol    = '#0d0b14';
-  const glowCol   = f.color;
-
-  // Animate walk cycle
+  const by = Math.round(f.y);
+  const dir = f.facing;
   const t = Date.now();
-  const moving = Math.abs(f.vx) > 0.5 && f.onGround;
-  const walkT = moving ? Math.floor(t / 120) % 4 : 0;
+  const hitFlash = f.hitAnim > 0 && Math.floor(f.hitAnim/40)%2===0;
+  ctx.globalAlpha = f.dead ? 0.4 : 1;
+
+  const C = hitFlash ? {
+    skin:'#fff',skinD:'#ddd',hair:'#fff',hairD:'#eee',
+    suit:'#fff',suitM:'#eee',suitL:'#f5f5f5',
+    shoe:'#fff',shoeD:'#eee',btn:'#fff',eye:'#fff',white:'#fff',ceCol:'#fff'
+  } : {
+    skin:'#e8b48a', skinD:'#c89060',
+    hair:f.color,   hairD:shadeColor(f.color,-45),
+    suit:'#1a1a3a',  suitM:'#222248', suitL:'#2d2d5a',
+    shoe:'#8b5e1a',  shoeD:'#5a3a08',
+    btn:'#c9a227',
+    eye:'#1a0a2e',   white:'#ffffff',
+    ceCol:f.color,
+  };
+
+  // pixel helper — gx from 0..15 (left to right), gy from 0 upward (feet=0)
+  function p(gx,gy,col){
+    const rx = dir>0 ? bx - 8*S + gx*S : bx + 8*S - (gx+1)*S;
+    const ry = by - gy*S - S;
+    ctx.fillStyle=col; ctx.fillRect(rx,ry,S,S);
+  }
+
+  // shadow
+  ctx.save(); ctx.globalAlpha=(f.onGround?0.35:0.1);
+  ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(bx,by+2,f.onGround?22:10,f.onGround?5:2,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // CE aura
+  if(!f.dead){
+    const aA = (f.attackAnim>0?0.55:(f.hp<f.maxHp*0.4?0.3:0.1))+Math.sin(t*.008)*.05;
+    const aR = f.attackAnim>0?44:28;
+    const ag=ctx.createRadialGradient(bx,by-42,2,bx,by-42,aR);
+    ag.addColorStop(0,C.ceCol+'88'); ag.addColorStop(1,'transparent');
+    ctx.save(); ctx.globalAlpha=aA; ctx.fillStyle=ag;
+    ctx.beginPath(); ctx.ellipse(bx,by-42,aR,aR*.8,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  const moving   = Math.abs(f.vx)>0.4;
+  const wf       = moving&&f.onGround ? Math.floor(t/110)%4 : 0;
   const blocking = f.blocking;
-  const attacking = f.attackAnim > 0;
+  const attacking= f.attackAnim>0;
   const airborne = !f.onGround;
 
-  // Helper: draw one "pixel" at grid position (px, py) from feet
-  function px(gx, gy, col){
-    const rx = bx + (dir > 0 ? gx - 6 : 5 - gx) * sc;
-    const ry = by - gy * sc;
-    ctx.fillStyle = col;
-    ctx.fillRect(rx, ry, sc, sc);
-  }
+  if(!blocking&&!attacking&&!airborne){
+    // ── IDLE / WALK ──
+    // shoes
+    p(1,0,C.shoeD);p(2,0,C.shoeD);p(3,0,C.shoe);p(4,0,C.shoe);
+    p(9,0,C.shoeD);p(10,0,C.shoeD);p(11,0,C.shoe);p(12,0,C.shoe);
+    // legs walk cycle
+    const lL=[0,1,2,1][wf], rL=[2,1,0,1][wf];
+    p(2,1+lL,C.suit);p(3,1+lL,C.suit);p(4,1+lL,C.suitM);
+    p(2,2+lL,C.suit);p(3,2+lL,C.suitM);p(4,2+lL,C.suitL);
+    p(2,3+lL,C.suit);p(3,3+lL,C.suit);
+    p(9,1+rL,C.suitM);p(10,1+rL,C.suit);p(11,1+rL,C.suit);
+    p(9,2+rL,C.suitL);p(10,2+rL,C.suitM);p(11,2+rL,C.suit);
+    p(10,3+rL,C.suit);p(11,3+rL,C.suit);
+    // torso
+    for(let row=5;row<=9;row++){
+      p(2,row,C.suitL);p(3,row,C.suitM);p(4,row,C.suit);p(5,row,C.suit);
+      p(6,row,C.suit);p(7,row,C.suit);p(8,row,C.suit);p(9,row,C.suitM);p(10,row,C.suitL);
+    }
+    p(6,6,C.btn);p(7,6,C.btn);p(6,7,C.btn);p(7,7,C.btn);p(6,8,C.btn);p(7,8,C.btn);
+    // arms
+    const sw=moving?Math.sin(t*.015)*1.5:0;
+    const la=Math.round(sw),ra=Math.round(-sw);
+    p(1,7+la,C.suitL);p(2,7+la,C.suitM);p(1,6+la,C.suitL);p(0,6+la,C.suit);p(0,5+la,C.skin);
+    p(11,7+ra,C.suitM);p(12,7+ra,C.suitL);p(12,6+ra,C.suitM);p(13,6+ra,C.suit);p(13,5+ra,C.skinD);
+    // neck
+    p(6,10,C.skin);p(7,10,C.skin);
+    // face
+    for(let row=11;row<=14;row++) for(let col=4;col<=9;col++) p(col,row,C.skin);
+    p(4,12,C.skinD);p(9,12,C.skinD); // ear shadows
+    // eyes
+    p(5,13,C.eye);p(6,13,C.white);p(7,13,C.white);p(8,13,C.eye);
+    p(5,12,C.eye);p(8,12,C.eye);
+    p(6,11,C.skinD);p(7,11,C.skinD); // nose
+    // hair base
+    for(let col=4;col<=9;col++){p(col,14,C.hair);p(col,15,C.hair);}
+    p(3,15,C.hair);p(10,15,C.hair);
+    p(3,16,C.hairD);p(4,16,C.hair);p(5,16,C.hair);p(6,16,C.hair);p(7,16,C.hair);p(8,16,C.hair);p(9,16,C.hair);p(10,16,C.hairD);
+    // spikes
+    const spikes=[[3,17],[5,17],[7,17],[9,17],[11,17],[2,17],[4,18],[6,18],[8,18],[10,18],[5,19],[9,19],[7,20],[2,16],[11,16],[1,15],[12,15],[0,14],[13,14],[1,13],[12,13],[6,20],[7,20],[6,21],[7,21]];
+    spikes.forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
 
-  // Glow aura under feet
-  if(!f.dead){
-    const grd = ctx.createRadialGradient(bx, by+2, 0, bx, by+2, 28);
-    grd.addColorStop(0, glowCol + '55');
-    grd.addColorStop(1, 'transparent');
-    ctx.fillStyle = grd;
-    ctx.beginPath();ctx.ellipse(bx, by+2, 28, 8, 0, 0, Math.PI*2);ctx.fill();
-  }
+  } else if(attacking){
+    // ── ATTACK / LUNGE ──
+    p(0,0,C.shoeD);p(1,0,C.shoe);p(2,0,C.shoe);
+    p(10,0,C.shoeD);p(11,0,C.shoe);p(12,0,C.shoe);p(13,0,C.shoe);
+    p(1,1,C.suit);p(2,1,C.suit);p(2,2,C.suitM);p(3,2,C.suit);p(3,3,C.suit);p(4,3,C.suit);
+    p(10,1,C.suit);p(11,1,C.suit);p(11,2,C.suitM);p(12,2,C.suit);p(11,3,C.suit);p(12,3,C.suit);p(12,4,C.suitM);
+    for(let row=4;row<=8;row++){
+      p(4,row,C.suitL);p(5,row,C.suitM);p(6,row,C.suit);p(7,row,C.suit);p(8,row,C.suit);p(9,row,C.suitM);p(10,row,C.suitL);
+    }
+    p(6,6,C.btn);p(7,6,C.btn);
+    // punch arm extended
+    p(10,8,C.suitL);p(11,8,C.suit);p(11,7,C.suitL);p(12,7,C.suit);p(12,6,C.suitM);p(13,6,C.suit);p(13,5,C.skin);p(14,5,C.skin);p(15,5,C.skinD);
+    // CE fist
+    const fx=bx+dir*48,fy=by-17*S;
+    const prog=f.attackAnim/300;
+    const eg=ctx.createRadialGradient(fx,fy,1,fx,fy,14+prog*8);
+    eg.addColorStop(0,'#fff');eg.addColorStop(0.35,C.ceCol);eg.addColorStop(1,'transparent');
+    ctx.save();ctx.globalAlpha=prog*.9;ctx.fillStyle=eg;
+    ctx.beginPath();ctx.arc(fx,fy,14+prog*8,0,Math.PI*2);ctx.fill();
+    for(let sl=0;sl<3;sl++){const sa=-0.3+sl*0.3;ctx.strokeStyle=C.ceCol+'cc';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fx-dir*5,fy+Math.sin(sa)*5);ctx.lineTo(fx+dir*22,fy+Math.sin(sa)*22);ctx.stroke();}
+    ctx.restore();
+    // back arm
+    p(3,7,C.suitM);p(2,7,C.suit);p(2,6,C.suitL);p(1,6,C.suit);p(1,5,C.skinD);
+    // face
+    for(let row=9;row<=12;row++) for(let col=5;col<=9;col++) p(col,row,C.skin);
+    p(4,11,C.skinD);p(5,10,C.eye);p(7,10,C.eye);p(5,9,C.eye);p(7,9,C.eye);
+    // hair attack spiky
+    for(let col=4;col<=10;col++) p(col,12,C.hair);
+    for(let col=3;col<=10;col++) p(col,13,C.hair);
+    [[3,14],[5,14],[7,14],[9,14],[11,14],[2,13],[4,15],[6,15],[8,15],[10,15],[1,12],[12,13],[5,16],[9,16],[7,17]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
 
-  // Shadow on ground
-  ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.beginPath();ctx.ellipse(bx, by+3, f.onGround?18:10, f.onGround?5:3, 0, 0, Math.PI*2);ctx.fill();
-
-  // ── LEGS (rows 0-6 from feet) ──
-  if(blocking){
-    // Crouched legs
-    px(4,1,robeCol); px(5,1,robeCol); px(6,1,robeCol); px(7,1,robeCol);
-    px(4,2,robeCol); px(5,2,robeCol); px(6,2,robeCol); px(7,2,robeCol);
-    px(3,3,robeCol); px(4,3,robeCol); px(7,3,robeCol); px(8,3,robeCol);
-  } else if(airborne){
-    // Tuck legs
-    px(4,1,robeCol); px(5,1,robeCol); px(6,1,robeCol); px(7,1,robeCol);
-    px(3,2,robeCol); px(4,2,robeCol); px(7,2,robeCol); px(8,2,robeCol);
-    px(3,3,robeCol); px(8,3,robeCol);
-  } else {
-    const lOff = [0,1,2,1][walkT]; // left leg offset
-    const rOff = [2,1,0,1][walkT]; // right leg offset
-    // Left leg
-    px(4, 1+lOff, robeCol); px(5, 1+lOff, robeCol);
-    px(4, 2+lOff, robeCol); px(5, 2+lOff, robeCol);
-    px(4, 3, '#d5d8dc');     px(5, 3, '#d5d8dc'); // shoe
-    // Right leg
-    px(6, 1+rOff, robeCol); px(7, 1+rOff, robeCol);
-    px(6, 2+rOff, robeCol); px(7, 2+rOff, robeCol);
-    px(6, 3, '#d5d8dc');     px(7, 3, '#d5d8dc'); // shoe
-  }
-
-  // ── ROBE BODY (rows 4-11) ──
-  const bodyRows = blocking ? 8 : 10;
-  for(let row = 4; row <= bodyRows; row++){
-    px(3, row, robeCol); px(4, row, robeCol); px(5, row, robeCol);
-    px(6, row, robeCol); px(7, row, robeCol); px(8, row, robeCol);
-    // Robe highlight edge
-    px(3, row, shadeColor(f.color, -20));
-    px(8, row, shadeColor(f.color, -50));
-    // Center line
-    if(row===7||row===8) px(5, row, beltCol), px(6, row, beltCol);
-  }
-  // Belt buckle
-  px(5, 7, beltCol); px(6, 7, beltCol);
-
-  // ── ARMS ──
-  const armY = blocking ? 8 : 9;
-  if(attacking){
-    // Attack pose — arm extends forward
-    px(9, armY,   robeCol); px(10, armY,   robeCol);
-    px(9, armY+1, robeCol); px(10, armY+1, skinCol);
-    // Energy ball at fist
-    const fx = bx + dir*36, fy = by - armY*sc;
-    const eg = ctx.createRadialGradient(fx,fy,1,fx,fy,10);
-    eg.addColorStop(0,'#fff');
-    eg.addColorStop(0.4, f.color);
-    eg.addColorStop(1,'transparent');
-    ctx.fillStyle=eg;
-    ctx.beginPath();ctx.arc(fx,fy,10,0,Math.PI*2);ctx.fill();
-    // Back arm
-    px(2, armY, robeCol); px(1, armY, robeCol);
-    px(2, armY+1, robeCol);
   } else if(blocking){
-    // Guard pose — both arms up
-    px(2, armY+2, robeCol); px(1, armY+2, skinCol);
-    px(9, armY+2, robeCol); px(10, armY+2, skinCol);
-    px(2, armY+1, robeCol); px(9, armY+1, robeCol);
-    // Cursed energy shield
-    ctx.save();
-    ctx.globalAlpha = 0.3 + Math.sin(t*.008)*.1;
-    ctx.strokeStyle = '#3498db';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(bx - dir*12, by - armY*sc, 22, 32, 0, 0, Math.PI*2);
-    ctx.stroke();
+    // ── BLOCK / GUARD ──
+    p(3,0,C.shoeD);p(4,0,C.shoe);p(5,0,C.shoe);p(8,0,C.shoeD);p(9,0,C.shoe);p(10,0,C.shoe);
+    p(3,1,C.suit);p(4,1,C.suit);p(5,1,C.suitM);p(8,1,C.suitM);p(9,1,C.suit);p(10,1,C.suit);
+    p(4,2,C.suit);p(5,2,C.suitM);p(8,2,C.suitM);p(9,2,C.suit);
+    p(4,3,C.suitL);p(5,3,C.suit);p(8,3,C.suit);p(9,3,C.suitL);
+    for(let row=4;row<=7;row++) for(let col=3;col<=10;col++) p(col,row,C.suitM);
+    p(6,5,C.btn);p(7,5,C.btn);
+    p(2,7,C.suitL);p(1,8,C.suit);p(1,9,C.skinD);
+    p(11,7,C.suitL);p(12,8,C.suit);p(12,9,C.skinD);
+    p(2,8,C.suitM);p(3,8,C.suit);p(9,8,C.suitM);p(10,8,C.suit);
+    // shield aura
+    const sA=0.2+Math.sin(t*.01)*.1;
+    const sg=ctx.createRadialGradient(bx-dir*8,by-22,2,bx-dir*8,by-22,38);
+    sg.addColorStop(0,'#3498db55');sg.addColorStop(1,'transparent');
+    ctx.save();ctx.globalAlpha=sA;ctx.fillStyle=sg;
+    ctx.beginPath();ctx.ellipse(bx-dir*8,by-22,38,30,dir*0.3,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#5dade2';ctx.lineWidth=1.5;ctx.globalAlpha=sA*1.5;
+    ctx.beginPath();ctx.ellipse(bx-dir*8,by-22,38,30,dir*0.3,0,Math.PI*2);ctx.stroke();
     ctx.restore();
-  } else {
-    // Idle/walk arms swing
-    const aSwing = moving ? Math.sin(t*.015)*3 : 0;
-    px(2, armY + Math.round(aSwing), robeCol);
-    px(2, armY+1 + Math.round(aSwing), skinCol);
-    px(9, armY - Math.round(aSwing), robeCol);
-    px(9, armY+1 - Math.round(aSwing), skinCol);
+    for(let row=8;row<=11;row++) for(let col=4;col<=9;col++) p(col,row,C.skin);
+    p(5,10,C.eye);p(8,10,C.eye);
+    for(let col=3;col<=10;col++) p(col,12,C.hair);
+    for(let col=3;col<=10;col++) p(col,13,C.hair);
+    [[2,12],[4,14],[6,14],[8,14],[10,12],[3,15],[5,15],[7,15],[9,15],[6,16]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
+
+  } else if(airborne){
+    // ── AIRBORNE ──
+    const falling=f.vy>2;
+    p(4,1,C.shoeD);p(5,1,C.shoe);p(8,1,C.shoe);p(9,1,C.shoeD);
+    p(4,2,C.suit);p(5,2,C.suitM);p(8,2,C.suitM);p(9,2,C.suit);
+    p(5,3,C.suit);p(6,3,C.suitM);p(7,3,C.suitM);p(8,3,C.suit);
+    for(let row=4;row<=7;row++) for(let col=3;col<=10;col++) p(col,row,C.suitM);
+    p(6,5,C.btn);p(7,5,C.btn);
+    p(1,5,C.suit);p(2,5,C.suitM);p(0,4,C.skinD);
+    p(12,5,C.suit);p(11,5,C.suitM);p(13,4,C.skinD);
+    if(!falling){
+      const tg=ctx.createLinearGradient(bx-dir*40,by-20,bx+dir*5,by-20);
+      tg.addColorStop(0,'transparent');tg.addColorStop(1,C.ceCol+'44');
+      ctx.fillStyle=tg;ctx.fillRect(bx-dir*40,by-35,40,18);
+    }
+    for(let row=8;row<=11;row++) for(let col=5;col<=9;col++) p(col,row,C.skin);
+    p(6,10,C.eye);p(7,10,C.white);p(8,10,C.eye);p(5,10,C.white);
+    for(let col=4;col<=10;col++) p(col,12,C.hair);
+    [[3,12],[11,12],[2,11],[4,13],[6,13],[8,13],[10,13],[12,11],[3,14],[5,14],[7,14],[9,14],[11,14],[5,15],[7,15],[9,15],[6,16],[8,16]].forEach(([gx,gy])=>p(gx,gy,gy%2===0?C.hair:C.hairD));
   }
 
-  // ── HEAD (rows 11-16) ──
-  const headBase = blocking ? 9 : 11;
-  // Hair / hood top
-  px(4, headBase+5, hairCol); px(5, headBase+5, hairCol);
-  px(6, headBase+5, hairCol); px(7, headBase+5, hairCol);
-  px(3, headBase+4, hairCol); px(4, headBase+4, hairCol);
-  px(7, headBase+4, hairCol); px(8, headBase+4, hairCol);
-  // Hair spikes (top)
-  px(4, headBase+6, hairCol); px(6, headBase+6, hairCol);
-  px(5, headBase+7, hairCol);
-  // Face
-  px(3, headBase+3, skinCol); px(4, headBase+3, skinCol);
-  px(5, headBase+3, skinCol); px(6, headBase+3, skinCol);
-  px(7, headBase+3, skinCol); px(8, headBase+3, skinCol);
-  px(3, headBase+2, skinCol); px(4, headBase+2, skinCol);
-  px(5, headBase+2, skinCol); px(6, headBase+2, skinCol);
-  px(7, headBase+2, skinCol); px(8, headBase+2, skinCol);
-  // Eyes
-  const eyeAnim = attacking ? headBase+2 : headBase+3;
-  px(5, eyeAnim, eyeCol); px(6, eyeAnim, eyeCol);
-  // Eye glow
-  px(5, eyeAnim, f.color); px(6, eyeAnim, f.color);
-  // Mouth
-  if(attacking) {px(5, headBase+1, eyeCol); px(6, headBase+1, eyeCol);}
-  // Collar
-  px(4, headBase, robeCol); px(5, headBase, robeCol);
-  px(6, headBase, robeCol); px(7, headBase, robeCol);
-
-  // ── CURSED ENERGY AURA (when low HP or attacking) ──
-  if(f.hp < f.maxHp * 0.35 || attacking){
-    const auraAlpha = attacking ? 0.6 : 0.25 + Math.sin(t*.01)*.15;
-    const auraR = attacking ? 36 : 24;
-    ctx.save();
-    ctx.globalAlpha = auraAlpha;
-    const ag = ctx.createRadialGradient(bx, by - headBase*sc/2, 5, bx, by - headBase*sc/2, auraR);
-    ag.addColorStop(0, f.color+'aa');
-    ag.addColorStop(1, 'transparent');
-    ctx.fillStyle = ag;
-    ctx.beginPath();ctx.arc(bx, by - headBase*sc/2, auraR, 0, Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
-
-  // ── STUN STARS ──
-  if(f.stunTimer > 0){
+  // stun stars
+  if(f.stunTimer>0){
     for(let s=0;s<3;s++){
-      const sa = t*.005 + s*2.1;
-      const sx = bx + Math.cos(sa)*16, sy = by - (headBase+8)*sc + Math.sin(sa)*4;
-      ctx.font = '10px serif'; ctx.fillStyle='#f1c40f';
-      ctx.textAlign='center'; ctx.fillText('★', sx, sy);
+      const sa=t*.005+s*2.09;
+      ctx.save();ctx.font='11px serif';ctx.fillStyle='#f1c40f';ctx.textAlign='center';
+      ctx.fillText('★',bx+Math.cos(sa)*18,by-72+Math.sin(sa)*5);ctx.restore();
     }
   }
 
-  // ── COMBO TEXT ──
-  if(f.combo >= 3 && f.comboTimer > 0){
-    ctx.font = `900 ${Math.min(16, 10+f.combo)}px 'Cinzel',serif`;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#e8c84a';
-    ctx.shadowColor = 'rgba(201,162,39,.9)'; ctx.shadowBlur = 14;
-    ctx.fillText(`${f.combo}× COMBO`, bx, by - (headBase+10)*sc);
-    ctx.shadowBlur = 0;
-  }
-
-  // ── HIT BURST PARTICLES ──
+  // hit burst
   f.effects.forEach(ef=>{
-    const prog = ef.timer/ef.maxTimer;
+    const prog=ef.timer/ef.maxTimer;
+    ctx.save();
     if(ef.type==='hit'){
-      ctx.save(); ctx.globalAlpha = prog * .9;
-      for(let p=0;p<8;p++){
-        const a = (p/8)*Math.PI*2;
-        const r = (1-prog)*30;
-        ctx.strokeStyle = ef.color; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(bx+Math.cos(a)*5, by-headBase*sc/2+Math.sin(a)*5);
-        ctx.lineTo(bx+Math.cos(a)*r, by-headBase*sc/2+Math.sin(a)*r);
-        ctx.stroke();
+      ctx.globalAlpha=prog*.85;
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI*2+(1-prog)*2,r=(1-prog)*32;
+        ctx.strokeStyle=ef.color;ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(bx+Math.cos(a)*6,by-28+Math.sin(a)*6);ctx.lineTo(bx+Math.cos(a)*r,by-28+Math.sin(a)*r);ctx.stroke();
+        ctx.fillStyle=ef.color+'bb';ctx.beginPath();ctx.arc(bx+Math.cos(a)*r,by-28+Math.sin(a)*r,1.5,0,Math.PI*2);ctx.fill();
       }
-      ctx.restore();
     }
     if(ef.type==='dash'){
-      ctx.save(); ctx.globalAlpha = prog * .45;
-      ctx.strokeStyle = '#7ec8e3'; ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(bx, by - headBase*sc/2, 28 + (1-prog)*20, 0, Math.PI*2);
-      ctx.stroke();
-      ctx.restore();
+      ctx.globalAlpha=prog*.45;ctx.strokeStyle='#7ec8e3';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.ellipse(bx,by-32,30+(1-prog)*18,22+(1-prog)*12,0,0,Math.PI*2);ctx.stroke();
     }
-  });
-
-  // ── DAMAGE NUMBERS ──
-  f.dmgNumbers.forEach(d=>{
-    const a = Math.min(1, d.timer/250);
-    ctx.save(); ctx.globalAlpha = a;
-    ctx.font = `${d.crit?'900':'700'} ${d.crit?20:15}px 'Cinzel',serif`;
-    ctx.fillStyle = d.color; ctx.textAlign='center';
-    if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=12;}
-    ctx.fillText(d.val, d.x, d.y);
     ctx.restore();
   });
 
-  // ── NAME TAG ──
-  ctx.globalAlpha = 1;
-  ctx.font = 'bold 9px Cinzel,serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = f.color;
-  ctx.shadowColor = f.color; ctx.shadowBlur = 8;
-  ctx.fillText(f.name.toUpperCase(), bx, by - (headBase+12)*sc);
-  ctx.shadowBlur = 0;
+  // damage numbers
+  f.dmgNumbers.forEach(d=>{
+    const alpha=Math.min(1,d.timer/250);
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.font=`${d.crit?'900':'700'} ${d.crit?18:13}px 'Cinzel',serif`;
+    ctx.fillStyle=d.color;ctx.textAlign='center';
+    if(d.crit){ctx.shadowColor=d.color;ctx.shadowBlur=10;}
+    ctx.fillText(d.val,d.x,d.y);ctx.restore();
+  });
+
+  // combo
+  if(f.combo>=3&&f.comboTimer>0){
+    ctx.save();ctx.font=`900 ${Math.min(15,9+f.combo)}px 'Cinzel',serif`;
+    ctx.textAlign='center';ctx.fillStyle='#e8c84a';
+    ctx.shadowColor='rgba(201,162,39,.9)';ctx.shadowBlur=12;
+    ctx.fillText(`${f.combo}× COMBO`,bx,by-82);ctx.restore();
+  }
+
+  // name tag
+  ctx.save();ctx.font='bold 9px Cinzel,serif';ctx.textAlign='center';
+  ctx.fillStyle=f.color;ctx.shadowColor=f.color;ctx.shadowBlur=8;
+  ctx.fillText(f.name.toUpperCase(),bx,by-86);
+  ctx.shadowBlur=0;ctx.restore();
 
   ctx.restore();
 }
