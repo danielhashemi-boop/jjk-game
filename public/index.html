@@ -1866,15 +1866,19 @@ function handleWS(msg){
     chatLine(`⚔⚔ 2V2: ${msg.team1?.map(p=>p.name).join(' & ')} VS ${msg.team2?.map(p=>p.name).join(' & ')}!`,'#5dade2');
   }
   if(msg.type==='arena_match_found')handleArenaMatchFound(msg);
+  if(msg.type==='duel_request')receiveDuelRequest(msg);
+  if(msg.type==='duel_accepted')onDuelAccepted(msg);
+  if(msg.type==='duel_declined')onDuelDeclined(msg);
   if(msg.type==='arena_queue_update'){
     const el=document.getElementById('arena-queue-status');
     if(el)el.textContent=`In queue — ${msg.count} player(s) waiting...`;
   }
   // ── UT LIVE PVP ──
   if(msg.type==='ut_match_found')handleUTMatchFound(msg);
-  if(msg.type==='ut_incoming_attack'&&UT.active&&UT.phase==='dodging'){
-    // Opponent fired a skill — spawn bullets for us to dodge
-    utSpawnAttack(msg.skillIdx,{name:'Attack',dmg:10},msg.techName||'');
+  if(msg.type==='ut_incoming_attack'&&UT.active){
+    // Opponent fired — spawn bullets for us to dodge regardless of exact phase
+    if(UT.phase==='dodging'||UT.phase==='wait')
+      utSpawnAttack(msg.skillIdx||0,{name:'Attack',dmg:10},msg.techName||'');
   }
   if(msg.type==='ut_hp_update'&&UT.active){
     const isP1=UT.isP1;
@@ -1884,12 +1888,17 @@ function handleWS(msg){
     utUpdateStats();
   }
   if(msg.type==='ut_your_turn'&&UT.active){
-    // Server says it's our attack turn now
-    UT.myHp=msg.myHp;UT.oppHp=msg.oppHp;UT.soulHp=UT.myHp;
+    // Server says we survived dodge phase, now attack
+    if(msg.myHp!==undefined) UT.myHp=msg.myHp;
+    if(msg.oppHp!==undefined) UT.oppHp=msg.oppHp;
+    UT.soulHp=UT.myHp;
+    UT.bullets=[];
     utUpdateStats();
+    if(UT.myHp<=0){utShowResult(false);return;}
+    if(UT.oppHp<=0){utShowResult(true);return;}
     utShowBanner('YOUR ATTACK TURN!','#3cff3c');
     utSetText('* Your turn! Spam Q/E/R/F for 10 seconds!');
-    setTimeout(()=>utStartAttackTurnOnline(),800);
+    setTimeout(()=>utStartAttackTurn(),800);
   }
   if(msg.type==='ut_match_end'&&UT.active){
     const iWin=msg.winner===player.name;
@@ -5633,24 +5642,24 @@ function utEndAttackTurn(){
   document.getElementById('ut-attack-panel').style.display='none';
   UT.bullets = [];
 
-  // Apply damage dealt this turn
-  const dmgDealt = UT.oppHp - UT.soulHp;
-  UT.oppHp = Math.max(0, UT.soulHp);
-
-  utUpdateStats();
-
-  if(UT.oppHp<=0){
-    utShowResult(true);
+  if(UT.online && UT.matchId){
+    // Online: tell server our turn ended, wait for server to tell us to dodge
+    if(ws&&ws.readyState===1) ws.send(JSON.stringify({
+      type:'ut_turn_end', matchId:UT.matchId,
+      name:player.name, roomCode:player.roomCode, oppHp:UT.soulHp
+    }));
+    utSetText('* Turn over! Waiting for opponent...');
     return;
   }
 
-  utSetText(`* Your turn is over!\n* ${dmgDealt>0?`Dealt ${dmgDealt} damage!`:`The opponent dodged everything!`}\n* Now it's their turn to attack...`);
+  // Offline/bot mode
+  const dmgDealt = UT.oppHp - UT.soulHp;
+  UT.oppHp = Math.max(0, UT.soulHp);
+  utUpdateStats();
+  if(UT.oppHp<=0){ utShowResult(true); return; }
+  utSetText(`* Your turn is over!\n* ${dmgDealt>0?`Dealt ${dmgDealt} damage!`:`The opponent dodged everything!`}\n* Now it's their turn...`);
   utShowBanner("OPPONENT'S TURN!", '#ff4444');
-
-  setTimeout(()=>{
-    // Opponent attacks — auto-generate their pattern
-    utOpponentAttackTurn();
-  }, 2000);
+  setTimeout(()=>utOpponentAttackTurn(), 2000);
 }
 
 // ── DODGE TURN — I dodge, opponent attacks ──
@@ -6199,16 +6208,6 @@ function utStartDodgeTimer(){
 }
 
 // Override utFireSkill to relay to opponent when online
-const _origUtFireSkill=utFireSkill;
-utFireSkill=function(idx){
-  _origUtFireSkill(idx);
-  if(UT.online&&UT.matchId&&UT.phase==='attacking'&&ws&&ws.readyState===1){
-    ws.send(JSON.stringify({
-      type:'ut_attack',matchId:UT.matchId,name:player.name,
-      roomCode:player.roomCode,skillIdx:idx,techName:player?.tech||''
-    }));
-  }
-};
 </script>
 
 <!-- ══════════════════════════════════════════════════════
@@ -6701,15 +6700,24 @@ function pickMode(mode){
   const target=pendingDuelTarget;
   closeModePickerM();
   if(mode==='undertale'){
-    // Direct challenge — open UT vs this specific player (bot for now, online when both click)
-    if(target)openUTBattle(target.name,target.tech||'',false);
+    if(target?.pid) sendDuelRequest(target.pid, target.name, 'undertale');
+    else if(target) openUTBattle(target.name,target.tech||'',false);
     else joinUTQueue();
   } else if(mode==='arena'){
-    if(target)openArena(target.name,'#e74c3c',false);
+    if(target?.pid) sendDuelRequest(target.pid, target.name, 'arena');
+    else if(target) openArena(target.name,'#e74c3c',false);
     else joinArenaQueue('arena');
   } else if(mode==='classic'){
-    if(target)startPvp(target.pid);
+    if(target?.pid) startPvp(target.pid);
   }
+}
+
+function openDuelMenu(pid, name){
+  // Store full target info and open mode picker
+  const op = others[pid];
+  pendingDuelTarget = {pid, name, tech: op?.tech||'', charId: op?.charId||'megumi'};
+  document.getElementById('mp-opp-name').textContent = `vs ${(name||'OPPONENT').toUpperCase()}`;
+  document.getElementById('mode-pick-ov').classList.add('active');
 }
 
 // ── HOOK INTO PLAYER LIST ── (replace challenge button to use mode picker)
@@ -6740,7 +6748,7 @@ renderPlayers=function(){
         </span>
         <div style="display:flex;gap:4px;align-items:center">
           <span class="text-mut" style="font-size:11px">Lv.${op.level||1}</span>
-          <button class="pvpbtn" onclick="openModePicker('${pid}','${op.name}','${op.tech||''}')">⚔ Duel</button>
+          <button class="pvpbtn" onclick="openDuelMenu('${pid}','${op.name}')">⚔ Challenge</button>
           <button class="rkbtn" onclick="startRanked('${pid}')">🏆</button>
         </div>
       </div>
@@ -6824,6 +6832,219 @@ utUpdateStats=function(){
   }
   drawCharacter(el,player?.charId||'megumi','idle',1);
 };
+</script>
+
+<!-- ── DUEL REQUEST POPUP ── -->
+<style>
+#duel-req-ov{
+  position:fixed;inset:0;z-index:800;
+  background:rgba(0,0,0,.85);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
+}
+#duel-req-ov.active{display:flex}
+.duel-req-box{
+  background:linear-gradient(135deg,#0d0b14,#111019);
+  border:2px solid var(--acc);
+  border-radius:16px;
+  padding:28px 32px;
+  text-align:center;
+  width:360px;max-width:94vw;
+  box-shadow:0 0 60px var(--glow-acc),0 0 120px rgba(0,0,0,.8);
+  animation:fadeIn .3s ease;
+}
+.duel-req-vs{
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  margin-bottom:16px;
+}
+.duel-req-fighter{display:flex;flex-direction:column;align-items:center;gap:6px}
+.duel-req-fighter canvas{image-rendering:pixelated}
+.duel-req-fname{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.08em;color:var(--txt)}
+.duel-req-vstext{font-family:'Cinzel',serif;font-size:20px;font-weight:900;color:var(--acc);text-shadow:0 0 20px var(--glow-acc)}
+.duel-req-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;color:var(--acc2);margin-bottom:6px}
+.duel-req-mode{font-size:10px;color:var(--mut);margin-bottom:20px;font-style:italic}
+.duel-req-btns{display:flex;gap:10px}
+.duel-acc-btn{flex:1;padding:11px;background:rgba(39,174,96,.12);border:1.5px solid var(--grn2);color:var(--grn3);font-family:'Cinzel',serif;font-size:10px;letter-spacing:.1em;border-radius:8px;cursor:pointer;transition:all .2s}
+.duel-acc-btn:hover{background:var(--grn2);color:#000}
+.duel-dec-btn{flex:1;padding:11px;background:rgba(192,57,43,.1);border:1.5px solid var(--red2);color:var(--red3);font-family:'Cinzel',serif;font-size:10px;letter-spacing:.1em;border-radius:8px;cursor:pointer;transition:all .2s}
+.duel-dec-btn:hover{background:var(--red2);color:#fff}
+</style>
+
+<div id="duel-req-ov">
+  <div class="duel-req-box">
+    <div class="duel-req-title">⚔ DUEL REQUEST</div>
+    <div class="duel-req-vs">
+      <div class="duel-req-fighter">
+        <canvas id="dreq-opp-canvas" width="70" height="90" style="image-rendering:pixelated"></canvas>
+        <span class="duel-req-fname" id="dreq-opp-name">???</span>
+      </div>
+      <div class="duel-req-vstext">VS</div>
+      <div class="duel-req-fighter">
+        <canvas id="dreq-my-canvas" width="70" height="90" style="image-rendering:pixelated"></canvas>
+        <span class="duel-req-fname" id="dreq-my-name">YOU</span>
+      </div>
+    </div>
+    <div class="duel-req-mode" id="dreq-mode-txt">Undertale Battle</div>
+    <div class="duel-req-btns">
+      <button class="duel-acc-btn" onclick="acceptDuel()">✓ ACCEPT</button>
+      <button class="duel-dec-btn" onclick="declineDuel()">✕ DECLINE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DUEL REQUEST SYSTEM
+// ══════════════════════════════════════════════════════
+
+let pendingDuelReq = null; // incoming request data
+
+// ── SEND A CHALLENGE ──
+function sendDuelRequest(targetPid, targetName, mode){
+  if(!player||!ws||ws.readyState!==1){
+    toast('⚠','Not connected!');return;
+  }
+  ws.send(JSON.stringify({
+    type: 'duel_request',
+    roomCode: player.roomCode,
+    fromName: player.name,
+    fromId: player.playerId,
+    fromCharId: player.charId || selectedCharId || 'megumi',
+    fromTech: player.tech || '',
+    targetId: targetPid,
+    mode: mode || 'undertale'
+  }));
+  toast('⚔', `Challenge sent to ${targetName}!`);
+  logLine(`⚔ You challenged ${targetName} to a ${mode==='arena'?'WASD Arena':'Cursed Battle'}!`,'var(--acc)');
+}
+
+// ── RECEIVE A CHALLENGE ──
+function receiveDuelRequest(msg){
+  pendingDuelReq = msg;
+  // Draw both fighters
+  const oppC = document.getElementById('dreq-opp-canvas');
+  const myC  = document.getElementById('dreq-my-canvas');
+  if(oppC) drawCharacter(oppC, msg.fromCharId||'megumi', 'idle', 1);
+  if(myC)  drawCharacter(myC,  player?.charId||'megumi', 'idle', -1);
+  document.getElementById('dreq-opp-name').textContent = msg.fromName?.toUpperCase()||'???';
+  document.getElementById('dreq-my-name').textContent  = (player?.name||'YOU').toUpperCase();
+  const modeLabel = msg.mode==='arena'?'⚔ WASD Arena — Real-time':'❤ Cursed Battle — Undertale';
+  document.getElementById('dreq-mode-txt').textContent = modeLabel;
+  document.getElementById('duel-req-ov').classList.add('active');
+  // Auto-decline after 20s
+  setTimeout(()=>{
+    if(pendingDuelReq===msg) declineDuel();
+  }, 20000);
+}
+
+function acceptDuel(){
+  const req = pendingDuelReq;
+  if(!req){document.getElementById('duel-req-ov').classList.remove('active');return;}
+  document.getElementById('duel-req-ov').classList.remove('active');
+  pendingDuelReq = null;
+  // Tell challenger we accepted
+  if(ws&&ws.readyState===1){
+    ws.send(JSON.stringify({
+      type: 'duel_accept',
+      roomCode: player.roomCode,
+      byName: player.name,
+      byId: player.playerId,
+      byCharId: player.charId || selectedCharId || 'megumi',
+      byTech: player.tech || '',
+      toId: req.fromId,
+      mode: req.mode
+    }));
+  }
+  // Start the battle on my end
+  startDuelBattle(req.fromName, req.fromCharId, req.fromTech, req.mode, false);
+}
+
+function declineDuel(){
+  const req = pendingDuelReq;
+  document.getElementById('duel-req-ov').classList.remove('active');
+  if(!req){pendingDuelReq=null;return;}
+  pendingDuelReq = null;
+  if(ws&&ws.readyState===1){
+    ws.send(JSON.stringify({
+      type: 'duel_decline',
+      roomCode: player.roomCode,
+      byName: player.name,
+      toId: req.fromId
+    }));
+  }
+}
+
+// ── CHALLENGER GETS ACCEPTED ──
+function onDuelAccepted(msg){
+  toast('✓', `${msg.byName} accepted! Starting battle...`);
+  logLine(`✓ ${msg.byName} accepted your challenge!`,'var(--grn3)');
+  setTimeout(()=>{
+    startDuelBattle(msg.byName, msg.byCharId, msg.byTech, msg.mode, true);
+  }, 500);
+}
+
+function onDuelDeclined(msg){
+  toast('✗', `${msg.byName} declined the challenge.`);
+  logLine(`✗ ${msg.byName} declined your duel request.`,'var(--red3)');
+}
+
+// ── START THE ACTUAL BATTLE ──
+function startDuelBattle(oppName, oppCharId, oppTech, mode, isChallenger){
+  if(mode==='arena'){
+    const oppChar=(typeof CHARACTERS!=='undefined')&&CHARACTERS.find(c=>c.id===oppCharId);
+    const oppColor = oppChar?.color||'#e74c3c';
+    openArena(oppName, oppColor, true); // true = online
+    // charId set inside openArena via arenaF2 after creation
+    setTimeout(()=>{ if(arenaF2) arenaF2.charId = oppCharId||'sukuna'; }, 100);
+  } else {
+    // Undertale battle — set online=true for live relay
+    openUTBattle(oppName, oppTech||'', true);
+    pendingDuelTarget = {name:oppName, charId:oppCharId, tech:oppTech};
+    if(isChallenger){
+      // Challenger attacks first
+      setTimeout(()=>utStartAttackTurn(),1500);
+    } else {
+      // Acceptor dodges first (challenger is already attacking)
+      setTimeout(()=>{
+        UT.phase='dodging';
+        UT.soulHp = UT.myHp;
+        UT.soul = {x:UTB.x+UTB.w/2, y:UTB.y+UTB.h/2, r:7, vx:0, vy:0};
+        UT.bullets = [];
+        UT.turnTimer = 10;
+        document.getElementById('ut-btns').style.display='none';
+        document.getElementById('ut-attack-panel').style.display='none';
+        utShowBanner('DODGE!','#ff4444');
+        utSetText('* Opponent is attacking!\n* DODGE with arrow keys or WASD!');
+        // Start dodge timer
+        clearInterval(UT.turnInt);
+        UT.turnInt = setInterval(()=>{
+          UT.turnTimer--;
+          const el=document.getElementById('ut-timer');
+          if(el){el.textContent=UT.turnTimer;el.className=UT.turnTimer<=3?'urgent':'';}
+          if(UT.turnTimer<=0){
+            clearInterval(UT.turnInt);
+            UT.bullets=[];
+            // Report HP to server
+            if(ws&&ws.readyState===1) ws.send(JSON.stringify({
+              type:'ut_damage', matchId:UT.matchId,
+              name:player.name, roomCode:player.roomCode, hp:UT.soulHp
+            }));
+            utSetText('* Dodge over! Now it\'s your turn to attack!');
+            setTimeout(()=>{
+              UT.myHp=UT.soulHp;
+              utUpdateStats();
+              utShowBanner('YOUR ATTACK TURN!','#3cff3c');
+              setTimeout(()=>utStartAttackTurn(),800);
+            },1500);
+          }
+        },1000);
+      },1200);
+    }
+  }
+}
+
+// ── UPDATE PLAYER LIST TO USE CHALLENGE BUTTON ──
+// Override the renderPlayers to show a CHALLENGE button that opens mode picker
 </script>
 </body>
 </html>
