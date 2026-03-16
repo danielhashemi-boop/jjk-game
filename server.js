@@ -574,28 +574,43 @@ function sanitizeFight(fight, room) {
 }
 
 // ── WebSocket ──
+
+// ══════════════════════════════════════════════════════
+// UNIFIED WEBSOCKET HANDLER
+// ══════════════════════════════════════════════════════
+const arenaQueues = {};
+const arenaMatches = {};
+const utMatches = {};
+function makeMatchId(){ return Math.random().toString(36).slice(2,10); }
+
 wss.on('connection', (ws) => {
   let myPid = null, myRoom = null;
 
   ws.on('message', (raw) => {
     try {
       const msg = JSON.parse(raw);
+      const roomCode = msg.roomCode || myRoom;
+
+      // ── AUTH ──
       if (msg.type === 'auth') {
         myPid = msg.playerId; myRoom = msg.roomCode;
         const room = rooms[myRoom];
         if (!room || !room.players[myPid]) return;
         room.players[myPid].ws = ws;
-        // Send current players
         const others = Object.values(room.players).filter(p => p.playerId !== myPid).map(sanitizePlayer);
         ws.send(JSON.stringify({ type: 'init', players: others }));
         broadcast(room, { type: 'join', name: room.players[myPid].name, playerId: myPid }, myPid);
         broadcast(room, { type: 'player_update', player: sanitizePlayer(room.players[myPid]) }, myPid);
       }
+
+      // ── CHAT ──
       if (msg.type === 'chat') {
         const room = rooms[myRoom];
         if (!room || !room.players[myPid]) return;
         broadcastRoom(myRoom, { type: 'chat', name: room.players[myPid].name, msg: msg.msg });
       }
+
+      // ── PLAYER UPDATE ──
       if (msg.type === 'player_update') {
         const room = rooms[myRoom];
         if (!room || !room.players[myPid]) return;
@@ -604,66 +619,62 @@ wss.on('connection', (ws) => {
         updateLeaderboard(msg.player);
         broadcast(room, { type: 'player_update', player: sanitizePlayer(room.players[myPid]) }, myPid);
       }
-    } catch (e) {}
-  });
 
-  ws.on('close', () => {
-    if (!myPid || !myRoom) return;
-    const room = rooms[myRoom];
-    if (!room || !room.players[myPid]) return;
-    const name = room.players[myPid].name;
-    delete room.players[myPid];
-    broadcast(room, { type: 'leave', name, playerId: myPid });
-    if (Object.keys(room.players).length === 0) delete rooms[myRoom];
-  });
-});
+      // ── DUEL REQUEST SYSTEM ──
+      if (msg.type === 'duel_request') {
+        const room = rooms[roomCode];
+        if (!room) return;
+        const target = Object.values(room.players).find(p => p.playerId === msg.targetId);
+        if (target && target.ws) {
+          target.ws.send(JSON.stringify({
+            type: 'duel_request',
+            fromName: msg.fromName,
+            fromId: msg.fromId,
+            fromCharId: msg.fromCharId,
+            fromTech: msg.fromTech,
+            mode: msg.mode || 'undertale'
+          }));
+        }
+      }
 
-function sanitizePlayer(p) {
-  const { ws, ...rest } = p;
-  return rest;
-}
+      if (msg.type === 'duel_accept') {
+        const room = rooms[roomCode];
+        if (!room) return;
+        const challenger = Object.values(room.players).find(p => p.playerId === msg.toId);
+        if (challenger && challenger.ws) {
+          challenger.ws.send(JSON.stringify({
+            type: 'duel_accepted',
+            byName: msg.byName,
+            byId: msg.byId,
+            byCharId: msg.byCharId,
+            byTech: msg.byTech,
+            mode: msg.mode || 'undertale'
+          }));
+        }
+      }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`JJK Game running on port ${PORT}`));
-
-// ══════════════════════════════════════════════════════
-// ARENA + UNDERTALE LIVE PVP MATCHMAKING
-// ══════════════════════════════════════════════════════
-
-const arenaQueues = {}; // roomCode -> [{pid, ws, name, charId, tech, level}]
-const arenaMatches = {}; // matchId -> {p1, p2, roomCode, mode}
-const utMatches = {};    // matchId -> {p1, p2, roomCode, turnOf, p1Hp, p2Hp}
-
-function makeMatchId() {
-  return Math.random().toString(36).slice(2,10);
-}
-
-// Handle arena/UT messages in WS
-const _origWssHandler = wss.listeners ? null : null;
-wss.on('connection', (ws2) => {
-  // We only handle NEW messages here — arena/UT specific
-  // The original handler is already attached, this adds more handlers
-  ws2.on('message', (raw) => {
-    try {
-      const msg = JSON.parse(raw);
-      const roomCode = msg.roomCode;
+      if (msg.type === 'duel_decline') {
+        const room = rooms[roomCode];
+        if (!room) return;
+        const challenger = Object.values(room.players).find(p => p.playerId === msg.toId);
+        if (challenger && challenger.ws) {
+          challenger.ws.send(JSON.stringify({ type: 'duel_declined', byName: msg.byName }));
+        }
+      }
 
       // ── ARENA QUEUE ──
       if (msg.type === 'arena_queue_join') {
         const pid = msg.playerId || msg.name;
         if (!arenaQueues[roomCode]) arenaQueues[roomCode] = [];
-        // Remove if already in queue
         arenaQueues[roomCode] = arenaQueues[roomCode].filter(p => p.pid !== pid);
-        arenaQueues[roomCode].push({ pid, ws: ws2, name: msg.name, charId: msg.charId, tech: msg.tech, level: msg.level, mode: msg.mode || 'arena' });
-        ws2.send(JSON.stringify({ type: 'arena_queue_update', count: arenaQueues[roomCode].length }));
-
-        // Try to match
+        arenaQueues[roomCode].push({ pid, ws, name: msg.name, charId: msg.charId, tech: msg.tech, level: msg.level, mode: msg.mode || 'arena' });
+        ws.send(JSON.stringify({ type: 'arena_queue_update', count: arenaQueues[roomCode].length }));
         const q = arenaQueues[roomCode];
         if (q.length >= 2) {
           const p1 = q.shift(), p2 = q.shift();
           const matchId = makeMatchId();
-          arenaMatches[matchId] = { p1, p2, roomCode, mode: p1.mode || 'arena' };
-          const payload = { type: 'arena_match_found', matchId, mode: p1.mode || 'arena', p1Name: p1.name, p2Name: p2.name, p1CharId: p1.charId, p2CharId: p2.charId };
+          arenaMatches[matchId] = { p1, p2, roomCode };
+          const payload = { type: 'arena_match_found', matchId, p1Name: p1.name, p2Name: p2.name, p1CharId: p1.charId, p2CharId: p2.charId };
           try { p1.ws.send(JSON.stringify({ ...payload, isP1: true })); } catch(e) {}
           try { p2.ws.send(JSON.stringify({ ...payload, isP1: false })); } catch(e) {}
         }
@@ -674,21 +685,19 @@ wss.on('connection', (ws2) => {
         if (arenaQueues[roomCode]) arenaQueues[roomCode] = arenaQueues[roomCode].filter(p => p.pid !== pid);
       }
 
-      // ── ARENA REAL-TIME STATE RELAY ──
+      // ── ARENA REAL-TIME RELAY ──
       if (msg.type === 'arena_state') {
         const match = arenaMatches[msg.matchId];
         if (!match) return;
-        const isP1 = match.p1.name === msg.name;
-        const opp = isP1 ? match.p2 : match.p1;
+        const opp = match.p1.name === msg.name ? match.p2 : match.p1;
         try { opp.ws.send(JSON.stringify({ type: 'arena_state', ...msg })); } catch(e) {}
       }
 
       if (msg.type === 'arena_hit') {
         const match = arenaMatches[msg.matchId];
         if (!match) return;
-        const isP1 = match.p1.name === msg.name;
-        const opp = isP1 ? match.p2 : match.p1;
-        try { opp.ws.send(JSON.stringify({ type: 'arena_hit', dmg: msg.dmg, skillIdx: msg.skillIdx, crit: msg.crit })); } catch(e) {}
+        const opp = match.p1.name === msg.name ? match.p2 : match.p1;
+        try { opp.ws.send(JSON.stringify({ type: 'arena_hit', dmg: msg.dmg, crit: msg.crit })); } catch(e) {}
       }
 
       if (msg.type === 'arena_end') {
@@ -700,75 +709,83 @@ wss.on('connection', (ws2) => {
         }
       }
 
-      // ── UT BATTLE QUEUE ──
+      // ── UT QUEUE ──
       if (msg.type === 'ut_queue_join') {
+        const key = 'ut_' + roomCode;
         const pid = msg.playerId || msg.name;
-        if (!arenaQueues['ut_' + roomCode]) arenaQueues['ut_' + roomCode] = [];
-        arenaQueues['ut_' + roomCode] = arenaQueues['ut_' + roomCode].filter(p => p.pid !== pid);
-        arenaQueues['ut_' + roomCode].push({ pid, ws: ws2, name: msg.name, charId: msg.charId, tech: msg.tech, level: msg.level });
-        ws2.send(JSON.stringify({ type: 'ut_queue_update', count: arenaQueues['ut_' + roomCode].length }));
-
-        const q = arenaQueues['ut_' + roomCode];
+        if (!arenaQueues[key]) arenaQueues[key] = [];
+        arenaQueues[key] = arenaQueues[key].filter(p => p.pid !== pid);
+        arenaQueues[key].push({ pid, ws, name: msg.name, charId: msg.charId, tech: msg.tech, level: msg.level });
+        ws.send(JSON.stringify({ type: 'ut_queue_update', count: arenaQueues[key].length }));
+        const q = arenaQueues[key];
         if (q.length >= 2) {
           const p1 = q.shift(), p2 = q.shift();
           const matchId = makeMatchId();
-          const maxHp = Math.floor(80 + (Math.max(p1.level||1, p2.level||1)) * 8);
-          utMatches[matchId] = { p1, p2, roomCode, turnOf: 'p1', p1Hp: maxHp, p2Hp: maxHp, maxHp, round: 1 };
-          const payload = { type: 'ut_match_found', matchId, p1Name: p1.name, p2Name: p2.name, p1CharId: p1.charId, p2CharId: p2.charId, p1Tech: p1.tech, p2Tech: p2.tech, maxHp };
+          const maxHp = Math.floor(80 + Math.max(p1.level||1, p2.level||1) * 8);
+          utMatches[matchId] = { p1, p2, roomCode, p1Hp: maxHp, p2Hp: maxHp, maxHp };
+          const payload = { type: 'ut_match_found', matchId, maxHp, p1Name: p1.name, p2Name: p2.name, p1CharId: p1.charId, p2CharId: p2.charId, p1Tech: p1.tech, p2Tech: p2.tech };
           try { p1.ws.send(JSON.stringify({ ...payload, isP1: true })); } catch(e) {}
           try { p2.ws.send(JSON.stringify({ ...payload, isP1: false })); } catch(e) {}
         }
       }
 
       if (msg.type === 'ut_queue_leave') {
-        const pid = msg.playerId || msg.name;
         const key = 'ut_' + roomCode;
+        const pid = msg.playerId || msg.name;
         if (arenaQueues[key]) arenaQueues[key] = arenaQueues[key].filter(p => p.pid !== pid);
       }
 
-      // ── UT ATTACK RELAY (attacker fires bullets → relay to defender) ──
       if (msg.type === 'ut_attack') {
         const match = utMatches[msg.matchId];
         if (!match) return;
-        const isP1 = match.p1.name === msg.name;
-        const opp = isP1 ? match.p2 : match.p1;
+        const opp = match.p1.name === msg.name ? match.p2 : match.p1;
         try { opp.ws.send(JSON.stringify({ type: 'ut_incoming_attack', skillIdx: msg.skillIdx, techName: msg.techName })); } catch(e) {}
       }
 
-      // ── UT DAMAGE REPORT ──
       if (msg.type === 'ut_damage') {
         const match = utMatches[msg.matchId];
         if (!match) return;
         const isP1 = match.p1.name === msg.name;
         if (isP1) match.p2Hp = Math.max(0, msg.hp);
         else match.p1Hp = Math.max(0, msg.hp);
-        // Relay HP update to both
         const upd = { type: 'ut_hp_update', p1Hp: match.p1Hp, p2Hp: match.p2Hp };
         try { match.p1.ws.send(JSON.stringify(upd)); } catch(e) {}
         try { match.p2.ws.send(JSON.stringify(upd)); } catch(e) {}
       }
 
-      // ── UT TURN END ──
       if (msg.type === 'ut_turn_end') {
         const match = utMatches[msg.matchId];
         if (!match) return;
         const isP1 = match.p1.name === msg.name;
         const opp = isP1 ? match.p2 : match.p1;
-        match.turnOf = isP1 ? 'p2' : 'p1';
-        const turnMsg = { type: 'ut_your_turn', round: match.round, oppHp: isP1 ? match.p1Hp : match.p2Hp, myHp: isP1 ? match.p2Hp : match.p1Hp };
-        try { opp.ws.send(JSON.stringify(turnMsg)); } catch(e) {}
-        // Check win condition
+        try { opp.ws.send(JSON.stringify({ type: 'ut_your_turn', oppHp: isP1 ? match.p1Hp : match.p2Hp, myHp: isP1 ? match.p2Hp : match.p1Hp })); } catch(e) {}
         if (match.p1Hp <= 0 || match.p2Hp <= 0) {
           const winner = match.p1Hp > match.p2Hp ? match.p1.name : match.p2.name;
           const end = { type: 'ut_match_end', winner };
           try { match.p1.ws.send(JSON.stringify(end)); } catch(e) {}
           try { match.p2.ws.send(JSON.stringify(end)); } catch(e) {}
           delete utMatches[msg.matchId];
-        } else {
-          match.round++;
         }
       }
 
-    } catch(e) {}
+    } catch (e) { console.error('WS error:', e.message); }
+  });
+
+  ws.on('close', () => {
+    if (!myPid || !myRoom) return;
+    const room = rooms[myRoom];
+    if (!room || !room.players[myPid]) return;
+    const name = room.players[myPid].name;
+    delete room.players[myPid];
+    broadcast(room, { type: 'leave', name, playerId: myPid });
+    if (Object.keys(room.players).length === 0) delete rooms[myRoom];
+    // Clean up queues
+    for (const key in arenaQueues) {
+      arenaQueues[key] = arenaQueues[key].filter(p => p.pid !== myPid);
+    }
   });
 });
+
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`JJK Game running on port ${PORT}`));
