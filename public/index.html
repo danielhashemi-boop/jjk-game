@@ -2144,8 +2144,8 @@ function renderAll(){
   // Show roll warning for high rarity
   const rw = document.getElementById('roll-warning');
   if(rw && p.tech){
-    const highR = ['SS','SS+','SSS','SSS+'];
-    const rnames = {'SS':'SS','SS+':'SS+','SSS':'SSS ⚠','SSS+':'SSS+ ⚠⚠'};
+    const highR = ['SS','SS+','SSS','SSS+','Z+'];
+    const rnames = {'SS':'SS','SS+':'SS+','SSS':'SSS ⚠','SSS+':'SSS+ ⚠⚠','Z+':'Z+ ⚠⚠⚠ LIMITED'};
     if(highR.includes(p.techRarity)){
       rw.style.display='block';
       rw.innerHTML='⚠ You have ['+rnames[p.techRarity]+'] <b>'+p.tech+'</b> — Rolling Stand will replace it forever!';
@@ -2395,8 +2395,8 @@ function setTrainTab(tab){
 function doRoll(type){
   const p=player;
   if((p.spins||0)<=0){ document.getElementById('roll-res').innerHTML=`<span style="color:var(--red3)">No spins left!</span>`; return; }
-  const highRarities=['SS','SS+','SSS','SSS+'];
-  const rarityNames={'SS':'★★ SS','SS+':'★★★ SS+','SSS':'💜 SSS — WONDER OF U','SSS+':'💠 SSS+ — ULTIMATE LIFE FORM'};
+  const highRarities=['SS','SS+','SSS','SSS+','Z+'];
+  const rarityNames={'SS':'★★ SS','SS+':'★★★ SS+','SSS':'💜 SSS — WONDER OF U','SSS+':'💠 SSS+ — ULTIMATE LIFE FORM','Z+':'⚠⚠⚠ Z+ — PSYCHIC SOVEREIGN (LIMITED)'};
   if(type==='blood'&&p.clan&&highRarities.includes(p.clanRarity)){
     const rname = rarityNames[p.clanRarity]||p.clanRarity;
     if(!confirm('⚠️ WARNING — RARE BLOODLINE!\n\nYou currently have:\n['+rname+'] '+p.clan+'\n\nRolling will PERMANENTLY REPLACE it!\nThis cannot be undone.\n\nAre you sure?')) return;
