@@ -294,6 +294,7 @@ body::before {
 @keyframes rbShift { to { background-position: 200% center; } }
 @keyframes ssspulse { 0%,100%{text-shadow:0 0 8px #00ffff,0 0 16px #00e5ff} 50%{text-shadow:0 0 20px #00ffff,0 0 40px #00e5ff,0 0 60px #18ffff} }
 @keyframes sssglow  { 0%,100%{text-shadow:0 0 8px #b388ff,0 0 16px #7c4dff} 50%{text-shadow:0 0 20px #b388ff,0 0 40px #ea80fc} }
+@keyframes zpulse { 0%,100%{text-shadow:0 0 8px #ff00ff,0 0 16px #ff00ff;opacity:1} 50%{text-shadow:0 0 30px #ff00ff,0 0 60px #ff69b4,0 0 90px #fff;opacity:.8} }
 
 /* ══ TECH FOOTER ══ */
 .tech-foot {
@@ -900,7 +901,12 @@ window.addEventListener('beforeunload', ()=>{
       <button class="tb-btn" onclick="openShop()">SHOP</button>
       <button class="tb-btn" onclick="openLb()">🏆</button>
       <button class="tb-btn" onclick="openSave()">💾</button>
-      <span><span id="sdot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--grn2);margin-right:3px;vertical-align:middle"></span><span id="sstatus" style="font-size:9px;color:var(--grn2);font-family:'Cinzel Decorative',serif">Saved</span></span>
+      <span id="online-indicator" style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 8px;border-radius:20px;background:rgba(0,0,0,.3);border:1px solid var(--border)">
+  <span id="ws-status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#888;margin-right:4px;vertical-align:middle"></span>
+  <span id="ws-status-txt" style="color:var(--mut)">Offline</span>
+  <span id="ws-player-count" style="color:var(--mut)"></span>
+</span>
+<span><span id="sdot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--grn2);margin-right:3px;vertical-align:middle"></span><span id="sstatus" style="font-size:9px;color:var(--grn2);font-family:'Cinzel Decorative',serif">Saved</span></span>
     </div>
   </div>
 
@@ -1026,7 +1032,7 @@ window.addEventListener('beforeunload', ()=>{
             <span class="rar" style="color:var(--gold)">A</span>
             <span class="rar" style="color:var(--red3)">S</span>
             <span class="rar" style="color:var(--pink3)">SS</span>
-            <span class="rar rainbow" style="-webkit-text-fill-color:unset">SS+</span><span class="rar" style="color:#b388ff;text-shadow:0 0 6px #b388ff">SSS</span><span class="rar" style="color:#00ffff;text-shadow:0 0 8px #00ffff;animation:ssspulse 1.5s infinite">SSS+</span>
+            <span class="rar rainbow" style="-webkit-text-fill-color:unset">SS+</span><span class="rar" style="color:#b388ff;text-shadow:0 0 6px #b388ff">SSS</span><span class="rar" style="color:#00ffff;text-shadow:0 0 8px #00ffff;animation:ssspulse 1.5s infinite">SSS+</span><span class="rar" style="color:#ff00ff;text-shadow:0 0 10px #ff00ff;animation:zpulse 0.8s infinite">Z+</span>
           </div>
           <div class="roll-box" id="roll-res">Discover your Stand and bloodline...</div>
           <div id="roll-warning" style="display:none;background:rgba(139,26,26,.2);border:1px solid var(--red2);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--red4);text-align:center;font-style:italic"></div>
@@ -1307,6 +1313,7 @@ const BLOODLINES = [
   {name:'Giorno',      r:'SS',  bonus:'Gold Experience heals on kill', w:4},
   {name:'Higashikata', r:'S',   bonus:'Calamity resist, Spin mastery', w:8},
   {name:'Passione',    r:'B',   bonus:'Coin +20%, Gang bonus income', w:20},
+  {name:'Saiki',        r:'Z+',  bonus:'All psychic abilities +50%, immune to all status effects, +30% all stats', w:0},
   {name:'Commoner',    r:'E',   bonus:'None', w:60},
 ];
 
@@ -1319,6 +1326,14 @@ const STANDS = [
     {name:'Adaptive Body',     dmg:0,   cost:60,  cd:8,  heal:200,        color:'#18ffff'},
     {name:'Ultimate Lifeform', dmg:450, cost:200, cd:20, status:'curse',  color:'#e0ffff'},
   ], w:0.2},
+
+  // Z+ — Saiki Kusuo (Psychic Sovereign - LIMITED)
+  {name:"Psychic Sovereign", r:'Z+', color:'#ff00ff', skills:[
+    {name:'Psychokinesis',   dmg:500, cost:150, cd:8,  status:'stun',  color:'#ff00ff'},
+    {name:'Telepathy Read',  dmg:0,   cost:80,  cd:6,  heal:300,       color:'#da77f2'},
+    {name:'Petrification',   dmg:350, cost:120, cd:10, status:'stun',  color:'#a855f7'},
+    {name:'Ζ Reality Erase', dmg:999, cost:250, cd:25, status:'curse', color:'#ffffff'},
+  ], w:0, limited:true},
 
   // SSS — Wonder of U (Calamity Stand)
   {name:'Wonder of U', r:'SSS', color:'#b388ff', skills:[
@@ -1492,6 +1507,7 @@ const DOMAIN_NAMES = {
   'Hermit Purple':       {name:'Vine Prison',               shard:'Purple Thorn',  color:'#a855f7'},
   'Pluck':               {name:'Sword Domain',              shard:'Steel Chip',    color:'#78716c'},
   'Hamon Technique':     {name:'Overdrive Sunlight',        shard:'Hamon Shard',   color:'#fbbf24'},
+  'Psychic Sovereign':    {name:'Ζ Saiki Reality Erasure',    shard:'Psychic Crystal', color:'#ff00ff'},
   'Wonder of U':          {name:'Calamity: Wonder of U',       shard:'Calamity Shard', color:'#b388ff'},
   'Ultimate Life Form':   {name:'Perfect Ultimate Lifeform',   shard:'Kars Crystal',   color:'#00ffff'},
 };
@@ -1576,6 +1592,36 @@ const QUEST_CHAINS = [
 
 // ── EVENTS ──
 const EVENTS = [
+  {
+    id:'saiki_event',
+    name:'🌸 The Disastrous Life of Saiki K.',
+    desc:'Saiki Kusuo has been detected! The most powerful psychic in existence has entered the bizarre world. Collect Psychic Crystals to challenge him — but beware, his powers are beyond comprehension.',
+    color:'#ff00ff',
+    active: true,
+    limited: true,
+    endDate: '2026-03-27',
+    daysLeft: 10,
+    bonuses:{xpMult:2, coinMult:2, enemyHpMult:1.2, enemyDmgMult:1},
+    eventBoss:{
+      name:'Saiki Kusuo',
+      grade:'Z+ Psychic Sovereign',
+      maxHp:100000,
+      dmg:800,
+      xp:50000,
+      coins:30000,
+      spins:150,
+      color:'#ff00ff',
+      special:'psychic',
+      rewards:{ domainShard:10, traits:5, spins:100, saikiBadge:true },
+      lore:"Saiki Kusuo — a high school student born with every psychic power known to man. Telepathy, psychokinesis, time travel, clairvoyance, petrification. He doesn't even need to try. Defeating him is truly... disastrous."
+    },
+    shopItems:[
+      {id:"ev_antenna", name:"Saiki Antenna",  icon:'📡', desc:'+40% all psychic dmg this session', price:1500, tag:'LIMITED', tagCol:'#ff00ff'},
+      {id:"ev_coffee_jelly", name:"Coffee Jelly",  icon:'☕', desc:'Full HP+STA restore + +5 spins',    price:800,  tag:'LIMITED', tagCol:'#ff00ff'},
+      {id:"ev_pink_hair", name:"Pink Hair Band",   icon:'💗', desc:'+25% XP permanently',               price:2000, tag:'LIMITED', tagCol:'#ff00ff'},
+      {id:"ev_psycrystal", name:"Psychic Crystal", icon:'💎', desc:'+3 domain shards instantly',        price:1200, tag:'LIMITED', tagCol:'#ff00ff'},
+    ],
+  },
   {id:'vampire_night', name:'🧛 Vampire Night', desc:'DIO\'s vampires overrun the land. Enemies are vampiric — stronger but drop double rewards. Collect Blood Tokens to summon the Event Boss!', color:'#8b1a1a', active:true,
     bonuses:{xpMult:1.5,coinMult:2,enemyHpMult:1.4,enemyDmgMult:1.2},
     eventBoss:{name:'Dio Brando (World Power)',grade:'Event Boss',maxHp:30000,dmg:500,xp:15000,coins:10000,spins:70,color:'#fbbf24',rewards:{domainShard:3,traits:2,spins:35},lore:'WRYYYYYY! DIO at his peak — The World freezes time itself!'}},
@@ -1619,6 +1665,16 @@ const ACHIEVEMENTS = [
   {id:'domain', title:'Stand Cry!',       desc:'Use Stand Ability',          icon:'🌀',  check:p=>!!(p.domainUsed)},
   {id:'domain10',title:'Stand Master',    desc:'Use Stand Ability 10 times', icon:'🌌',  check:p=>(p.domainCount||0)>=10},
   {id:'outfit', title:'Fashionable',      desc:'Buy an outfit',              icon:'👗',  check:p=>(p.outfits||[]).length>1},
+  // Saiki K. Limited Achievements
+  {id:"saiki_encounter", title:"Thats Disastrous",    desc:"Encounter Saiki K. event boss",         icon:"\U0001f610", check:p=>!!(p.saikiEncountered)},
+  {id:"saiki_damage",    title:"You Annoyed Him",      desc:"Deal 10000 damage to Saiki",            icon:"\U0001f4a5", check:p=>(p.saikiDmgDealt||0)>=10000},
+  {id:"saiki_defeated",  title:"True Disaster",        desc:"Defeat Saiki Kusuo",                    icon:"\U0001f4e1", check:p=>!!(p.saikiDefeated)},
+  {id:"saiki_clan",      title:"Psychic Bloodline",    desc:"Obtain the Saiki clan",                 icon:"\U0001f338", check:p=>p.clan==="Saiki"},
+  {id:"saiki_stand",     title:"Psychic Sovereign",    desc:"Obtain the Psychic Sovereign stand",    icon:"\U0001f4ab", check:p=>p.tech==="Psychic Sovereign"},
+  {id:"saiki_outfit",    title:"PK Academy Student",   desc:"Equip Saiki school uniform",            icon:"\U0001f392", check:p=>p.outfitId==="saiki_uniform"},
+  {id:"coffee_jelly_fan",title:"Coffee Jelly Lover",   desc:"Buy 3 Coffee Jellies from event shop",  icon:"\u2615",     check:p=>(p.coffeeJellyCount||0)>=3},
+  {id:"saiki_domain",    title:"Reality Erased",       desc:"Use Psychic Sovereign domain ability",  icon:"\U0001f30c", check:p=>!!(p.saikiDomainUsed)},
+  {id:"saiki_10days",    title:"10 Days of Disaster",  desc:"Play during the full Saiki event",      icon:"\U0001f4c5", check:p=>!!(p.saikiEventCompleted)},
   {id:'quest1', title:'On a Mission',     desc:'Complete your first quest',  icon:'📜',  check:p=>(p.completedQuests||[]).length>=1},
 ];
 
@@ -1677,6 +1733,7 @@ function rs(r, t){
   if(r==='SS+') return '<span class="rainbow">'+t+'</span>';
   if(r==='SSS') return '<span style="color:#b388ff;text-shadow:0 0 8px #b388ff">'+t+'</span>';
   if(r==='SSS+') return '<span style="color:#00ffff;text-shadow:0 0 10px #00ffff,0 0 20px #00e5ff;animation:ssspulse 1.5s infinite">'+t+'</span>';
+  if(r==='Z+') return '<span style="color:#ff00ff;text-shadow:0 0 12px #ff00ff,0 0 24px #ff69b4;animation:zpulse .8s infinite">'+t+'</span>';
   const c=rc(r); 
   return '<span style="color:'+c+'">'+t+'</span>';
 }
@@ -1739,49 +1796,40 @@ function joinGame(){
   const name = document.getElementById('inp-name').value.trim();
   const room = document.getElementById('inp-room').value.trim().toUpperCase();
   if(!name){ showErr('Enter your name!'); return; }
-  if(!room){ showErr('Enter a room code!'); return; }
+  if(!room){  showErr('Enter a room code!'); return; }
 
   const playerId = name + '_' + room + '_' + Date.now();
 
-  // Default fresh player
+  // Fresh player template
   player = {
     playerId, name, roomCode: room,
     level:1, xp:0, maxXp:100,
     str:5, agi:5, end:5,
-    hp:100, maxHp:100,
-    ce:100, maxCe:100,
-    coins:100, spins:3,
-    kills:0, rankIdx:0,
-    trainCount:0
+    hp:100, maxHp:100, ce:100, maxCe:100,
+    coins:100, spins:3, kills:0, rankIdx:0, trainCount:0
   };
 
-  // Try loading save - check all possible save keys
-  const saveKeys = [
-    'jjba_save_'+name,
-    'jjba_save_latest'
-  ];
-  
+  // Try loading local save
+  const saveKeys = ['jjba_save_' + name, 'jjba_save_latest'];
   for(const key of saveKeys){
     try{
       const saved = localStorage.getItem(key);
       if(saved){
         const s = JSON.parse(saved);
         if(s && s.name === name){
-          player = {...s, playerId, roomCode: room, name};
-          console.log('Save loaded from', key, 'Level:', player.level);
+          player = { ...s, playerId, roomCode: room, name };
+          console.log('Loaded save: Level', player.level, 'Kills', player.kills);
           break;
         }
       }
-    } catch(e){ console.log('Failed to load', key, e); }
+    } catch(e){}
   }
 
   // Start game immediately
   initGame();
-
-  // Connect to server in background
-  setTimeout(()=>{
-    try{ connectWS(); } catch(e){}
-  }, 500);
+  
+  // Connect to server after short delay
+  setTimeout(connectWS, 800);
 }
 function showErr(m){
   const e=document.getElementById('lerr');
@@ -1800,7 +1848,14 @@ function initGame(){
   document.getElementById('tc').style.display='flex';
   loadDailyMissions(); renderAll(); startIdle();
   setTimeout(()=>{ startAgiGame(); startMedGame(); }, 500);
-  // Auto-save every 30 seconds
+  // Broadcast player state every 30s to keep room in sync
+setInterval(()=>{
+  if(player && ws && ws.readyState === WebSocket.OPEN){
+    ws.send(JSON.stringify({ type: 'player_update', player: player }));
+  }
+}, 30000);
+
+// Auto-save every 30 seconds
   setInterval(()=>{ if(player) savePlayer(); }, 10000);
   // Initial save after short delay
   setTimeout(()=>{ if(player) savePlayer(); }, 2000);
@@ -1808,70 +1863,161 @@ function initGame(){
   prevKills=player.kills||0; prevCoins=player.coins||0; prevLevel=player.level||1; prevTrains=player.trainCount||0;
 }
 
+
+function updateWsIndicator(status){
+  const dot = document.getElementById('ws-status-dot');
+  const txt = document.getElementById('ws-status-txt');
+  const cnt = document.getElementById('ws-player-count');
+  if(!dot) return;
+  if(status === 'online'){
+    dot.style.background = 'var(--grn2)';
+    txt.style.color = 'var(--grn3)';
+    txt.textContent = 'Online';
+    const n = Object.keys(others).length;
+    cnt.textContent = n > 0 ? ' · ' + (n+1) + ' in room' : ' · alone';
+  } else if(status === 'connecting'){
+    dot.style.background = 'var(--gold)';
+    txt.style.color = 'var(--gold)';
+    txt.textContent = 'Connecting...';
+    cnt.textContent = '';
+  } else {
+    dot.style.background = '#888';
+    txt.style.color = 'var(--mut)';
+    txt.textContent = 'Offline';
+    cnt.textContent = '';
+  }
+}
+
 function connectWS(){
+  if(ws && ws.readyState === WebSocket.OPEN) return; // already connected
   try{
-    const proto = location.protocol==='https:'?'wss':'ws';
-    ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen=()=>{
-      try{
-        ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode}));
-        // Broadcast our player data right after auth
-        setTimeout(()=>{
-          if(ws&&ws.readyState===1&&player){
-            ws.send(JSON.stringify({type:'player_update',player}));
-          }
-        }, 500);
-      }catch{}
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto + '://' + location.host);
+
+    ws.onopen = function(){
+      console.log('WS connected!');
       setSave('saved');
+      updateWsIndicator('connecting');
+      // Send auth with full player info
+      ws.send(JSON.stringify({
+        type: 'auth',
+        playerId: player.playerId,
+        roomCode: player.roomCode,
+        name: player.name,
+        player: player
+      }));
     };
-    ws.onmessage=e=>{ try{ handleWS(JSON.parse(e.data)); }catch{} };
-    ws.onerror=()=>{ ws=null; };
-    ws.onclose=()=>{ ws=null; setSave('offline'); setTimeout(connectWS,8000); };
-  } catch(e){ ws=null; setTimeout(connectWS,8000); }
+
+    ws.onmessage = function(e){
+      try{ handleWS(JSON.parse(e.data)); }
+      catch(err){ console.log('WS message error:', err); }
+    };
+
+    ws.onerror = function(e){
+      console.log('WS error:', e);
+    };
+
+    ws.onclose = function(){
+      console.log('WS closed, reconnecting in 5s...');
+      ws = null;
+      setSave('offline');
+      updateWsIndicator('offline');
+      setTimeout(connectWS, 5000);
+    };
+
+  } catch(e){
+    console.log('WS connect failed:', e);
+    ws = null;
+    setTimeout(connectWS, 5000);
+  }
 }
 function handleWS(msg){
-  if(msg.type==='init'){
-    others = {};
-    if(msg.players && msg.players.length){
-      for(const p of msg.players){
-        if(p.playerId !== player.playerId) others[p.playerId] = p;
+  if(!msg || !msg.type) return;
+
+  switch(msg.type){
+    case 'init':
+      // Server sends all existing players in room
+      others = {};
+      if(msg.players && Array.isArray(msg.players)){
+        msg.players.forEach(p => {
+          if(p && p.playerId && p.playerId !== player.playerId){
+            others[p.playerId] = p;
+          }
+        });
       }
-    }
-    renderPlayers();
-    // Broadcast our own data so others see us
-    setTimeout(()=>{
-      if(ws && ws.readyState===1){
-        ws.send(JSON.stringify({type:'player_update', player}));
-      }
-    }, 200);
-  }
-  if(msg.type==='join'){
-    chatLine('⚡ ' + msg.name + ' entered the bizarre adventure!','var(--blue3)');
-    // Request their data by sending our own update
-    if(ws && ws.readyState===1){
-      ws.send(JSON.stringify({type:'player_update', player}));
-    }
-    renderPlayers();
-  }
-  if(msg.type==='leave'){
-    if(msg.playerId) delete others[msg.playerId];
-    renderPlayers();
-    chatLine('🚪 ' + (msg.name||'Someone') + ' left.','var(--mut)');
-  }
-  if(msg.type==='player_update'){
-    if(msg.player && msg.player.playerId && msg.player.playerId!==player.playerId){
-      others[msg.player.playerId] = msg.player;
+      console.log('Room init: ' + Object.keys(others).length + ' other players');
+      updateWsIndicator('online');
       renderPlayers();
-    }
+      break;
+
+    case 'join':
+      chatLine('⚡ ' + msg.name + ' entered the bizarre adventure!', 'var(--blue3)');
+      if(msg.player && msg.player.playerId !== player.playerId){
+        others[msg.player.playerId] = msg.player;
+      }
+      updateWsIndicator('online');
+      renderPlayers();
+      break;
+
+    case 'leave':
+      if(msg.playerId) delete others[msg.playerId];
+      chatLine('🚪 ' + (msg.name||'Someone') + ' left.', 'var(--mut)');
+      updateWsIndicator('online');
+      renderPlayers();
+      break;
+
+    case 'player_update':
+      if(msg.player && msg.player.playerId && msg.player.playerId !== player.playerId){
+        others[msg.player.playerId] = msg.player;
+        renderPlayers();
+      }
+      break;
+
+    case 'chat':
+      chatLine('<' + msg.name + '> ' + msg.msg);
+      break;
+
+    case 'kill':
+      chatLine('⚔ ' + msg.name + ' defeated ' + msg.enemy + '! (+' + msg.xp + 'XP)', 'var(--grn3)');
+      break;
+
+    case 'levelup':
+      chatLine('🔥 ' + msg.name + ' reached Level ' + msg.level + '!', 'var(--gold)');
+      break;
+
+    case 'pvp_match_found':
+      handlePvpMatchFound(msg);
+      break;
+
+    case 'pvp_duel_request':
+      receiveDuelRequest(msg);
+      break;
+
+    case 'pvp_duel_accepted':
+      toast('✓', msg.byName + ' accepted! Starting battle...');
+      PVP.opponentName = msg.byName;
+      PVP.opponentTech = msg.byTech;
+      PVP.isP1 = true;
+      startPvpBattle(msg.mode || 'turn', msg.byName, msg.byTech, false);
+      break;
+
+    case 'pvp_duel_declined':
+      toast('✗', (msg.byName||'Opponent') + ' declined your challenge.');
+      break;
+
+    case 'pvp_turn_move':
+      if(PVP.turnActive){ turnState.oppMove = msg.move; if(turnState.myMove) resolveTurnBattle(); }
+      break;
+
+    case 'pvp_mash_update':
+      // opponent mashed
+      break;
+
+    case 'pvp_queue_status':
+      const qel = document.getElementById('queue-status');
+      if(qel) qel.textContent = msg.status || 'Searching...';
+      break;
   }
-  if(msg.type==='chat'){ chatLine(`<${msg.name}> ${msg.msg}`); }
-  if(msg.type==='pvp_start'){
-    liveFs[msg.fightId]={p1Name:msg.p1Name,p2Name:msg.p2Name}; renderLiveFs();
-    chatLine(`⚔ ${msg.p1Name} vs ${msg.p2Name}!${msg.ranked?' [RANKED]':''}`,msg.ranked?'var(--gold)':'var(--red3)');
-    if(msg.p1Name===player.name||msg.p2Name===player.name){ if(!activeFight) openFight(msg.fightId); }
-  }
-  if(msg.type==='pvp'){ const f=msg.fightId; if(f&&liveFs[f]){delete liveFs[f]; renderLiveFs();} chatLine(`⚔ ${msg.summary}`,'var(--red3)'); if(activeFight===f) pollFight(); }
-  if(msg.type==='fight_update'){ if(activeFight===msg.fight?.fightId) renderFight(msg.fight); }
 }
 function setSave(s){
   const d=document.getElementById('sdot'),t=document.getElementById('sstatus');
@@ -1882,25 +2028,47 @@ function setSave(s){
 }
 async function savePlayer(){
   if(!player) return;
-  // ALWAYS save to localStorage immediately - never lose progress
+
+  // Step 1: Always save to localStorage immediately
   try{
-    const saveData = JSON.stringify(player);
-    localStorage.setItem('jjba_save_'+player.name, saveData);
-    localStorage.setItem('jjba_save_latest', saveData);
+    const data = JSON.stringify(player);
+    localStorage.setItem('jjba_save_' + player.name, data);
+    localStorage.setItem('jjba_save_latest', data);
     setSave('saved');
-  } catch(e){ console.error('LocalStorage save failed', e); }
-  // Try server in background
+  } catch(e){ console.log('localStorage save error:', e); }
+
+  // Step 2: Sync via WebSocket if connected
+  if(ws && ws.readyState === WebSocket.OPEN){
+    try{
+      ws.send(JSON.stringify({ type: 'player_update', player: player }));
+    } catch(e){}
+  }
+
+  // Step 3: Try server HTTP save
   try{
-    if(ws && ws.readyState === 1){
-      ws.send(JSON.stringify({type:'player_update', player}));
-    }
     const ctrl = new AbortController();
-    setTimeout(()=>ctrl.abort(), 3000);
-    await fetch('/api/rooms/'+player.roomCode+'/save',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({player}), signal: ctrl.signal
+    setTimeout(() => ctrl.abort(), 3000);
+    await fetch('/api/rooms/' + player.roomCode + '/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player: player }),
+      signal: ctrl.signal
     });
-  } catch(e){ /* server offline, local save is fine */ }
+  } catch(e){ /* offline is fine, localStorage works */ }
+
+  // Step 4: Sync to account if logged in
+  if(ACC && ACC.loggedIn && ACC.username){
+    try{
+      const ctrl2 = new AbortController();
+      setTimeout(() => ctrl2.abort(), 3000);
+      await fetch('/api/account/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ACC.token },
+        body: JSON.stringify({ username: ACC.username, saveData: player }),
+        signal: ctrl2.signal
+      });
+    } catch(e){}
+  }
 }
 function schedSave(){
   if(saveTO) clearTimeout(saveTO);
@@ -2364,7 +2532,8 @@ function activateDomain(){
   for(let i=0;i<3;i++){
     const d=Math.floor((p.str*6+ri(60,120))*(1+(p.ascensions||0)*.1)*(1+(p.dmgBonus||0))*(1+(p.skillDmgBonus||0)));
     if(curEnemy) curEnemy.hp=Math.max(0,curEnemy.hp-d);
-    logLine(`💥 Hit ${i+1}: ${d}!`,'var(--purple4)');
+    if(player.tech==='Psychic Sovereign') player.saikiDmgDealt=(player.saikiDmgDealt||0)+d;
+  logLine('💥 Hit '+(i+1)+': '+d+'!','var(--purple4)');
   }
   applyStatus('enemy','curse',3,4);
   if(domainTimer) clearTimeout(domainTimer);
@@ -2627,7 +2796,9 @@ function startEventBoss(eventId){
   const eb=ev.eventBoss;
   curEnemy={id:-1,hp:eb.maxHp,maxHp:eb.maxHp,isEventBoss:true,eventId,label:eb.name,dmg:eb.dmg,xp:eb.xp,coins:eb.coins,spins:eb.spins,color:eb.color,rewards:eb.rewards};
   eStatus={}; switchTab('c');
-  logLine(`⚡ EVENT BOSS: ${eb.name} appears!`,'rainbow');
+  // Track Saiki encounter achievement
+  if(eb.name==='Saiki Kusuo'){ player.saikiEncountered=true; schedSave(); }
+  logLine('⚡ EVENT BOSS: '+eb.name+' appears!','rainbow');
   logLine(`💀 HP: ${eb.maxHp.toLocaleString()} — Prepare yourself!`,'var(--red3)');
   renderAll(); renderElist();
 }
@@ -2640,7 +2811,8 @@ function killEventBoss(){
     for(let i=0;i<(r.traits||0);i++){ const trait=wr(TRAITS,TRAITS.map(t=>t.w)); if(!p.traits) p.traits=[]; if(!p.traits.find(t=>t.id===trait.id)){ p.traits.push({...trait}); try{trait.apply(p);}catch{} } }
     if((p.domainShards||0)>=DOMAIN_SHARD_REQ&&!p.domainUnlocked){ p.domainUnlocked=true; toast('🌀',`Stand Ability unlocked: ${DOMAIN_NAMES[p.tech]?.name||p.tech}!`); }
   }
-  logLine(`🏆 EVENT BOSS DEFEATED!`,'rainbow'); toast('🏆',`${eb.label} defeated!`);
+  if(eb.name==='Saiki Kusuo'){ player.saikiDefeated=true; player.saikiEventCompleted=true; toast('📡','Saiki K. DEFEATED — You are truly disastrous!'); schedSave(); }
+  logLine('🏆 EVENT BOSS DEFEATED!','rainbow'); toast('🏆',''+eb.label+' defeated!');
   checkLevelUp(); curEnemy=null; combo=0; eStatus={}; renderAll(); schedSave(); checkAch();
 }
 function getEventBonuses(){ const b={xpMult:1,coinMult:1,enemyHpMult:1,enemyDmgMult:1}; EVENTS.filter(e=>e.active).forEach(ev=>{ Object.entries(ev.bonuses).forEach(([k,v])=>{ b[k]=(b[k]||1)*v; }); }); return b; }
@@ -2675,6 +2847,11 @@ function buyItem(id){
   else if(id==='xp_charm')p.xpCharm=true;
   else if(id==='coin_charm')p.coinCharm=true;
   else if(id==='regen_charm')p.regenCharm=true;
+  // Saiki event items
+  else if(id==='ev_antenna'){p.skillDmgBonus=(p.skillDmgBonus||0)+.4;}
+  else if(id==='ev_coffee_jelly'){p.hp=p.maxHp;p.ce=p.maxCe;p.spins=(p.spins||0)+5;p.coffeeJellyCount=(p.coffeeJellyCount||0)+1;}
+  else if(id==='ev_pink_hair'){p.xpCharm=true;p.xpMult=(p.xpMult||1)*1.25;}
+  else if(id==='ev_psycrystal'){p.domainShards=(p.domainShards||0)+3;earnDomainShard();}
   renderAll(); schedSave(); checkAch(); toast('✅',`${item.name} purchased!`);
 }
 function openShop(){ renderShop(); document.getElementById('shop-ov').style.display='flex'; }
@@ -4566,35 +4743,36 @@ async function doRegister(){
   const pass = document.getElementById('acc-reg-pass').value;
   const pass2 = document.getElementById('acc-reg-pass2').value;
   if(!user){ showAccMsg('acc-reg-msg','Enter a username',false); return; }
-  if(user.length < 3){ showAccMsg('acc-reg-msg','Username must be at least 3 characters',false); return; }
+  if(user.length < 3){ showAccMsg('acc-reg-msg','Username must be 3+ characters',false); return; }
   if(!pass){ showAccMsg('acc-reg-msg','Enter a password',false); return; }
-  if(pass.length < 6){ showAccMsg('acc-reg-msg','Password must be at least 6 characters',false); return; }
+  if(pass.length < 6){ showAccMsg('acc-reg-msg','Password must be 6+ characters',false); return; }
   if(pass !== pass2){ showAccMsg('acc-reg-msg','Passwords do not match!',false); return; }
-  
+
   showAccMsg('acc-reg-msg','Creating account...', true);
   try{
+    const ctrl = new AbortController();
+    setTimeout(()=>ctrl.abort(), 5000);
     const res = await fetch('/api/account/register',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username:user, password:pass})
+      body: JSON.stringify({username:user, password:pass}),
+      signal: ctrl.signal
     });
     const data = await res.json();
     if(data.error){ showAccMsg('acc-reg-msg', data.error, false); return; }
-    // Auto-login after register
+    
     ACC.loggedIn = true;
     ACC.username = user;
     ACC.token = data.token;
     localStorage.setItem('jjba_account', JSON.stringify({username:user, token:data.token}));
-    showAccMsg('acc-reg-msg','Account created! Welcome!', true);
-    setTimeout(()=>{ showAccLoggedIn(); if(player) syncAccountSave(); }, 1000);
-  } catch(e){
-    // Server offline — save account locally as fallback
-    ACC.loggedIn = true;
-    ACC.username = user;
-    ACC.token = 'local_'+Date.now();
-    localStorage.setItem('jjba_account', JSON.stringify({username:user, token:ACC.token}));
-    showAccMsg('acc-reg-msg','Account saved locally (server offline)', true);
+    
+    // Auto-save current progress to new account
+    if(player) await syncAccountSave();
+    
+    showAccMsg('acc-reg-msg','✓ Account created! Progress saved to cloud.', true);
     setTimeout(()=>showAccLoggedIn(), 1000);
+  } catch(e){
+    showAccMsg('acc-reg-msg','Cannot reach server — is it online?', false);
   }
 }
 
@@ -4602,32 +4780,42 @@ async function doLogin(){
   const user = document.getElementById('acc-login-user').value.trim();
   const pass = document.getElementById('acc-login-pass').value;
   if(!user || !pass){ showAccMsg('acc-login-msg','Enter username and password',false); return; }
-  
+
   showAccMsg('acc-login-msg','Logging in...', true);
   try{
+    const ctrl = new AbortController();
+    setTimeout(()=>ctrl.abort(), 5000);
     const res = await fetch('/api/account/login',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username:user, password:pass})
+      body: JSON.stringify({username:user, password:pass}),
+      signal: ctrl.signal
     });
     const data = await res.json();
     if(data.error){ showAccMsg('acc-login-msg', data.error, false); return; }
+    
     ACC.loggedIn = true;
     ACC.username = user;
     ACC.token = data.token;
     localStorage.setItem('jjba_account', JSON.stringify({username:user, token:data.token}));
-    showAccMsg('acc-login-msg','Logged in!', true);
-    // Load cloud save
+    
     if(data.saveData){
-      if(confirm('Load your cloud save?\nWarning: This will replace your current local progress!')){
-        player = {...data.saveData, playerId: player?.playerId||user+'_'+Date.now(), roomCode: player?.roomCode||'WORLD'};
+      const load = confirm('Cloud save found!\nLevel ' + (data.saveData.level||1) + 
+        ' | Kills ' + (data.saveData.kills||0) + 
+        '\n\nLoad it? (This replaces your current progress)');
+      if(load){
+        player = {...data.saveData, 
+          playerId: player?.playerId || user+'_'+Date.now(), 
+          roomCode: player?.roomCode || 'WORLD'
+        };
         renderAll(); schedSave();
-        showAccMsg('acc-login-msg','Cloud save loaded!', true);
+        toast('📥','Cloud save loaded!');
       }
     }
-    setTimeout(()=>showAccLoggedIn(), 1000);
+    showAccMsg('acc-login-msg','✓ Logged in!', true);
+    setTimeout(()=>showAccLoggedIn(), 800);
   } catch(e){
-    showAccMsg('acc-login-msg','Server offline — cannot login right now',false);
+    showAccMsg('acc-login-msg','Cannot reach server — check connection',false);
   }
 }
 
