@@ -614,6 +614,198 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
   .panel-title { padding-bottom: 5px; margin-bottom: 6px; }
   #pane-s { gap: 5px; }
 }
+
+/* ══ PVP STYLES ══ */
+.pvp-mode-card {
+  background: var(--card3); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 11px 12px; cursor: pointer;
+  transition: all .2s; margin-bottom: 7px; position: relative; overflow: hidden;
+}
+.pvp-mode-card:hover { border-color: var(--gold); box-shadow: 0 0 14px var(--glow-gold); }
+.pvp-mode-title { font-family: 'Cinzel Decorative', serif; font-size: 11px; color: var(--ink); margin-bottom: 2px; }
+.pvp-mode-desc { font-size: 10px; color: var(--mut); font-style: italic; }
+.pvp-badge { display: inline-block; font-size: 8px; padding: 2px 7px; border-radius: 20px; font-family: 'Cinzel Decorative', serif; margin-left: 6px; }
+
+.queue-box {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 60;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);
+}
+.queue-inner {
+  background: var(--card2); border: 2px solid var(--gold); border-radius: var(--r3);
+  padding: 32px 36px; text-align: center; width: 340px; max-width: 94vw;
+  box-shadow: 0 0 60px var(--glow-gold);
+}
+.queue-title { font-family: 'Cinzel Decorative', serif; font-size: 14px; color: var(--gold2); letter-spacing: .12em; margin-bottom: 8px; }
+.queue-dots { font-size: 22px; letter-spacing: 6px; color: var(--gold); animation: qdots 1.2s infinite; margin: 14px 0; }
+@keyframes qdots { 0%,100%{opacity:.2} 50%{opacity:1} }
+.queue-status { font-size: 11px; color: var(--mut); letter-spacing: .06em; min-height: 18px; }
+.queue-cancel { margin-top: 16px; padding: 8px 22px; background: rgba(139,26,26,.12); border: 1px solid var(--red2); color: var(--red4); font-family: 'Cinzel Decorative', serif; font-size: 9px; border-radius: 6px; cursor: pointer; }
+
+/* Turn-based fight enhancements */
+.fight-move-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 6px; }
+.fight-skills-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-top: 4px; }
+
+/* Mash battle */
+.mash-ov {
+  position: fixed; inset: 0; z-index: 70; background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
+}
+.mash-title { font-family: 'Cinzel Decorative', serif; font-size: 22px; font-weight: 900; letter-spacing: 5px; color: var(--gold2); text-shadow: 0 0 20px var(--glow-gold); }
+.mash-bar-wrap { width: 480px; max-width: 90vw; position: relative; height: 36px; background: rgba(0,0,0,.6); border: 1px solid #444; border-radius: 4px; overflow: hidden; }
+.mash-fill-p1 { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg,#2980b9,#5dade2); transition: width .1s; }
+.mash-fill-p2 { position: absolute; right: 0; top: 0; bottom: 0; background: linear-gradient(90deg,#e74c3c,#c0392b); transition: width .1s; }
+.mash-center-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--gold); transform: translateX(-50%); }
+.mash-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; pointer-events: none; }
+.mash-btn {
+  padding: 18px 52px; font-family: 'Cinzel Decorative', serif; font-size: 16px; font-weight: 900;
+  letter-spacing: 3px; cursor: pointer; border: 2px solid var(--blue2); color: var(--blue3);
+  background: rgba(41,128,185,.12); border-radius: var(--r2); transition: all .1s;
+  user-select: none; touch-action: manipulation;
+}
+.mash-btn:active { background: rgba(41,128,185,.4); color: #fff; transform: scale(.94); }
+.mash-timer { width: 300px; background: rgba(255,255,255,.08); height: 6px; border-radius: 20px; overflow: hidden; }
+.mash-timer-fill { height: 100%; background: var(--gold); transition: width .1s; }
+.mash-names { display: flex; justify-content: space-between; width: 480px; max-width: 90vw; font-family: 'Cinzel Decorative', serif; font-size: 11px; }
+
+/* Dodge (Undertale) battle */
+.dodge-ov {
+  position: fixed; inset: 0; z-index: 70; background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+}
+.dodge-title { font-family: 'Cinzel Decorative', serif; font-size: 18px; letter-spacing: 4px; color: var(--gold); text-align: center; }
+.dodge-arena {
+  width: 480px; height: 320px; max-width: 95vw;
+  background: #000; border: 3px solid var(--gold);
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 30px var(--glow-gold);
+}
+.dodge-soul { position: absolute; width: 14px; height: 14px; transform: translate(-50%,-50%); z-index: 10; pointer-events: none; }
+.dodge-bullet { position: absolute; border-radius: 50%; pointer-events: none; }
+.dodge-beam { position: absolute; pointer-events: none; }
+.dodge-hp-row { display: flex; align-items: center; gap: 8px; width: 480px; max-width: 95vw; }
+.dodge-hp-wrap { flex: 1; background: rgba(0,0,0,.6); border: 1px solid var(--red2); height: 10px; overflow: hidden; border-radius: 20px; }
+.dodge-hp-fill { height: 100%; background: linear-gradient(90deg,#7b241c,var(--red3)); transition: width .2s; border-radius: 20px; }
+.dodge-timer-wrap { width: 480px; max-width: 95vw; background: rgba(255,255,255,.08); height: 6px; border-radius: 20px; overflow: hidden; }
+.dodge-timer-fill { height: 100%; background: linear-gradient(90deg,var(--gold),var(--red3)); transition: width .1s; }
+.dodge-keys { font-family: 'Share Tech Mono',monospace; font-size: 10px; color: rgba(255,255,255,.3); letter-spacing: 2px; text-align: center; }
+.dodge-result { font-family: 'Cinzel Decorative',serif; font-size: 26px; font-weight: 900; letter-spacing: 6px; text-align: center; }
+/* mobile dpad */
+.dodge-dpad { display: none; }
+@media(hover:none) and (pointer:coarse){ .dodge-dpad { display: grid; grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px 44px; gap: 3px; } }
+.ddpb { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; user-select: none; }
+.ddpb:active { background: rgba(255,255,255,.3); }
+
+/* Ranked ladder */
+.rank-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.rank-pts { font-family: 'Share Tech Mono',monospace; font-size: 13px; font-weight: 700; color: var(--gold); min-width: 50px; text-align: right; }
+
+/* Challenge request popup */
+.challenge-popup {
+  position: fixed; bottom: 20px; right: 16px; z-index: 80;
+  background: var(--card2); border: 2px solid var(--gold);
+  border-radius: var(--r3); padding: 16px 18px;
+  box-shadow: 0 0 30px var(--glow-gold);
+  animation: slideIn .4s ease;
+  max-width: 280px;
+}
+.challenge-from { font-family: 'Cinzel Decorative',serif; font-size: 11px; color: var(--gold2); margin-bottom: 8px; }
+.challenge-btns { display: flex; gap: 8px; }
+.ch-acc { flex:1; padding: 7px; background: var(--grn-bg); border: 1px solid var(--grn2); color: var(--grn3); font-family: 'Cinzel Decorative',serif; font-size: 9px; border-radius: var(--r); cursor: pointer; }
+.ch-dec { flex:1; padding: 7px; background: var(--red-bg); border: 1px solid var(--red2); color: var(--red4); font-family: 'Cinzel Decorative',serif; font-size: 9px; border-radius: var(--r); cursor: pointer; }
+
+/* ══ PVP SYSTEM ══ */
+.pvp-mode-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card3); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 11px 13px;
+  cursor: pointer; transition: all .2s; margin-bottom: 7px; width: 100%;
+}
+.pvp-mode-btn:hover { border-color: var(--gold); box-shadow: 0 0 14px var(--glow-gold); }
+.pvp-mode-icon { font-size: 24px; flex-shrink: 0; }
+.pvp-mode-name { font-family: 'Cinzel Decorative', serif; font-size: 10px; letter-spacing: .06em; color: var(--ink); margin-bottom: 2px; }
+.pvp-mode-desc { font-size: 10px; color: var(--mut); }
+
+/* Matchmaking queue */
+.queue-box {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,.94); display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+}
+.queue-inner {
+  background: var(--card2); border: 2px solid var(--gold);
+  border-radius: var(--r3); padding: 32px 36px; text-align: center; width: 340px;
+  box-shadow: 0 0 60px var(--glow-gold);
+}
+.queue-title { font-family: 'Cinzel Decorative', serif; font-size: 14px; letter-spacing: .12em; color: var(--gold2); margin-bottom: 6px; }
+.queue-sub { font-size: 11px; color: var(--mut); margin-bottom: 20px; letter-spacing: .06em; }
+.queue-dots { font-size: 22px; letter-spacing: 8px; color: var(--gold); animation: qdot 1.2s infinite; }
+@keyframes qdot { 0%,100%{opacity:.3} 50%{opacity:1} }
+.queue-cancel { margin-top: 16px; padding: 8px 22px; background: rgba(139,26,26,.12); border: 1px solid var(--red2); color: var(--red4); font-family: 'Cinzel Decorative', serif; font-size: 9px; letter-spacing: .1em; border-radius: 6px; cursor: pointer; }
+
+/* Duel request popup */
+.duel-req-box {
+  position: fixed; inset: 0; z-index: 65;
+  background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+}
+.duel-inner {
+  background: var(--card2); border: 2px solid var(--gold);
+  border-radius: var(--r3); padding: 26px 30px; text-align: center; width: 360px;
+  box-shadow: 0 0 50px var(--glow-gold); animation: popIn .3s ease;
+}
+@keyframes popIn { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
+.duel-vs { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
+.duel-fighter { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.duel-avatar { font-size: 36px; }
+.duel-name { font-family: 'Cinzel Decorative', serif; font-size: 9px; letter-spacing: .06em; color: var(--ink); }
+.duel-vstext { font-family: 'Cinzel Decorative', serif; font-size: 22px; font-weight: 900; color: var(--gold); text-shadow: 0 0 20px var(--glow-gold); }
+.duel-btns { display: flex; gap: 10px; margin-top: 14px; }
+.duel-acc { flex: 1; padding: 10px; background: rgba(39,174,96,.12); border: 1.5px solid var(--grn2); color: var(--grn3); font-family: 'Cinzel Decorative', serif; font-size: 9px; letter-spacing: .08em; border-radius: var(--r); cursor: pointer; }
+.duel-dec { flex: 1; padding: 10px; background: rgba(139,26,26,.1); border: 1.5px solid var(--red2); color: var(--red4); font-family: 'Cinzel Decorative', serif; font-size: 9px; letter-spacing: .08em; border-radius: var(--r); cursor: pointer; }
+
+/* Mash battle */
+.mash-box {
+  position: fixed; inset: 0; z-index: 70;
+  background: #000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+.mash-title { font-family: 'Cinzel Decorative', serif; font-size: 22px; font-weight: 900; letter-spacing: .12em; color: var(--gold2); text-shadow: 0 0 30px var(--glow-gold); }
+.mash-bar-wrap { width: 480px; max-width: 92vw; position: relative; }
+.mash-bar-track { height: 32px; background: rgba(0,0,0,.6); border: 2px solid #444; border-radius: 4px; overflow: hidden; position: relative; }
+.mash-bar-p1 { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg,var(--blue2),var(--blue3)); transition: width .1s; }
+.mash-bar-p2 { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg,var(--red3),var(--red2)); transition: width .1s; }
+.mash-center-line { position: absolute; left: 50%; top: -6px; width: 2px; height: 44px; background: var(--gold); transform: translateX(-50%); }
+.mash-scores { display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; font-size: 13px; margin-top: 4px; }
+.mash-timer-bar { width: 480px; max-width: 92vw; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+.mash-timer-fill { height: 100%; background: linear-gradient(90deg,var(--gold),var(--red3)); transition: width .1s; }
+.mash-btn { padding: 18px 48px; font-family: 'Cinzel Decorative', serif; font-size: 14px; font-weight: 700; letter-spacing: .15em; cursor: pointer; border: 2px solid var(--gold); color: var(--gold2); background: rgba(212,160,23,.1); border-radius: var(--r2); user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: all .1s; }
+.mash-btn:active { background: rgba(212,160,23,.3); transform: scale(.94); }
+.mash-result { font-family: 'Cinzel Decorative', serif; font-size: 20px; letter-spacing: 4px; min-height: 28px; }
+
+/* Dodge / Parry */
+.dodge-box {
+  position: fixed; inset: 0; z-index: 70;
+  background: #000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+.dodge-arena-canvas { border: 3px solid currentColor; display: block; image-rendering: pixelated; }
+.dodge-hp-row { display: flex; align-items: center; gap: 8px; width: 480px; max-width: 92vw; }
+.dodge-hp-wrap { flex: 1; background: rgba(0,0,0,.5); border: 1px solid var(--red2); height: 8px; border-radius: 20px; overflow: hidden; }
+.dodge-hp-fill { height: 100%; background: linear-gradient(90deg,var(--red),var(--red3)); transition: width .2s; }
+.dodge-timer-bar { width: 480px; max-width: 92vw; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.dodge-timer-fill { height: 100%; background: linear-gradient(90deg,var(--gold),var(--red3)); transition: width .1s linear; }
+.dodge-dpad { display: none; grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px 44px; gap: 3px; }
+.ddpad-btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--r); user-select: none; }
+.ddpad-btn:active { background: rgba(255,255,255,.3); }
+@media(hover:none) and (pointer:coarse) { .dodge-dpad { display: grid; } }
+
+/* Ranked ladder */
+.rank-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.rank-pos { font-family: 'Share Tech Mono', monospace; font-weight: 800; min-width: 28px; color: var(--gold); }
+.rank-name { flex: 1; font-weight: 700; }
+.rank-pts { color: var(--gold); font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+.rank-badge { font-size: 9px; padding: 2px 7px; border-radius: 20px; border: 1px solid currentColor; font-family: 'Cinzel Decorative', serif; }
 </style>
 </head>
 <body>
@@ -911,11 +1103,37 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
     <div id="pane-w" class="pane">
       <div class="wl">
         <div class="card">
-          <div class="panel-title">World</div>
+          <div class="panel-title">⚔ PvP Modes</div>
+
+          <div class="pvp-mode-card" onclick="openMashQueue()">
+            <div class="pvp-mode-title">💥 MASH BATTLE <span class="pvp-badge" style="background:rgba(41,128,185,.2);color:var(--blue3);border:1px solid var(--blue2)">LIVE</span></div>
+            <div class="pvp-mode-desc">Mash the button faster than your opponent!</div>
+          </div>
+
+          <div class="pvp-mode-card" onclick="openDodgeQueue()">
+            <div class="pvp-mode-title">🎯 DODGE BATTLE <span class="pvp-badge" style="background:rgba(212,160,23,.15);color:var(--gold);border:1px solid var(--gold)">LIVE</span></div>
+            <div class="pvp-mode-desc">Survive your opponent's Stand attacks!</div>
+          </div>
+
+          <div class="pvp-mode-card" onclick="openRankedQueue()">
+            <div class="pvp-mode-title">🏆 RANKED DUEL <span class="pvp-badge" style="background:rgba(74,21,96,.2);color:var(--purple4);border:1px solid var(--purple2)">RANKED</span></div>
+            <div class="pvp-mode-desc">Turn-based, earn ladder points!</div>
+          </div>
+
+          <div style="height:1px;background:var(--border);margin:8px 0"></div>
+          <div class="panel-title" style="margin-bottom:6px">🗺 Bosses</div>
           <button class="boss-btn" onclick="startBoss('diavolo')">💀 Boss: Diavolo</button>
           <button class="boss-btn red" onclick="startBoss('dio')">🧛 Boss: DIO</button>
+
+          <div style="height:1px;background:var(--border);margin:8px 0"></div>
+          <div class="panel-title" style="margin-bottom:6px">👥 Online Players</div>
           <div id="lfights"></div>
           <div id="plist"></div>
+        </div>
+
+        <div class="card">
+          <div class="panel-title">🏆 Ranked Ladder</div>
+          <div id="ranked-ladder" style="font-size:11px;color:var(--mut);font-style:italic">No ranked data yet</div>
         </div>
       </div>
       <div class="wr">
@@ -929,6 +1147,64 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
         </div>
       </div>
     </div>
+
+    <!-- QUEUE OVERLAY -->
+    <div class="queue-box" id="queue-ov" style="display:none">
+      <div class="queue-inner">
+        <div class="queue-title" id="queue-title">SEARCHING...</div>
+        <div class="queue-dots">• • •</div>
+        <div class="queue-status" id="queue-status">Looking for opponent...</div>
+        <button class="queue-cancel" onclick="leaveQueue()">✕ CANCEL</button>
+      </div>
+    </div>
+
+    <!-- MASH BATTLE OVERLAY -->
+    <div class="mash-ov" id="mash-ov" style="display:none">
+      <div class="mash-title" id="mash-title">💥 MASH BATTLE 💥</div>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:10px;color:var(--mut);letter-spacing:2px" id="mash-sub">MASH FASTER THAN YOUR OPPONENT!</div>
+      <div class="mash-names">
+        <span id="mash-p1name" style="color:var(--blue3)">YOU</span>
+        <span id="mash-p2name" style="color:var(--red3)">OPPONENT</span>
+      </div>
+      <div class="mash-bar-wrap">
+        <div class="mash-fill-p1" id="mash-fill-p1" style="width:50%"></div>
+        <div class="mash-fill-p2" id="mash-fill-p2" style="width:50%"></div>
+        <div class="mash-center-line"></div>
+        <div class="mash-icon">⚡</div>
+      </div>
+      <div style="display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:14px">
+        <span id="mash-score-p1" style="color:var(--blue3)">0</span>
+        <span style="color:var(--mut)">vs</span>
+        <span id="mash-score-p2" style="color:var(--red3)">0</span>
+      </div>
+      <div class="mash-timer"><div class="mash-timer-fill" id="mash-timer-fill" style="width:100%"></div></div>
+      <button class="mash-btn" id="mash-btn" onclick="doMash()" ontouchstart="e=>{e.preventDefault();doMash()}">⚡ MASH! ⚡</button>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:18px;letter-spacing:4px;min-height:28px;text-align:center" id="mash-result"></div>
+    </div>
+
+    <!-- DODGE BATTLE OVERLAY -->
+    <div class="dodge-ov" id="dodge-ov" style="display:none">
+      <div class="dodge-title" id="dodge-title">DODGE!</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mut);letter-spacing:2px" id="dodge-sub">Use WASD or Arrow Keys</div>
+      <div id="dodge-arena" class="dodge-arena">
+        <canvas id="dodge-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+      </div>
+      <div class="dodge-hp-row">
+        <span style="font-family:'Cinzel Decorative',serif;font-size:10px;color:var(--red3)">❤ HP</span>
+        <div class="dodge-hp-wrap"><div class="dodge-hp-fill" id="dodge-hp-fill" style="width:100%"></div></div>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--red3)" id="dodge-hp-txt">100%</span>
+      </div>
+      <div class="dodge-timer-wrap"><div class="dodge-timer-fill" id="dodge-timer-fill" style="width:100%"></div></div>
+      <div class="dodge-keys">WASD / ARROW KEYS — SURVIVE!</div>
+      <div class="dodge-dpad" id="dodge-dpad">
+        <div></div><div class="ddpb" id="ddp-up">▲</div><div></div>
+        <div class="ddpb" id="ddp-left">◀</div><div></div><div class="ddpb" id="ddp-right">▶</div>
+        <div></div><div class="ddpb" id="ddp-down">▼</div><div></div>
+      </div>
+    </div>
+
+    <!-- CHALLENGE POPUP (injected dynamically) -->
+    
 
   </div><!-- end #tc -->
 </div><!-- end #game-screen -->
@@ -2473,6 +2749,1677 @@ setInterval(()=>{
   if(td>0) updateDailyP('trainCount',td);
   checkAch();
 },5000);
+
+
+// ══════════════════════════════════════════════════════════
+// FULL PVP SYSTEM
+// ══════════════════════════════════════════════════════════
+
+// ── STATE ──
+const PVP = {
+  inQueue: false,
+  mode: null,        // 'mash' | 'dodge' | 'turn'
+  ranked: false,
+  matchId: null,
+  opponentId: null,
+  opponentName: null,
+  opponentTech: null,
+  isP1: true,
+  pendingReq: null,
+  reqTimer: null,
+
+  // Mash
+  mashP1: 50,
+  mashActive: false,
+  mashTimerInt: null,
+  mashTimeLeft: 0,
+  mashResolve: null,
+
+  // Dodge
+  dodgeActive: false,
+  dodgeAnimId: null,
+  dodgeKeys: {},
+  dodgeMobileDir: {up:false,down:false,left:false,right:false},
+  soul: {x:240,y:160},
+  bullets: [],
+  dodgeHp: 100,
+  dodgeStartTime: 0,
+  dodgeDuration: 6000,
+  dodgeSpawnTimer: 0,
+  dodgePattern: null,
+  lastHit: 0,
+  dodgeResolve: null,
+
+  // Turn
+  turnActive: false,
+  myMove: null,
+  opMove: null,
+  turnResolve: null,
+  turnPollInt: null,
+
+  // Results
+  wins: 0,
+  losses: 0,
+  rankedPts: 0,
+};
+
+// Ranked tiers
+const RANKED_TIERS = [
+  {name:'Bronze',   min:0,    color:'#cd7f32'},
+  {name:'Silver',   min:200,  color:'#c0c0c0'},
+  {name:'Gold',     min:500,  color:'#ffd700'},
+  {name:'Platinum', min:1000, color:'#e5e4e2'},
+  {name:'Diamond',  min:2000, color:'#b9f2ff'},
+  {name:'Stand Master', min:4000, color:'#fbbf24'},
+];
+
+function getRankedTier(pts){ let t=RANKED_TIERS[0]; for(const r of RANKED_TIERS){ if(pts>=r.min) t=r; } return t; }
+
+// ── QUEUE ──
+function openPvpQueue(mode, ranked=false){
+  if(!player){ toast('⚠','Log in first!'); return; }
+  PVP.mode = mode;
+  PVP.ranked = ranked;
+  PVP.inQueue = true;
+
+  const labels = {mash:'⚡ Mash Battle', dodge:'💨 Dodge Battle', turn:'🌀 Turn Battle'};
+  document.getElementById('queue-title').textContent = ranked ? '🏆 RANKED ' + labels[mode] : labels[mode];
+  document.getElementById('queue-mode-label').textContent = ranked ? 'Ranked Match' : 'Casual Match';
+  document.getElementById('queue-status').textContent = 'Searching for a worthy opponent...';
+  document.getElementById('queue-ov').style.display = 'flex';
+
+  // Send to server WS
+  if(ws && ws.readyState === 1){
+    ws.send(JSON.stringify({
+      type: 'pvp_queue_join',
+      mode, ranked,
+      name: player.name,
+      level: player.level,
+      tech: player.tech || 'None',
+      rankedPts: PVP.rankedPts,
+      playerId: player.playerId,
+      roomCode: player.roomCode
+    }));
+  }
+
+  // Fallback: after 6s if no match, simulate a bot opponent
+  PVP._queueTimeout = setTimeout(()=>{
+    if(!PVP.inQueue) return;
+    document.getElementById('queue-status').textContent = 'No one found — challenging a bot...';
+    setTimeout(()=>{
+      if(!PVP.inQueue) return;
+      leaveQueue();
+      startPvpBotMatch(mode, ranked);
+    }, 1500);
+  }, 6000);
+}
+
+function leaveQueue(){
+  PVP.inQueue = false;
+  clearTimeout(PVP._queueTimeout);
+  document.getElementById('queue-ov').style.display = 'none';
+  if(ws && ws.readyState === 1){
+    ws.send(JSON.stringify({ type:'pvp_queue_leave', playerId:player.playerId }));
+  }
+}
+
+// Handle match found from server
+function handlePvpMatchFound(msg){
+  if(!PVP.inQueue) return;
+  clearTimeout(PVP._queueTimeout);
+  PVP.inQueue = false;
+  document.getElementById('queue-ov').style.display = 'none';
+  PVP.matchId = msg.matchId;
+  PVP.isP1 = msg.p1Id === player.playerId;
+  PVP.opponentId = PVP.isP1 ? msg.p2Id : msg.p1Id;
+  PVP.opponentName = PVP.isP1 ? msg.p2Name : msg.p1Name;
+  PVP.opponentTech = PVP.isP1 ? msg.p2Tech : msg.p1Tech;
+  PVP.mode = msg.mode;
+  PVP.ranked = msg.ranked;
+  toast('⚔', 'Match found! vs ' + PVP.opponentName);
+  startPvpBattle(PVP.mode, PVP.opponentName, PVP.opponentTech, false);
+}
+
+// Bot match (when no real opponent)
+const BOT_NAMES = ['Dio_Bot','Giorno_Bot','Kira_Bot','Jotaro_Bot','Okuyasu_Bot'];
+const BOT_TECHS = ['The World','Gold Experience Requiem','Killer Queen','Star Platinum','The Hand'];
+function startPvpBotMatch(mode, ranked=false){
+  const idx = Math.floor(Math.random() * BOT_NAMES.length);
+  PVP.matchId = 'bot_' + Date.now();
+  PVP.isP1 = true;
+  PVP.opponentName = BOT_NAMES[idx];
+  PVP.opponentTech = BOT_TECHS[idx];
+  PVP.mode = mode;
+  PVP.ranked = ranked;
+  startPvpBattle(mode, PVP.opponentName, PVP.opponentTech, true);
+}
+
+function startPvpBattle(mode, oppName, oppTech, isBot){
+  PVP._isBot = isBot;
+  if(mode === 'mash')  openMashBattle(oppName, isBot);
+  else if(mode === 'dodge') openDodgeBattle(oppName, oppTech, isBot);
+  else if(mode === 'turn')  openTurnBattle(oppName, oppTech, isBot);
+}
+
+// ── DUEL REQUEST (challenge from world tab) ──
+function challengePlayer(pid, name, tech){
+  PVP.pendingReq = null;
+  if(ws && ws.readyState === 1){
+    ws.send(JSON.stringify({
+      type: 'pvp_duel_request',
+      fromId: player.playerId,
+      fromName: player.name,
+      fromTech: player.tech || 'None',
+      fromLevel: player.level,
+      targetId: pid,
+      mode: 'turn',
+      roomCode: player.roomCode
+    }));
+    toast('⚔', 'Challenge sent to ' + name + '!');
+  } else {
+    toast('⚠','Need server connection for direct challenges');
+  }
+}
+
+function receiveDuelRequest(msg){
+  PVP.pendingReq = msg;
+  document.getElementById('dreq-opp-icon').textContent = '⚔';
+  document.getElementById('dreq-opp-name').textContent = (msg.fromName||'???').toUpperCase();
+  document.getElementById('dreq-opp-info').textContent = 'Lv.' + (msg.fromLevel||'?') + ' • ' + (msg.fromTech||'???');
+  document.getElementById('dreq-my-name').textContent = (player?.name||'YOU').toUpperCase();
+  document.getElementById('dreq-my-info').textContent = 'Lv.' + (player?.level||1) + ' • ' + (player?.tech||'???');
+  document.getElementById('dreq-mode-txt').textContent = {turn:'🌀 Turn Battle',mash:'⚡ Mash Battle',dodge:'💨 Dodge Battle'}[msg.mode]||'Turn Battle';
+  document.getElementById('duel-req-ov').style.display = 'flex';
+  // Auto-decline after 20s
+  let t = 20;
+  document.getElementById('dreq-timer-txt').textContent = 'Auto-decline in ' + t + 's';
+  if(PVP.reqTimer) clearInterval(PVP.reqTimer);
+  PVP.reqTimer = setInterval(()=>{
+    t--;
+    const el = document.getElementById('dreq-timer-txt');
+    if(el) el.textContent = 'Auto-decline in ' + t + 's';
+    if(t <= 0){ clearInterval(PVP.reqTimer); declineDuel(); }
+  }, 1000);
+}
+
+function acceptDuel(){
+  clearInterval(PVP.reqTimer);
+  document.getElementById('duel-req-ov').style.display = 'none';
+  const req = PVP.pendingReq; PVP.pendingReq = null;
+  if(!req) return;
+  if(ws && ws.readyState === 1){
+    ws.send(JSON.stringify({
+      type: 'pvp_duel_accept',
+      byId: player.playerId,
+      byName: player.name,
+      byTech: player.tech || 'None',
+      fromId: req.fromId,
+      mode: req.mode || 'turn',
+      roomCode: player.roomCode
+    }));
+  }
+  PVP.opponentName = req.fromName;
+  PVP.opponentTech = req.fromTech;
+  PVP.isP1 = false;
+  startPvpBattle(req.mode || 'turn', req.fromName, req.fromTech, false);
+}
+
+function declineDuel(){
+  clearInterval(PVP.reqTimer);
+  document.getElementById('duel-req-ov').style.display = 'none';
+  const req = PVP.pendingReq; PVP.pendingReq = null;
+  if(req && ws && ws.readyState === 1){
+    ws.send(JSON.stringify({ type:'pvp_duel_decline', fromId:req.fromId, byName:player.name, roomCode:player.roomCode }));
+  }
+}
+
+// ══ HANDLE WS PVP MESSAGES ══
+const _origHandleWS = handleWS;
+handleWS = function(msg){
+  _origHandleWS(msg);
+  if(msg.type === 'pvp_match_found') handlePvpMatchFound(msg);
+  if(msg.type === 'pvp_duel_request') receiveDuelRequest(msg);
+  if(msg.type === 'pvp_duel_accepted'){
+    toast('✓', msg.byName + ' accepted your challenge!');
+    PVP.opponentName = msg.byName;
+    PVP.opponentTech = msg.byTech;
+    PVP.isP1 = true;
+    startPvpBattle(msg.mode || 'turn', msg.byName, msg.byTech, false);
+  }
+  if(msg.type === 'pvp_duel_declined'){
+    toast('✗', msg.byName + ' declined your challenge.');
+  }
+  if(msg.type === 'pvp_mash_update' && PVP.mashActive){
+    // Update bot score on bar
+    const opp = Math.floor((100 - PVP.mashP1));
+    document.getElementById('mash-p2score').textContent = Math.floor((100-PVP.mashP1)*0.4);
+  }
+  if(msg.type === 'pvp_turn_move' && PVP.turnActive){
+    PVP.opMove = msg.move;
+    if(PVP.myMove) resolveTurnBattle();
+  }
+  if(msg.type === 'pvp_queue_status'){
+    const el = document.getElementById('queue-status');
+    if(el) el.textContent = msg.status || 'Searching...';
+  }
+};
+
+// ══════════════════════
+// MASH BATTLE
+// ══════════════════════
+function openMashBattle(oppName, isBot){
+  PVP.mashP1 = 50;
+  PVP.mashActive = true;
+  PVP.mashTimeLeft = 5000;
+  document.getElementById('mash-p1name').textContent = player.name;
+  document.getElementById('mash-p2name').textContent = oppName;
+  document.getElementById('mash-p1score').textContent = '0';
+  document.getElementById('mash-p2score').textContent = '0';
+  document.getElementById('mash-result').textContent = '';
+  document.getElementById('mash-result').style.color = 'var(--gold)';
+  document.getElementById('mash-bar-p1').style.width = '50%';
+  document.getElementById('mash-bar-p2').style.width = '50%';
+  document.getElementById('mash-timer-fill').style.width = '100%';
+  document.getElementById('mash-btn').disabled = false;
+  document.getElementById('mash-btn').textContent = '★ ORA ORA ORA ★';
+  document.getElementById('mash-ov').style.display = 'flex';
+
+  let p1Taps = 0, p2Taps = 0;
+  if(PVP.mashTimerInt) clearInterval(PVP.mashTimerInt);
+  PVP.mashTimerInt = setInterval(()=>{
+    PVP.mashTimeLeft -= 100;
+    // Bot mashes at ~player level rate with some variance
+    if(isBot){
+      const botRate = 0.3 + Math.random() * 0.5;
+      if(Math.random() < botRate){
+        p2Taps++;
+        PVP.mashP1 = Math.max(5, PVP.mashP1 - 1.2);
+        document.getElementById('mash-p2score').textContent = p2Taps;
+      }
+    }
+    // Decay toward center slightly
+    PVP.mashP1 = PVP.mashP1 * 0.998 + 50 * 0.002;
+    updateMashBars(p1Taps, p2Taps);
+    document.getElementById('mash-timer-fill').style.width = (PVP.mashTimeLeft/5000*100) + '%';
+    if(PVP.mashTimeLeft <= 0){
+      clearInterval(PVP.mashTimerInt);
+      finishMash(p1Taps, p2Taps, isBot);
+    }
+  }, 100);
+
+  // Store p1/p2 tap counts in closure
+  PVP._p1Taps = ()=>p1Taps;
+  PVP._addP1Tap = ()=>{ p1Taps++; return p1Taps; };
+  PVP._p2Taps = ()=>p2Taps;
+}
+
+function doMash(){
+  if(!PVP.mashActive) return;
+  const taps = PVP._addP1Tap();
+  PVP.mashP1 = Math.min(95, PVP.mashP1 + 2.2);
+  document.getElementById('mash-p1score').textContent = taps;
+  updateMashBars(taps, PVP._p2Taps());
+  // Send to server
+  if(ws && ws.readyState === 1 && !PVP._isBot){
+    ws.send(JSON.stringify({ type:'pvp_mash_tap', matchId:PVP.matchId, playerId:player.playerId }));
+  }
+}
+
+function updateMashBars(p1, p2){
+  const w = PVP.mashP1;
+  document.getElementById('mash-bar-p1').style.width = w + '%';
+  document.getElementById('mash-bar-p2').style.width = (100-w) + '%';
+}
+
+function finishMash(p1Taps, p2Taps, isBot){
+  PVP.mashActive = false;
+  document.getElementById('mash-btn').disabled = true;
+  const iWin = PVP.mashP1 > 50;
+  const res = document.getElementById('mash-result');
+  if(iWin){
+    res.textContent = '🏆 YOU WIN!';
+    res.style.color = 'var(--gold2)';
+    pvpWinReward(PVP.ranked);
+  } else {
+    res.textContent = '💀 DEFEATED';
+    res.style.color = 'var(--red3)';
+    pvpLossResult(PVP.ranked);
+  }
+  document.getElementById('mash-btn').textContent = 'CLOSE';
+  document.getElementById('mash-btn').disabled = false;
+  document.getElementById('mash-btn').onclick = ()=>{
+    document.getElementById('mash-ov').style.display = 'none';
+    document.getElementById('mash-btn').onclick = ()=>doMash();
+    renderAll();
+  };
+  logLine((iWin?'🏆 MASH WIN vs ':'💀 MASH LOSS vs ') + PVP.opponentName, iWin?'var(--gold)':'var(--red3)');
+}
+
+// ══════════════════════
+// DODGE BATTLE
+// ══════════════════════
+const DW = 480, DH = 320;
+const DBOX = {x:80,y:20,w:320,h:280};
+const SOUL_SPD = 3.5, SOUL_R = 8;
+
+function openDodgeBattle(oppName, oppTech, isBot){
+  const techData = STANDS.find(s=>s.name===oppTech) || STANDS[0];
+  const col = techData?.skills?.[0]?.color || '#e74c3c';
+
+  document.getElementById('dodge-attacker-lbl').textContent = oppName + ' uses ' + (oppTech||'Stand');
+  document.getElementById('dodge-title').textContent = 'DODGE!';
+  document.getElementById('dodge-title').style.color = col;
+  const canvas = document.getElementById('dodge-canvas');
+  canvas.style.borderColor = col;
+  canvas.style.boxShadow = '0 0 30px ' + col;
+
+  PVP.dodgeActive = true;
+  PVP.dodgeKeys = {};
+  PVP.dodgeMobileDir = {up:false,down:false,left:false,right:false};
+  PVP.soul = {x:DBOX.x+DBOX.w/2, y:DBOX.y+DBOX.h/2};
+  PVP.bullets = [];
+  PVP.dodgeHp = 100;
+  PVP.dodgeStartTime = Date.now();
+  PVP.dodgeDuration = 7000;
+  PVP.lastHit = 0;
+  PVP.dodgePattern = col;
+  PVP._dodgeOppName = oppName;
+  PVP._dodgeTech = oppTech;
+  PVP._dodgeBot = isBot;
+
+  document.getElementById('dodge-hp-fill').style.width = '100%';
+  document.getElementById('dodge-hp-txt').textContent = '100%';
+  document.getElementById('dodge-timer-fill').style.width = '100%';
+  document.getElementById('dodge-ov').style.display = 'flex';
+
+  // Keyboard
+  const kd = e=>{ PVP.dodgeKeys[e.code]=true; if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault(); };
+  const ku = e=>{ PVP.dodgeKeys[e.code]=false; };
+  window.addEventListener('keydown',kd); window.addEventListener('keyup',ku);
+  PVP._dodgeKD = kd; PVP._dodgeKU = ku;
+
+  // Mobile dpad
+  [['dp-up','up'],['dp-down','down'],['dp-left','left'],['dp-right','right']].forEach(([id,dir])=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.addEventListener('pointerdown',()=>PVP.dodgeMobileDir[dir]=true);
+    el.addEventListener('pointerup',()=>PVP.dodgeMobileDir[dir]=false);
+    el.addEventListener('pointerleave',()=>PVP.dodgeMobileDir[dir]=false);
+  });
+
+  // Spawn initial bullets
+  spawnDodgeBullets(oppTech);
+  PVP.dodgeSpawnTimer = Date.now() + 2000;
+
+  if(PVP.dodgeAnimId) cancelAnimationFrame(PVP.dodgeAnimId);
+  PVP.dodgeAnimId = requestAnimationFrame(dodgeLoop);
+}
+
+function spawnDodgeBullets(tech){
+  const col = STANDS.find(s=>s.name===tech)?.skills?.[0]?.color || '#e74c3c';
+  const type = Math.floor(Math.random()*4);
+  if(type===0){ // Horizontal waves
+    for(let i=0;i<4;i++) setTimeout(()=>{
+      PVP.bullets.push({x:-15,y:DBOX.y+30+i*55,vx:4,vy:0,r:9,color:col,born:Date.now(),life:3000});
+    },i*200);
+  } else if(type===1){ // Radial burst from center
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2;
+      PVP.bullets.push({x:DBOX.x+DBOX.w/2,y:DBOX.y+DBOX.h/2,vx:Math.cos(a)*3,vy:Math.sin(a)*3,r:10,color:col,born:Date.now(),life:3500});
+    }
+  } else if(type===2){ // Rain from top
+    for(let i=0;i<6;i++) setTimeout(()=>{
+      PVP.bullets.push({x:DBOX.x+20+Math.random()*(DBOX.w-40),y:DBOX.y-10,vx:(Math.random()-.5),vy:3.5,r:9,color:col,born:Date.now(),life:3000});
+    },i*250);
+  } else { // Homing orbs
+    for(let i=0;i<3;i++) setTimeout(()=>{
+      const a=Math.random()*Math.PI*2;
+      PVP.bullets.push({x:DBOX.x+Math.cos(a)*180+DBOX.w/2,y:DBOX.y+Math.sin(a)*140+DBOX.h/2,vx:-Math.cos(a)*1.5,vy:-Math.sin(a)*1.5,r:12,color:col,homing:true,born:Date.now(),life:5000});
+    },i*400);
+  }
+}
+
+function dodgeLoop(){
+  if(!PVP.dodgeActive){ PVP.dodgeAnimId=null; return; }
+  const now = Date.now();
+  const elapsed = now - PVP.dodgeStartTime;
+  const canvas = document.getElementById('dodge-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Move soul
+  const s = PVP.soul;
+  if(PVP.dodgeKeys['ArrowLeft']||PVP.dodgeKeys['KeyA']||PVP.dodgeMobileDir.left) s.x = Math.max(DBOX.x+SOUL_R, s.x-SOUL_SPD);
+  if(PVP.dodgeKeys['ArrowRight']||PVP.dodgeKeys['KeyD']||PVP.dodgeMobileDir.right) s.x = Math.min(DBOX.x+DBOX.w-SOUL_R, s.x+SOUL_SPD);
+  if(PVP.dodgeKeys['ArrowUp']||PVP.dodgeKeys['KeyW']||PVP.dodgeMobileDir.up) s.y = Math.max(DBOX.y+SOUL_R, s.y-SOUL_SPD);
+  if(PVP.dodgeKeys['ArrowDown']||PVP.dodgeKeys['KeyS']||PVP.dodgeMobileDir.down) s.y = Math.min(DBOX.y+DBOX.h-SOUL_R, s.y+SOUL_SPD);
+
+  // Spawn more bullets
+  if(now > PVP.dodgeSpawnTimer){
+    spawnDodgeBullets(PVP._dodgeTech||'Star Platinum');
+    PVP.dodgeSpawnTimer = now + 1800 + Math.random()*600;
+  }
+
+  // Draw
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,DW,DH);
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+  for(let x=0;x<DW;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,DH);ctx.stroke();}
+  for(let y=0;y<DH;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(DW,y);ctx.stroke();}
+  // Box border
+  ctx.strokeStyle=PVP.dodgePattern||'#e74c3c'; ctx.lineWidth=2;
+  ctx.strokeRect(DBOX.x,DBOX.y,DBOX.w,DBOX.h);
+
+  // Bullets
+  const dead=[];
+  PVP.bullets.forEach((b,i)=>{
+    const age = now-b.born;
+    if(age>b.life){dead.push(i);return;}
+    b.x+=b.vx; b.y+=b.vy;
+    if(b.homing){
+      const dx=s.x-b.x, dy=s.y-b.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
+      b.vx+=(dx/dist)*.05; b.vy+=(dy/dist)*.05;
+      const spd=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+      if(spd>3){b.vx=b.vx/spd*3;b.vy=b.vy/spd*3;}
+    }
+    // Off screen
+    if(b.x<-30||b.x>DW+30||b.y<-30||b.y>DH+30){dead.push(i);return;}
+    // Draw
+    ctx.save();
+    ctx.shadowBlur=10; ctx.shadowColor=b.color;
+    ctx.fillStyle=b.color;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    // Collision
+    const dx=s.x-b.x, dy=s.y-b.y;
+    const invuln = now-PVP.lastHit < 400;
+    if(!invuln && dx*dx+dy*dy < (SOUL_R+b.r-3)*(SOUL_R+b.r-3)){
+      PVP.dodgeHp = Math.max(0, PVP.dodgeHp - 12);
+      PVP.lastHit = now;
+      dead.push(i);
+      ctx.fillStyle='rgba(220,38,38,.3)'; ctx.fillRect(0,0,DW,DH);
+    }
+  });
+  dead.reverse().forEach(i=>PVP.bullets.splice(i,1));
+
+  // Draw soul (red heart)
+  const inv = now-PVP.lastHit<400 && Math.floor(now/60)%2===0;
+  if(!inv){
+    ctx.save();
+    ctx.fillStyle='#ff0000'; ctx.shadowColor='#ff0000'; ctx.shadowBlur=14;
+    ctx.beginPath();
+    ctx.moveTo(s.x,s.y+6);
+    ctx.bezierCurveTo(s.x-12,s.y-4,s.x-20,s.y+3,s.x,s.y+14);
+    ctx.bezierCurveTo(s.x+20,s.y+3,s.x+12,s.y-4,s.x,s.y+6);
+    ctx.fill(); ctx.restore();
+  }
+
+  // Update HP UI
+  document.getElementById('dodge-hp-fill').style.width = PVP.dodgeHp + '%';
+  document.getElementById('dodge-hp-txt').textContent = PVP.dodgeHp + '%';
+  const hpFill = document.getElementById('dodge-hp-fill');
+  hpFill.style.background = PVP.dodgeHp>60?'linear-gradient(90deg,#1e8449,#27ae60)':PVP.dodgeHp>30?'linear-gradient(90deg,#7d6608,#c9a227)':'linear-gradient(90deg,#7b241c,#c0392b)';
+
+  // Timer
+  const timeLeft = Math.max(0, 1 - elapsed/PVP.dodgeDuration);
+  document.getElementById('dodge-timer-fill').style.width = (timeLeft*100) + '%';
+
+  // End conditions
+  if(PVP.dodgeHp <= 0 || elapsed >= PVP.dodgeDuration){
+    finishDodgeBattle(PVP.dodgeHp > 0);
+    return;
+  }
+
+  PVP.dodgeAnimId = requestAnimationFrame(dodgeLoop);
+}
+
+function finishDodgeBattle(survived){
+  PVP.dodgeActive = false;
+  if(PVP.dodgeAnimId){ cancelAnimationFrame(PVP.dodgeAnimId); PVP.dodgeAnimId=null; }
+  window.removeEventListener('keydown',PVP._dodgeKD);
+  window.removeEventListener('keyup',PVP._dodgeKU);
+
+  const canvas = document.getElementById('dodge-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,.8)'; ctx.fillRect(0,0,DW,DH);
+  ctx.font="bold 28px 'Cinzel Decorative',serif";
+  ctx.textAlign='center'; ctx.shadowBlur=20;
+  if(survived){
+    ctx.fillStyle='var(--gold2)'; ctx.shadowColor='var(--gold)';
+    ctx.fillText(survived&&PVP.dodgeHp>=70?'PERFECT DODGE!':'SURVIVED!', DW/2, DH/2);
+    pvpWinReward(PVP.ranked);
+    logLine('💨 DODGE WIN vs ' + PVP._dodgeOppName + ' ('+PVP.dodgeHp+'% HP left)','var(--gold)');
+  } else {
+    ctx.fillStyle='#e74c3c'; ctx.shadowColor='#c0392b';
+    ctx.fillText('DIRECT HIT...', DW/2, DH/2);
+    pvpLossResult(PVP.ranked);
+    logLine('💀 DODGE LOSS vs ' + PVP._dodgeOppName,'var(--red3)');
+  }
+  setTimeout(()=>{
+    document.getElementById('dodge-ov').style.display = 'none';
+    renderAll();
+  }, 2200);
+}
+
+// ══════════════════════
+// TURN BATTLE
+// ══════════════════════
+const TURN_MOVES = {
+  attack:  {label:'⚔ Attack',  desc:'Reliable damage',      dmgMult:1.0, blockable:true},
+  heavy:   {label:'💢 Heavy',   desc:'High damage, slow',    dmgMult:2.2, blockable:true},
+  dodge:   {label:'💨 Dodge',   desc:'Evade + counter',      dmgMult:0,   counter:true},
+  block:   {label:'🛡 Block',   desc:'Reduce damage 75%',    dmgMult:0.25,isBlock:true},
+  stand:   {label:'🌀 Stand',   desc:'Massive Stand power',  dmgMult:3.0, blockable:false},
+  taunt:   {label:'😤 Taunt',   desc:'Lower opp defense',    dmgMult:0,   taunt:true},
+};
+
+let turnState = {
+  round: 1, maxRounds: 5,
+  myHp: 100, myMaxHp: 100,
+  oppHp: 100, oppMaxHp: 100,
+  myMove: null, oppMove: null,
+  log: [], over: false, winner: null,
+  oppName: '', oppTech: '', isBot: false,
+};
+
+function openTurnBattle(oppName, oppTech, isBot){
+  const p = player;
+  turnState = {
+    round:1, maxRounds:5,
+    myHp: p.maxHp, myMaxHp: p.maxHp,
+    oppHp: p.maxHp, oppMaxHp: p.maxHp,
+    myMove:null, oppMove:null,
+    log:[], over:false, winner:null,
+    oppName, oppTech, isBot,
+    myId: p.playerId,
+  };
+
+  // Use fight overlay
+  document.getElementById('fight-ov').style.display = 'flex';
+  document.getElementById('fight-title').innerHTML = `⚔ <span style="color:var(--gold)">BIZARRE DUEL</span> ⚔`;
+  renderTurnFight();
+}
+
+function renderTurnFight(){
+  const ts = turnState;
+  const p = player;
+  document.getElementById('fp1n').textContent = p.name;
+  document.getElementById('fp2n').textContent = ts.oppName;
+  document.getElementById('fp1h').style.width = Math.max(0,ts.myHp/ts.myMaxHp*100)+'%';
+  document.getElementById('fp1ht').textContent = 'HP: '+Math.max(0,ts.myHp)+'/'+ts.myMaxHp;
+  document.getElementById('fp2h').style.width = Math.max(0,ts.oppHp/ts.oppMaxHp*100)+'%';
+  document.getElementById('fp2ht').textContent = 'HP: '+Math.max(0,ts.oppHp)+'/'+ts.oppMaxHp;
+  const rd = document.getElementById('fround');
+  if(rd) rd.textContent = ts.over ? '' : 'ROUND '+ts.round+' / '+ts.maxRounds;
+
+  const fl = document.getElementById('flog');
+  fl.innerHTML = ts.log.slice(-14).map(l=>`<div style="color:${l.color||'var(--ink)'}">${l.text}</div>`).join('');
+  fl.scrollTop = fl.scrollHeight;
+
+  const act = document.getElementById('fact');
+  const res = document.getElementById('fres');
+
+  if(ts.over){
+    act.innerHTML = '';
+    res.style.display = 'block';
+    const iWon = ts.winner === 'me';
+    if(iWon){
+      res.innerHTML = `<div style="font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--gold);letter-spacing:4px;text-shadow:0 0 30px var(--glow-gold)">🏆 VICTORY!</div>
+        <div style="font-size:12px;color:var(--mut);margin-top:6px;font-style:italic">A true Stand User!</div>`;
+      pvpWinReward(PVP.ranked);
+    } else {
+      res.innerHTML = `<div style="font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--red3);letter-spacing:4px">💀 DEFEATED</div>
+        <div style="font-size:12px;color:var(--mut);margin-top:6px;font-style:italic">Train harder...</div>`;
+      pvpLossResult(PVP.ranked);
+    }
+    logLine((iWon?'🏆 TURN WIN vs ':'💀 TURN LOSS vs ') + ts.oppName, iWon?'var(--gold)':'var(--red3)');
+    return;
+  }
+
+  res.style.display = 'none';
+
+  if(ts.myMove){
+    act.innerHTML = `<div class="move-locked"><div style="color:var(--grn3);font-size:11px;letter-spacing:2px">✓ ${TURN_MOVES[ts.myMove]?.label||ts.myMove} LOCKED</div><div style="color:var(--mut);font-size:10px;margin-top:4px;font-style:italic">Waiting for opponent...</div></div>`;
+    return;
+  }
+
+  const skillBtns = p.skills?.slice(0,4).map((sk,i)=>`<button class="fab sk" onclick="pickTurnMove('skill${i}')" style="font-size:7px;padding:5px 2px">✦ ${sk.name}<br><span style="opacity:.6">×${(sk.dmg/30).toFixed(1)}</span></button>`).join('') || '';
+
+  act.innerHTML = `
+    <div style="font-family:'Cinzel Decorative',serif;font-size:8px;color:var(--mut);letter-spacing:.12em;margin-bottom:6px;text-align:center">— CHOOSE YOUR MOVE —</div>
+    <div class="moves-grid">
+      <button class="fab atk2" onclick="pickTurnMove('attack')">⚔ Attack<br><span style="font-size:7px;opacity:.6">Reliable</span></button>
+      <button class="fab hvy"  onclick="pickTurnMove('heavy')">💢 Heavy<br><span style="font-size:7px;opacity:.6">2.2× DMG</span></button>
+      <button class="fab dge"  onclick="pickTurnMove('dodge')">💨 Dodge<br><span style="font-size:7px;opacity:.6">Counter</span></button>
+      <button class="fab blk"  onclick="pickTurnMove('block')">🛡 Block<br><span style="font-size:7px;opacity:.6">-75% dmg</span></button>
+      <button class="fab tnt"  onclick="pickTurnMove('taunt')">😤 Taunt<br><span style="font-size:7px;opacity:.6">Debuff</span></button>
+      <button class="fab dom"  onclick="pickTurnMove('stand')">🌀 Stand<br><span style="font-size:7px;opacity:.6">Massive</span></button>
+    </div>
+    ${skillBtns?`<div style="font-family:'Cinzel Decorative',serif;font-size:8px;color:var(--mut);margin-bottom:3px">STAND ABILITIES</div><div class="skills-row">${skillBtns}</div>`:''}
+  `;
+}
+
+function pickTurnMove(move){
+  if(turnState.myMove || turnState.over) return;
+  turnState.myMove = move;
+
+  if(!turnState.isBot){
+    // Send to server
+    if(ws && ws.readyState === 1){
+      ws.send(JSON.stringify({ type:'pvp_turn_move', matchId:PVP.matchId, playerId:player.playerId, move }));
+    }
+    renderTurnFight();
+    // Poll for opponent move
+    if(PVP.turnPollInt) clearInterval(PVP.turnPollInt);
+    PVP.turnPollInt = setInterval(()=>{
+      if(turnState.oppMove){ clearInterval(PVP.turnPollInt); resolveTurnBattle(); }
+    }, 500);
+    // Timeout after 15s — auto pick for opponent
+    setTimeout(()=>{
+      if(!turnState.oppMove && !turnState.over){
+        turnState.oppMove = 'attack';
+        resolveTurnBattle();
+      }
+    }, 15000);
+  } else {
+    // Bot picks move
+    const botMoves = ['attack','heavy','dodge','block','attack','attack','heavy','stand'];
+    turnState.oppMove = botMoves[Math.floor(Math.random()*botMoves.length)];
+    renderTurnFight();
+    setTimeout(()=>resolveTurnBattle(), 800);
+  }
+}
+
+function resolveTurnBattle(){
+  if(PVP.turnPollInt) clearInterval(PVP.turnPollInt);
+  const ts = turnState;
+  const p = player;
+  const myM = ts.myMove, oppM = ts.oppMove;
+  ts.myMove = null; ts.oppMove = null;
+
+  // Calculate base damages
+  let myDmg = Math.floor((p.str||5) * 3 + ri(5,20));
+  let oppDmg = Math.floor((p.str||5) * 2.5 + ri(5,18)); // opponent roughly equal
+
+  // Handle skill moves
+  if(myM && myM.startsWith('skill')){
+    const idx = parseInt(myM.replace('skill',''));
+    const sk = p.skills?.[idx];
+    if(sk) myDmg = Math.floor(sk.dmg * (1 + (p.skillDmgBonus||0)));
+  }
+
+  const myMoveData = TURN_MOVES[myM] || TURN_MOVES.attack;
+  const oppMoveData = TURN_MOVES[oppM] || TURN_MOVES.attack;
+
+  // Damage multipliers
+  let finalMyDmg = Math.floor(myDmg * (myMoveData.dmgMult||1) * (myM==='stand'?1.5:1));
+  let finalOppDmg = Math.floor(oppDmg * (oppMoveData.dmgMult||1));
+
+  // Block reduces incoming
+  if(myM === 'block') finalOppDmg = Math.floor(finalOppDmg * 0.25);
+  if(oppM === 'block') finalMyDmg = Math.floor(finalMyDmg * 0.25);
+
+  // Dodge counters
+  if(myM === 'dodge'){
+    finalOppDmg = 0;
+    if(oppM === 'attack' || oppM === 'heavy'){
+      finalMyDmg = Math.floor(myDmg * 0.8); // counter damage
+      ts.log.push({text:`💨 ${p.name} dodges and counters for ${finalMyDmg}!`, color:'var(--blue3)'});
+    } else {
+      finalMyDmg = 0;
+      ts.log.push({text:`💨 ${p.name} dodges — no effect!`, color:'var(--mut)'});
+    }
+  }
+  if(oppM === 'dodge'){
+    finalMyDmg = 0;
+    if(myM === 'attack' || myM === 'heavy'){
+      finalOppDmg = Math.floor(oppDmg * 0.8);
+      ts.log.push({text:`💨 ${ts.oppName} dodges and counters for ${finalOppDmg}!`, color:'var(--red3)'});
+    } else {
+      finalOppDmg = 0;
+    }
+  }
+
+  // Taunt (buff next hit)
+  if(myM === 'taunt'){ ts._myTaunt=true; finalMyDmg=0; ts.log.push({text:`😤 ${p.name} taunts!`, color:'var(--gold)'}); }
+  if(oppM === 'taunt'){ ts._oppTaunt=true; finalOppDmg=0; ts.log.push({text:`😤 ${ts.oppName} taunts!`, color:'var(--mut)'}); }
+  if(ts._myTaunt && myM!=='taunt'){ finalMyDmg=Math.floor(finalMyDmg*1.5); ts._myTaunt=false; }
+  if(ts._oppTaunt && oppM!=='taunt'){ finalOppDmg=Math.floor(finalOppDmg*1.5); ts._oppTaunt=false; }
+
+  // Crit
+  if(Math.random()<.12){ finalMyDmg=Math.floor(finalMyDmg*1.6); ts.log.push({text:'💥 CRITICAL HIT!',color:'#ff8c00'}); }
+
+  // Apply damage
+  ts.oppHp = Math.max(0, ts.oppHp - finalMyDmg);
+  ts.myHp  = Math.max(0, ts.myHp  - finalOppDmg);
+
+  // Log
+  if(finalMyDmg > 0)  ts.log.push({text:`⚔ ${p.name}: ${myMoveData.label} → ${finalMyDmg} dmg!`, color:'var(--blue3)'});
+  if(finalOppDmg > 0) ts.log.push({text:`⚔ ${ts.oppName}: ${oppMoveData.label} → ${finalOppDmg} dmg!`, color:'var(--red3)'});
+  if(finalMyDmg===0 && myM!=='dodge'&&myM!=='taunt'&&myM!=='block') ts.log.push({text:`🛡 Blocked/Dodged!`, color:'var(--mut)'});
+
+  ts.round++;
+
+  // Win conditions
+  if(ts.oppHp <= 0 && ts.myHp <= 0){ ts.over=true; ts.winner='draw'; }
+  else if(ts.oppHp <= 0){ ts.over=true; ts.winner='me'; }
+  else if(ts.myHp <= 0){ ts.over=true; ts.winner='opp'; }
+  else if(ts.round > ts.maxRounds){
+    ts.over=true; ts.winner = ts.myHp >= ts.oppHp ? 'me':'opp';
+    ts.log.push({text:`Time! ${ts.myHp>=ts.oppHp?p.name:ts.oppName} wins on HP!`, color:'var(--gold)'});
+  }
+
+  renderTurnFight();
+}
+
+// Override closeFight to also close turn battles
+const _origCloseFight = closeFight;
+closeFight = function(){
+  _origCloseFight();
+  if(PVP.turnPollInt){ clearInterval(PVP.turnPollInt); PVP.turnPollInt=null; }
+  if(turnState) turnState.over = true;
+};
+
+// ══════════════════════
+// REWARDS
+// ══════════════════════
+function pvpWinReward(ranked){
+  const p = player;
+  PVP.wins++;
+  const coins = ranked ? 300 : 150;
+  const xp    = ranked ? 400 : 200;
+  const spins = ranked ? 4   : 2;
+  const rp    = ranked ? 25  : 0;
+  p.coins = (p.coins||0)+coins;
+  p.xp    = (p.xp||0)+xp;
+  p.spins = (p.spins||0)+spins;
+  if(ranked) PVP.rankedPts += rp;
+  p.pvpWins = (p.pvpWins||0)+1;
+  checkLevelUp(); schedSave(); checkAch();
+  toast('🏆', `PvP WIN! +${coins}💰 +${xp}XP +${spins}🎲${ranked?' +'+rp+' RP':''}`);
+}
+
+function pvpLossResult(ranked){
+  PVP.losses++;
+  const p = player;
+  // Small consolation
+  p.coins = (p.coins||0)+30;
+  p.xp    = (p.xp||0)+50;
+  if(ranked) PVP.rankedPts = Math.max(0, PVP.rankedPts - 10);
+  p.pvpLosses = (p.pvpLosses||0)+1;
+  schedSave();
+  toast('💀', 'Defeated — +30💰 +50XP consolation');
+}
+
+// ══════════════════════
+// RANKED MODAL
+// ══════════════════════
+function openRankedModal(){
+  const tier = getRankedTier(PVP.rankedPts);
+  const el = document.getElementById('my-rank-badge');
+  if(el){ el.textContent = tier.name; el.style.color = tier.color; }
+  const pts = document.getElementById('my-rank-pts');
+  if(pts) pts.textContent = PVP.rankedPts;
+  const wl = document.getElementById('my-rank-wl');
+  if(wl) wl.textContent = (PVP.wins||0)+'/'+(PVP.losses||0);
+
+  // Build fake ladder from online players + self
+  const all = [{name:player.name, pts:PVP.rankedPts, wins:PVP.wins||0, losses:PVP.losses||0, tech:player.tech||'?'}];
+  for(const pid in others){
+    const op = others[pid];
+    all.push({name:op.name, pts:Math.floor(Math.random()*500), wins:Math.floor(Math.random()*20), losses:Math.floor(Math.random()*15), tech:op.tech||'?'});
+  }
+  all.sort((a,b)=>b.pts-a.pts);
+
+  const rl = document.getElementById('ranked-list');
+  if(rl){
+    rl.innerHTML = all.length ? all.map((e,i)=>{
+      const t = getRankedTier(e.pts);
+      return `<div class="rank-row">
+        <span class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
+        <span class="rank-name" style="color:${e.name===player.name?'var(--gold)':'var(--ink)'}">${e.name}</span>
+        <span class="rank-badge" style="color:${t.color};border-color:${t.color}">${t.name}</span>
+        <span class="rank-pts">${e.pts} RP</span>
+      </div>`;
+    }).join('') : '<div style="color:var(--mut);text-align:center;padding:16px;font-style:italic">No ranked data yet — play some ranked matches!</div>';
+  }
+  document.getElementById('ranked-ov').style.display = 'flex';
+}
+
+function closeRankedModal(){ document.getElementById('ranked-ov').style.display='none'; }
+
+// ══════════════════════
+// UPDATE PLAYER LIST to show challenge buttons
+// ══════════════════════
+const _origRenderPlayers = renderPlayers;
+renderPlayers = function(){
+  const el = document.getElementById('plist'); if(!el) return;
+  const p = player;
+  let h = `<div class="pc me">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="pn" style="color:var(--gold)">${p.name} <span style="font-size:9px;color:var(--mut)">YOU</span></span>
+      <span style="font-size:11px;color:var(--mut)">Lv.${p.level||1}</span>
+    </div>
+    <div class="ps">${p.tech||'No Stand'} | W:${PVP.wins||0} L:${PVP.losses||0} | ${getRankedTier(PVP.rankedPts).name}</div>
+  </div>`;
+  for(const pid in others){
+    const op = others[pid];
+    h += `<div class="pc">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="pn">${op.name}</span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-size:10px;color:var(--mut)">Lv.${op.level||1}</span>
+          <button class="pvp-btn" onclick="openDuelMenu('${pid}','${op.name}','${op.tech||''}')">⚔</button>
+          <button class="rnk-btn" onclick="openRankedModal()">🏆</button>
+        </div>
+      </div>
+      <div class="ps">${op.tech||'?'}</div>
+    </div>`;
+  }
+  if(!Object.keys(others).length) h += `<div style="font-size:11px;text-align:center;padding:10px;color:var(--mut);font-style:italic">Share room code to fight others!</div>`;
+  el.innerHTML = h;
+};
+
+// Duel menu — show mode picker
+function openDuelMenu(pid, name, tech){
+  // Simple inline mode picker toast
+  const existing = document.getElementById('duel-menu-ov');
+  if(existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'duel-menu-ov';
+  div.style.cssText = 'position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
+  div.innerHTML = `<div style="background:var(--card2);border:2px solid var(--gold);border-radius:var(--r3);padding:24px 28px;width:340px;box-shadow:0 0 50px var(--glow-gold)">
+    <div style="font-family:'Cinzel Decorative',serif;font-size:11px;color:var(--gold2);margin-bottom:4px;letter-spacing:.1em">⚔ CHALLENGE ${name.toUpperCase()}</div>
+    <div style="font-size:10px;color:var(--mut);margin-bottom:16px">${tech||'Unknown Stand'}</div>
+    <div onclick="closeDuelMenu();startPvpWithPlayer('${pid}','${name}','${tech}','mash')" class="pvp-mode-btn"><div class="pvp-mode-icon">💢</div><div><div class="pvp-mode-name">MASH BATTLE</div><div class="pvp-mode-desc">Spam faster</div></div></div>
+    <div onclick="closeDuelMenu();startPvpWithPlayer('${pid}','${name}','${tech}','dodge')" class="pvp-mode-btn"><div class="pvp-mode-icon">💨</div><div><div class="pvp-mode-name">DODGE BATTLE</div><div class="pvp-mode-desc">Survive their Stand</div></div></div>
+    <div onclick="closeDuelMenu();startPvpWithPlayer('${pid}','${name}','${tech}','turn')" class="pvp-mode-btn"><div class="pvp-mode-icon">🌀</div><div><div class="pvp-mode-name">TURN BATTLE</div><div class="pvp-mode-desc">Choose moves</div></div></div>
+    <button onclick="closeDuelMenu()" style="width:100%;padding:8px;margin-top:6px;background:none;border:1px solid var(--border);color:var(--mut);font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer">CANCEL</button>
+  </div>`;
+  document.body.appendChild(div);
+}
+function closeDuelMenu(){ const d=document.getElementById('duel-menu-ov'); if(d) d.remove(); }
+function startPvpWithPlayer(pid, name, tech, mode){
+  PVP.opponentName = name;
+  PVP.opponentTech = tech;
+  PVP._isBot = false;
+  if(ws && ws.readyState === 1){
+    challengePlayer(pid, name, tech);
+    // If WS challenge, wait for duel_accepted
+    // For now fall through to direct battle
+  }
+  // Direct battle (works offline too)
+  PVP.matchId = 'direct_'+Date.now();
+  PVP.isP1 = true;
+  startPvpBattle(mode, name, tech, false);
+}
+
+
+
+// ══════════════════════════════════════════════════════════
+// FULL PvP SYSTEM
+// ══════════════════════════════════════════════════════════
+
+// ── PvP STATE ──
+let pvpQueue = null; // 'mash' | 'dodge' | 'ranked'
+let pvpMatchId = null;
+let pvpOpponent = null;
+let pvpIsP1 = true;
+let rankedPts = 0;
+let rankedLadder = {}; // pid -> {name, pts, wins, losses}
+
+// ── RANKED POINTS ──
+function getRankedPts(){ return player.rankedPts || 0; }
+function getRankedTier(pts){
+  if(pts>=2000) return {name:'LEGENDARY',color:'rainbow'};
+  if(pts>=1500) return {name:'DIAMOND',color:'#7ec8e3'};
+  if(pts>=1000) return {name:'PLATINUM',color:'#c084fc'};
+  if(pts>=600)  return {name:'GOLD',color:'var(--gold)'};
+  if(pts>=300)  return {name:'SILVER',color:'#cbd5e1'};
+  return {name:'BRONZE',color:'#cd7c3b'};
+}
+
+// ── QUEUE SYSTEM ──
+function openMashQueue(){ startQueue('mash','💥 MASH BATTLE','Finding a mashing opponent...'); }
+function openDodgeQueue(){ startQueue('dodge','🎯 DODGE BATTLE','Finding a dodge opponent...'); }
+function openRankedQueue(){ startQueue('ranked','🏆 RANKED DUEL','Searching ranked match...'); }
+
+let queueTO = null;
+function startQueue(mode, title, status){
+  pvpQueue = mode;
+  document.getElementById('queue-title').textContent = title;
+  document.getElementById('queue-status').textContent = status;
+  document.getElementById('queue-ov').style.display = 'flex';
+  // Tell server we're in queue
+  if(ws && ws.readyState === 1){
+    ws.send(JSON.stringify({type:'pvp_queue_join', mode, name:player.name, playerId:player.playerId, level:player.level||1, stand:player.tech||'None', rankedPts:getRankedPts()}));
+  }
+  // Bot fallback after 8s
+  queueTO = setTimeout(()=>{
+    if(pvpQueue === mode){
+      document.getElementById('queue-status').textContent = 'No opponent found — starting vs BOT';
+      setTimeout(()=>{
+        leaveQueue();
+        startBotMatch(mode);
+      }, 1200);
+    }
+  }, 8000);
+}
+
+function leaveQueue(){
+  pvpQueue = null;
+  if(queueTO){ clearTimeout(queueTO); queueTO = null; }
+  document.getElementById('queue-ov').style.display = 'none';
+  if(ws && ws.readyState===1) ws.send(JSON.stringify({type:'pvp_queue_leave', playerId:player.playerId}));
+}
+
+function startBotMatch(mode){
+  const botNames = ['Giorno','Jotaro','Josuke','Dio','Kira','Pucci','Valentine'];
+  const botName = botNames[Math.floor(Math.random()*botNames.length)] + '_BOT';
+  pvpOpponent = {name:botName, isBot:true, level:player.level||1, stand:player.tech||'Hamon Technique'};
+  pvpIsP1 = true;
+  if(mode === 'mash') startMashBattle(player.name, botName, true, null);
+  else if(mode === 'dodge') startDodgeBattle(player.name, botName, true, null);
+  else if(mode === 'ranked') startRankedTurnBattle(player.name, botName, true, null);
+}
+
+// Handle WS pvp events
+function handlePvpWS(msg){
+  if(msg.type === 'pvp_match_found'){
+    if(queueTO){ clearTimeout(queueTO); queueTO = null; }
+    pvpQueue = null;
+    document.getElementById('queue-ov').style.display = 'none';
+    pvpMatchId = msg.matchId;
+    pvpIsP1 = msg.p1Id === player.playerId;
+    pvpOpponent = {name: pvpIsP1 ? msg.p2Name : msg.p1Name, isBot:false};
+    toast('⚔', 'Match found! vs ' + pvpOpponent.name);
+    if(msg.mode === 'mash') startMashBattle(player.name, pvpOpponent.name, pvpIsP1, msg.matchId);
+    else if(msg.mode === 'dodge') startDodgeBattle(player.name, pvpOpponent.name, pvpIsP1, msg.matchId);
+    else if(msg.mode === 'ranked') startRankedTurnBattle(player.name, pvpOpponent.name, pvpIsP1, msg.matchId);
+  }
+  if(msg.type === 'pvp_mash_score'){
+    // Opponent mash update
+    if(pvpIsP1) mashState.p2Score = msg.score;
+    else mashState.p1Score = msg.score;
+    updateMashBars();
+  }
+  if(msg.type === 'pvp_mash_end'){
+    clearInterval(mashState.interval);
+    const iWon = msg.winner === player.playerId;
+    endMashBattle(iWon, msg.p1Score, msg.p2Score);
+  }
+  if(msg.type === 'pvp_dodge_attack'){
+    if(dodgeState.active) spawnDodgeBullets(msg.pattern, msg.stand);
+  }
+  if(msg.type === 'pvp_dodge_end'){
+    const iWon = msg.winner === player.playerId;
+    endDodgeBattle(iWon);
+  }
+  if(msg.type === 'pvp_challenge'){
+    showChallengePopup(msg.fromName, msg.fromId, msg.mode);
+  }
+  if(msg.type === 'pvp_challenge_accept'){
+    toast('✓', msg.name + ' accepted your challenge!');
+  }
+  if(msg.type === 'pvp_ranked_move'){
+    if(rankedState.active) applyOpponentMove(msg.action, msg.skillIdx);
+  }
+}
+
+// ── UPDATE renderPlayers to show challenge buttons ──
+function renderPlayers(){
+  const el=document.getElementById('plist'); if(!el) return;
+  const p=player;
+  let h=`<div class="pc me"><div style="display:flex;justify-content:space-between;align-items:center">
+    <span class="pn" style="color:var(--gold)">${p.name} <span style="font-size:9px;color:var(--mut)">YOU</span></span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold)">${getRankedPts()}pts</span>
+  </div>
+  <div class="ps">${p.tech||'No Stand'} | Kills:${p.kills||0} | ${getRankedTier(getRankedPts()).name}</div></div>`;
+
+  for(const pid in others){
+    const op = others[pid];
+    h+=`<div class="pc">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="pn">${op.name} <span style="font-size:9px;color:var(--mut)">Lv.${op.level||1}</span></span>
+        <div style="display:flex;gap:3px;align-items:center">
+          <button onclick="sendChallenge('${pid}','${op.name}','mash')" style="background:rgba(41,128,185,.15);border:1px solid var(--blue2);color:var(--blue3);font-size:8px;padding:3px 6px;border-radius:20px;cursor:pointer;font-family:'Cinzel Decorative',serif">💥</button>
+          <button onclick="sendChallenge('${pid}','${op.name}','dodge')" style="background:rgba(212,160,23,.1);border:1px solid var(--gold);color:var(--gold2);font-size:8px;padding:3px 6px;border-radius:20px;cursor:pointer;font-family:'Cinzel Decorative',serif">🎯</button>
+          <button onclick="sendChallenge('${pid}','${op.name}','ranked')" style="background:rgba(74,21,96,.15);border:1px solid var(--purple2);color:var(--purple4);font-size:8px;padding:3px 6px;border-radius:20px;cursor:pointer;font-family:'Cinzel Decorative',serif">🏆</button>
+        </div>
+      </div>
+      <div class="ps">${op.tech||'?'} | ${op.kills||0} kills</div>
+    </div>`;
+  }
+  if(!Object.keys(others).length) h+=`<div style="font-size:11px;text-align:center;padding:10px;color:var(--mut);font-style:italic">Share room code to play with others</div>`;
+  el.innerHTML = h;
+  renderRankedLadder();
+}
+
+function sendChallenge(pid, name, mode){
+  if(ws && ws.readyState===1){
+    ws.send(JSON.stringify({type:'pvp_challenge', toId:pid, fromName:player.name, fromId:player.playerId, mode}));
+    toast('⚔','Challenge sent to '+name+'!');
+  } else {
+    toast('⚠','Need server for challenges');
+  }
+}
+
+function showChallengePopup(fromName, fromId, mode){
+  // Remove old popup
+  const old = document.getElementById('challenge-popup');
+  if(old) old.remove();
+  const modeNames = {mash:'💥 Mash Battle', dodge:'🎯 Dodge Battle', ranked:'🏆 Ranked Duel'};
+  const el = document.createElement('div');
+  el.id = 'challenge-popup';
+  el.className = 'challenge-popup';
+  el.innerHTML = `<div class="challenge-from">⚔ ${fromName} challenges you!</div>
+    <div style="font-size:10px;color:var(--mut);margin-bottom:10px">${modeNames[mode]||mode}</div>
+    <div class="challenge-btns">
+      <button class="ch-acc" onclick="acceptChallenge('${fromId}','${mode}')">✓ ACCEPT</button>
+      <button class="ch-dec" onclick="declineChallenge('${fromId}')">✕ DECLINE</button>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ const p=document.getElementById('challenge-popup'); if(p) p.remove(); }, 15000);
+}
+
+function acceptChallenge(fromId, mode){
+  const el=document.getElementById('challenge-popup'); if(el) el.remove();
+  if(ws && ws.readyState===1){
+    ws.send(JSON.stringify({type:'pvp_challenge_accept', toId:fromId, fromName:player.name, mode}));
+  }
+  startBotMatch(mode); // fallback — real match handled by server pvp_match_found
+}
+function declineChallenge(fromId){
+  const el=document.getElementById('challenge-popup'); if(el) el.remove();
+  if(ws && ws.readyState===1) ws.send(JSON.stringify({type:'pvp_challenge_decline', toId:fromId}));
+}
+
+// ── RANKED LADDER ──
+function renderRankedLadder(){
+  const el = document.getElementById('ranked-ladder'); if(!el) return;
+  // Build ladder from others + self
+  const entries = [{name:player.name, pts:getRankedPts(), you:true}];
+  for(const pid in others){
+    const op = others[pid];
+    entries.push({name:op.name, pts:op.rankedPts||0});
+  }
+  entries.sort((a,b)=>b.pts-a.pts);
+  if(entries.length===0){ el.innerHTML='<div style="color:var(--mut);font-style:italic;font-size:11px">No ranked data</div>'; return; }
+  el.innerHTML = entries.map((e,i)=>{
+    const tier = getRankedTier(e.pts);
+    const rankIcon = i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+    return `<div class="rank-row" style="${e.you?'background:var(--gold-bg);border-radius:var(--r)':''}">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:11px;min-width:24px">${rankIcon}</span>
+      <span style="flex:1;font-size:11px;font-weight:${e.you?700:400}">${e.name}${e.you?' <span style="color:var(--mut);font-size:9px">YOU</span>':''}</span>
+      <span style="font-size:9px;color:${tier.color==='rainbow'?'var(--gold)':tier.color};font-family:'Cinzel Decorative',serif">${tier.name}</span>
+      <span class="rank-pts">${e.pts}</span>
+    </div>`;
+  }).join('');
+}
+
+function giveRankedRewards(won){
+  if(won){
+    const gain = 25 + Math.floor(Math.random()*10);
+    player.rankedPts = (player.rankedPts||0) + gain;
+    player.coins += 200; player.xp += 300; player.spins += 3;
+    toast('🏆',`+${gain} Ranked Points! +200💰 +3🎲`);
+    logLine(`🏆 RANKED WIN! +${gain} pts, +200 coins, +3 spins!`,'var(--gold)');
+  } else {
+    const lose = 10;
+    player.rankedPts = Math.max(0,(player.rankedPts||0)-lose);
+    player.coins += 50; player.xp += 100;
+    toast('💀',`-${lose} Ranked Points`);
+    logLine(`💀 Ranked loss. -${lose} pts, +50 coins`,'var(--red3)');
+  }
+  checkLevelUp(); schedSave(); checkAch(); renderRankedLadder();
+}
+
+function givePvpRewards(won){
+  if(won){
+    player.coins += 150; player.xp += 200; player.spins += 2;
+    toast('⚔',`PvP Win! +150💰 +2🎲`);
+    logLine('⚔ PvP WIN! +150 coins, +200 XP, +2 spins!','var(--grn3)');
+  } else {
+    player.coins += 30; player.xp += 60;
+    logLine('💀 PvP loss. +30 coins for effort','var(--red3)');
+  }
+  checkLevelUp(); schedSave();
+}
+
+// ══════════════════════════════════════════════════════════
+// MODE 1: MASH BATTLE
+// ══════════════════════════════════════════════════════════
+const mashState = {
+  active: false,
+  p1Score: 0, p2Score: 0,
+  p1Pct: 50,
+  matchId: null, isP1: true, isBot: false,
+  duration: 5000,
+  interval: null, timerInt: null,
+  timeLeft: 5000,
+};
+
+function startMashBattle(p1Name, p2Name, isP1, matchId){
+  mashState.active = true;
+  mashState.p1Score = 0; mashState.p2Score = 0; mashState.p1Pct = 50;
+  mashState.matchId = matchId; mashState.isP1 = isP1;
+  mashState.isBot = pvpOpponent?.isBot||false;
+  mashState.timeLeft = mashState.duration;
+
+  document.getElementById('mash-p1name').textContent = isP1 ? player.name : p2Name;
+  document.getElementById('mash-p2name').textContent = isP1 ? p2Name : player.name;
+  document.getElementById('mash-result').textContent = '';
+  document.getElementById('mash-btn').disabled = false;
+  document.getElementById('mash-btn').textContent = '⚡ MASH! ⚡';
+  document.getElementById('mash-ov').style.display = 'flex';
+
+  updateMashBars();
+
+  // Bot logic
+  let botInt = null;
+  if(mashState.isBot){
+    const botSpeed = 700 + Math.floor(Math.random()*400);
+    botInt = setInterval(()=>{
+      if(!mashState.active){ clearInterval(botInt); return; }
+      if(isP1) mashState.p2Score += 1;
+      else mashState.p1Score += 1;
+      updateMashBars();
+    }, botSpeed);
+  }
+
+  // Decay interval (scores drift back to center slowly)
+  if(mashState.interval) clearInterval(mashState.interval);
+  mashState.interval = setInterval(()=>{
+    if(!mashState.active) return;
+    // Decay toward 50
+    if(mashState.p1Pct > 50) mashState.p1Pct = Math.max(50, mashState.p1Pct - 0.3);
+    if(mashState.p1Pct < 50) mashState.p1Pct = Math.min(50, mashState.p1Pct + 0.3);
+    mashState.timeLeft -= 50;
+    const pct = Math.max(0, mashState.timeLeft / mashState.duration * 100);
+    const tf = document.getElementById('mash-timer-fill');
+    if(tf) tf.style.width = pct+'%';
+    if(mashState.timeLeft <= 0){
+      clearInterval(mashState.interval);
+      if(botInt) clearInterval(botInt);
+      // Decide winner
+      const iWon = mashState.p1Pct > 50;
+      endMashBattle(iWon, mashState.p1Score, mashState.p2Score);
+    }
+  }, 50);
+}
+
+function doMash(){
+  if(!mashState.active) return;
+  const myScore = mashState.isP1 ? ++mashState.p1Score : ++mashState.p2Score;
+  // Push bar toward my side
+  if(mashState.isP1) mashState.p1Pct = Math.min(95, mashState.p1Pct + 2.8);
+  else mashState.p1Pct = Math.max(5, mashState.p1Pct - 2.8);
+  updateMashBars();
+  // Flash button
+  const btn = document.getElementById('mash-btn');
+  btn.style.transform = 'scale(.93)';
+  setTimeout(()=>btn.style.transform='',80);
+  // Send to server
+  if(ws&&ws.readyState===1&&mashState.matchId){
+    ws.send(JSON.stringify({type:'pvp_mash_score', matchId:mashState.matchId, score:myScore, playerId:player.playerId}));
+  }
+}
+
+function updateMashBars(){
+  const p = mashState.p1Pct;
+  const f1 = document.getElementById('mash-fill-p1');
+  const f2 = document.getElementById('mash-fill-p2');
+  const s1 = document.getElementById('mash-score-p1');
+  const s2 = document.getElementById('mash-score-p2');
+  if(f1) f1.style.width = p+'%';
+  if(f2) f2.style.width = (100-p)+'%';
+  if(s1) s1.textContent = mashState.p1Score;
+  if(s2) s2.textContent = mashState.p2Score;
+}
+
+function endMashBattle(iWon, p1s, p2s){
+  mashState.active = false;
+  clearInterval(mashState.interval);
+  const res = document.getElementById('mash-result');
+  if(res){
+    res.textContent = iWon ? '🏆 VICTORY!' : '💀 DEFEATED';
+    res.style.color = iWon ? 'var(--gold2)' : 'var(--red3)';
+  }
+  document.getElementById('mash-btn').disabled = true;
+  givePvpRewards(iWon);
+  setTimeout(()=>{
+    document.getElementById('mash-ov').style.display='none';
+  }, 2500);
+}
+
+// ══════════════════════════════════════════════════════════
+// MODE 2: DODGE BATTLE
+// ══════════════════════════════════════════════════════════
+const dodgeState = {
+  active: false,
+  hp: 100, maxHp: 100,
+  soul: {x:240, y:160},
+  bullets: [],
+  keys: {}, mobileDir: {up:false,down:false,left:false,right:false},
+  animId: null, spawnInt: null, timerInt: null,
+  duration: 8000, timeLeft: 8000,
+  invuln: 0, lastHit: 0,
+  matchId: null, isP1: true, isBot: false,
+  ctx: null, W: 480, H: 320,
+  phase: 'dodge', // dodge | result
+};
+
+function startDodgeBattle(p1Name, p2Name, isP1, matchId){
+  const canvas = document.getElementById('dodge-canvas');
+  const arena = document.getElementById('dodge-arena');
+  if(!canvas||!arena) return;
+
+  const W = arena.offsetWidth || 480;
+  const H = arena.offsetHeight || 320;
+  canvas.width = W; canvas.height = H;
+  dodgeState.W = W; dodgeState.H = H;
+  dodgeState.ctx = canvas.getContext('2d');
+  dodgeState.active = true;
+  dodgeState.hp = 100; dodgeState.maxHp = 100;
+  dodgeState.soul = {x:W/2, y:H*0.7};
+  dodgeState.bullets = [];
+  dodgeState.keys = {}; dodgeState.mobileDir = {up:false,down:false,left:false,right:false};
+  dodgeState.timeLeft = dodgeState.duration;
+  dodgeState.invuln = 0;
+  dodgeState.matchId = matchId; dodgeState.isP1 = isP1;
+  dodgeState.isBot = pvpOpponent?.isBot||false;
+  dodgeState.phase = 'dodge';
+
+  const standName = player.tech || 'Stand';
+  document.getElementById('dodge-title').textContent = p2Name + "'s " + standName + ' is attacking!';
+  document.getElementById('dodge-hp-fill').style.width = '100%';
+  document.getElementById('dodge-hp-txt').textContent = '100%';
+  document.getElementById('dodge-ov').style.display = 'flex';
+
+  // Keyboard
+  const onKey = e=>{
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)){
+      e.preventDefault(); dodgeState.keys[e.key]=true;
+    }
+  };
+  const offKey = e=>{ dodgeState.keys[e.key]=false; };
+  dodgeState._onKey = onKey; dodgeState._offKey = offKey;
+  window.addEventListener('keydown', onKey);
+  window.addEventListener('keyup', offKey);
+
+  // Mobile dpad
+  setupDodgeDpad();
+
+  // Spawn bullets
+  if(dodgeState.spawnInt) clearInterval(dodgeState.spawnInt);
+  dodgeState.spawnInt = setInterval(()=>{
+    if(!dodgeState.active) return;
+    spawnDodgeBullets(Math.floor(Math.random()*5), player.tech||'');
+    // If online attacker, notify server to tell opponent to dodge
+    if(ws&&ws.readyState===1&&dodgeState.matchId){
+      ws.send(JSON.stringify({type:'pvp_dodge_attack', matchId:dodgeState.matchId, pattern:Math.floor(Math.random()*5), stand:player.tech||''}));
+    }
+  }, 1600);
+
+  // Timer
+  if(dodgeState.timerInt) clearInterval(dodgeState.timerInt);
+  dodgeState.timerInt = setInterval(()=>{
+    dodgeState.timeLeft -= 100;
+    const pct = Math.max(0, dodgeState.timeLeft/dodgeState.duration*100);
+    const tf = document.getElementById('dodge-timer-fill');
+    if(tf) tf.style.width = pct+'%';
+    dodgeState.invuln = Math.max(0, dodgeState.invuln-100);
+    if(dodgeState.timeLeft <= 0){
+      clearInterval(dodgeState.timerInt);
+      clearInterval(dodgeState.spawnInt);
+      if(!dodgeState.active) return;
+      // Survived!
+      endDodgeBattle(true);
+    }
+  }, 100);
+
+  // Draw loop
+  if(dodgeState.animId) cancelAnimationFrame(dodgeState.animId);
+  function dodgeLoop(){
+    if(!dodgeState.active){ dodgeState.animId=null; return; }
+    updateDodge();
+    drawDodge();
+    dodgeState.animId = requestAnimationFrame(dodgeLoop);
+  }
+  dodgeState.animId = requestAnimationFrame(dodgeLoop);
+}
+
+function setupDodgeDpad(){
+  [['up','up'],['down','down'],['left','left'],['right','right']].forEach(([id,dir])=>{
+    const el = document.getElementById('ddp-'+id);
+    if(!el) return;
+    el.addEventListener('pointerdown',()=>dodgeState.mobileDir[dir]=true);
+    el.addEventListener('pointerup',()=>dodgeState.mobileDir[dir]=false);
+    el.addEventListener('pointerleave',()=>dodgeState.mobileDir[dir]=false);
+  });
+}
+
+function updateDodge(){
+  const s = dodgeState.soul;
+  const spd = 3.5;
+  const W = dodgeState.W, H = dodgeState.H;
+  const k = dodgeState.keys, m = dodgeState.mobileDir;
+  if(k['ArrowUp']||k['w']||k['W']||m.up)   s.y = Math.max(8, s.y-spd);
+  if(k['ArrowDown']||k['s']||k['S']||m.down) s.y = Math.min(H-8, s.y+spd);
+  if(k['ArrowLeft']||k['a']||k['A']||m.left) s.x = Math.max(8, s.x-spd);
+  if(k['ArrowRight']||k['d']||k['D']||m.right) s.x = Math.min(W-8, s.x+spd);
+
+  // Update bullets
+  const now = Date.now();
+  for(let i=dodgeState.bullets.length-1;i>=0;i--){
+    const b = dodgeState.bullets[i];
+    if(b.type==='ball'){
+      b.x += b.vx; b.y += b.vy;
+      if(b.homing){
+        const dx=s.x-b.x, dy=s.y-b.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
+        b.vx += (dx/dist)*0.04; b.vy += (dy/dist)*0.04;
+        const spd2=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+        if(spd2>3.5){b.vx=b.vx/spd2*3.5;b.vy=b.vy/spd2*3.5;}
+      }
+      // Off screen
+      if(b.x<-20||b.x>W+20||b.y<-20||b.y>H+20){dodgeState.bullets.splice(i,1);continue;}
+      // Collision
+      if(dodgeState.invuln<=0){
+        const dx=s.x-b.x,dy=s.y-b.y;
+        if(dx*dx+dy*dy<(b.r+5)*(b.r+5)){
+          dodgeHit(b.dmg||8);
+          dodgeState.bullets.splice(i,1);
+          continue;
+        }
+      }
+    } else if(b.type==='beam'){
+      b.life -= 16;
+      if(b.life<=0){dodgeState.bullets.splice(i,1);continue;}
+      // Beam hit
+      if(dodgeState.invuln<=0&&s.y>b.y&&s.y<b.y+b.h&&s.x>0&&s.x<W){
+        dodgeHit(b.dmg||12);
+      }
+    }
+  }
+}
+
+function dodgeHit(dmg){
+  const now = Date.now();
+  if(now-dodgeState.lastHit<300) return;
+  dodgeState.lastHit = now;
+  dodgeState.hp = Math.max(0, dodgeState.hp-dmg);
+  dodgeState.invuln = 500;
+  const pct = dodgeState.hp;
+  const hf = document.getElementById('dodge-hp-fill');
+  const ht = document.getElementById('dodge-hp-txt');
+  if(hf) hf.style.width = pct+'%';
+  if(ht) ht.textContent = pct+'%';
+  if(hf) hf.style.background = pct>50?'linear-gradient(90deg,#7b241c,#e74c3c)':pct>25?'linear-gradient(90deg,#7d6608,#d4a017)':'linear-gradient(90deg,#7b241c,#ff4444)';
+  if(dodgeState.hp<=0){
+    clearInterval(dodgeState.timerInt);
+    clearInterval(dodgeState.spawnInt);
+    endDodgeBattle(false);
+  }
+}
+
+function spawnDodgeBullets(pattern, stand){
+  if(!dodgeState.active) return;
+  const W=dodgeState.W, H=dodgeState.H;
+  const patterns = [
+    // 0: straight bullets from left
+    ()=>{for(let i=0;i<5;i++) setTimeout(()=>dodgeState.bullets.push({type:'ball',x:-10,y:40+i*40,vx:3.5,vy:0,r:8,dmg:8,color:'#e8c84a'}),i*120);},
+    // 1: top rain
+    ()=>{for(let i=0;i<6;i++) dodgeState.bullets.push({type:'ball',x:Math.random()*W,y:-10,vx:(Math.random()-.5)*.5,vy:3+Math.random()*1.5,r:9,dmg:9,color:'#c0392b'});},
+    // 2: homing orbs
+    ()=>{for(let i=0;i<3;i++){const a=(i/3)*Math.PI*2;dodgeState.bullets.push({type:'ball',x:W/2+Math.cos(a)*200,y:H/2+Math.sin(a)*150,vx:-Math.cos(a)*1.5,vy:-Math.sin(a)*1.5,r:11,dmg:12,color:'#a855f7',homing:true});}},
+    // 3: horizontal beams
+    ()=>{dodgeState.bullets.push({type:'beam',y:H*0.3,h:18,life:1500,dmg:15,color:'#7d3cff'});setTimeout(()=>dodgeState.bullets.push({type:'beam',y:H*0.65,h:18,life:1500,dmg:15,color:'#7d3cff'}),600);},
+    // 4: spiral
+    ()=>{for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;dodgeState.bullets.push({type:'ball',x:W/2,y:H/2,vx:Math.cos(a)*3,vy:Math.sin(a)*3,r:8,dmg:10,color:'#e74c3c'});}},
+  ];
+  if(patterns[pattern]) patterns[pattern]();
+}
+
+function drawDodge(){
+  const ctx=dodgeState.ctx, W=dodgeState.W, H=dodgeState.H;
+  if(!ctx) return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Bullets
+  dodgeState.bullets.forEach(b=>{
+    ctx.save();
+    if(b.type==='ball'){
+      ctx.shadowBlur=10; ctx.shadowColor=b.color||'#fff';
+      ctx.fillStyle=b.color||'#fff';
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    } else if(b.type==='beam'){
+      const alpha = Math.min(1,b.life/400);
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=b.color||'#7d3cff';
+      ctx.shadowColor=b.color||'#7d3cff'; ctx.shadowBlur=14;
+      ctx.fillRect(0,b.y,W,b.h);
+    }
+    ctx.restore();
+  });
+  // Soul
+  const s=dodgeState.soul;
+  const invFlash = dodgeState.invuln>0 && Math.floor(Date.now()/80)%2===0;
+  if(!invFlash){
+    ctx.save();
+    ctx.fillStyle='#ff0000'; ctx.shadowColor='#ff0000'; ctx.shadowBlur=12;
+    // Heart shape
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y+5);
+    ctx.bezierCurveTo(s.x-8,s.y-3,s.x-14,s.y+2,s.x,s.y+10);
+    ctx.bezierCurveTo(s.x+14,s.y+2,s.x+8,s.y-3,s.x,s.y+5);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function endDodgeBattle(survived){
+  if(!dodgeState.active) return;
+  dodgeState.active = false;
+  clearInterval(dodgeState.timerInt);
+  clearInterval(dodgeState.spawnInt);
+  if(dodgeState.animId){cancelAnimationFrame(dodgeState.animId);dodgeState.animId=null;}
+  window.removeEventListener('keydown',dodgeState._onKey);
+  window.removeEventListener('keyup',dodgeState._offKey);
+
+  const ctx=dodgeState.ctx, W=dodgeState.W, H=dodgeState.H;
+  if(ctx){
+    ctx.fillStyle='rgba(0,0,0,.85)'; ctx.fillRect(0,0,W,H);
+    ctx.font="bold 28px 'Cinzel Decorative',serif";
+    ctx.textAlign='center'; ctx.shadowBlur=20;
+    if(survived){
+      ctx.fillStyle='var(--gold)'; ctx.shadowColor='#d4a017';
+      ctx.fillText('SURVIVED!',W/2,H/2-10);
+    } else {
+      ctx.fillStyle='#e74c3c'; ctx.shadowColor='#e74c3c';
+      ctx.fillText('DEFEATED',W/2,H/2-10);
+    }
+    ctx.font="12px 'Cinzel Decorative',serif";
+    ctx.fillStyle='#888'; ctx.shadowBlur=0;
+    ctx.fillText(survived?'You dodged everything!':'The Stand hit you...', W/2, H/2+20);
+  }
+  givePvpRewards(survived);
+  setTimeout(()=>{ document.getElementById('dodge-ov').style.display='none'; },2500);
+}
+
+// ══════════════════════════════════════════════════════════
+// MODE 3: RANKED TURN-BASED
+// ══════════════════════════════════════════════════════════
+const rankedState = {
+  active: false,
+  myHp:0, myMaxHp:0,
+  oppHp:0, oppMaxHp:0,
+  round:1, myMove:null, oppMove:null,
+  matchId:null, isP1:true, isBot:false,
+  skillCds:[0,0,0,0],
+  log:[], locked:false,
+};
+
+function startRankedTurnBattle(p1Name, p2Name, isP1, matchId){
+  rankedState.active=true;
+  rankedState.isP1=isP1; rankedState.matchId=matchId;
+  rankedState.isBot=pvpOpponent?.isBot||false;
+  rankedState.round=1; rankedState.log=[];
+  rankedState.locked=false; rankedState.myMove=null; rankedState.oppMove=null;
+  rankedState.skillCds=[0,0,0,0];
+  const maxHp=Math.floor(100+(player.end||5)*10+(player.level||1)*5);
+  rankedState.myHp=maxHp; rankedState.myMaxHp=maxHp;
+  rankedState.oppHp=maxHp; rankedState.oppMaxHp=maxHp;
+
+  // Build fight overlay
+  document.getElementById('fight-title').innerHTML=`⚔ <span style="color:var(--gold)">RANKED DUEL</span> ⚔`;
+  document.getElementById('fp1n').textContent=isP1?player.name:p2Name;
+  document.getElementById('fp2n').textContent=isP1?p2Name:player.name;
+  document.getElementById('fp1h').style.width='100%';
+  document.getElementById('fp2h').style.width='100%';
+  document.getElementById('fp1ht').textContent=`HP: ${maxHp}/${maxHp}`;
+  document.getElementById('fp2ht').textContent=`HP: ${maxHp}/${maxHp}`;
+  document.getElementById('fround').textContent='ROUND 1';
+  document.getElementById('flog').innerHTML='';
+  document.getElementById('fres').style.display='none';
+  document.getElementById('fight-ov').style.display='flex';
+
+  renderRankedActions();
+}
+
+function renderRankedActions(){
+  const act=document.getElementById('fact'); if(!act) return;
+  if(rankedState.locked){
+    act.innerHTML=`<div class="move-locked"><div style="color:var(--grn3);font-size:11px;letter-spacing:2px">✓ MOVE LOCKED</div><div style="color:var(--mut);font-size:10px;margin-top:4px;font-style:italic">Waiting for opponent...</div></div>`;
+    return;
+  }
+  const skills = player.skills||[];
+  act.innerHTML=`<div style="font-family:'Cinzel Decorative',serif;font-size:8px;color:var(--mut);letter-spacing:.12em;margin-bottom:6px;text-align:center">— CHOOSE YOUR MOVE —</div>
+  <div class="fight-move-grid">
+    <button class="fab atk2" onclick="lockRankedMove('attack')">⚔ Attack<br><span style="font-size:7px;opacity:.6">Reliable</span></button>
+    <button class="fab hvy" onclick="lockRankedMove('heavy')">💢 Heavy<br><span style="font-size:7px;opacity:.6">2× DMG</span></button>
+    <button class="fab dge" onclick="lockRankedMove('dodge')">💨 Dodge<br><span style="font-size:7px;opacity:.6">Counter</span></button>
+    <button class="fab blk" onclick="lockRankedMove('block')">🛡 Block<br><span style="font-size:7px;opacity:.6">-75% dmg</span></button>
+    <button class="fab tnt" onclick="lockRankedMove('taunt')">😤 Taunt<br><span style="font-size:7px;opacity:.6">Open guard</span></button>
+    <button class="fab dom" onclick="lockRankedMove('domain')">🌀 Stand<br><span style="font-size:7px;opacity:.6">Massive</span></button>
+  </div>
+  ${skills.length?`<div class="fight-skills-row">${skills.map((sk,i)=>`<button class="fab sk ${rankedState.skillCds[i]>0?'':''}" ${rankedState.skillCds[i]>0?'disabled':''} onclick="lockRankedMove('skill',${i})" style="font-size:7px;padding:4px 2px">${sk.name}<br><span style="opacity:.6">${rankedState.skillCds[i]>0?'CD:'+rankedState.skillCds[i]:'DMG:'+sk.dmg}</span></button>`).join('')}</div>`:''}`;
+}
+
+function lockRankedMove(action, si){
+  if(rankedState.locked||!rankedState.active) return;
+  rankedState.locked=true; rankedState.myMove={action,si};
+  renderRankedActions();
+  // Send to server
+  if(ws&&ws.readyState===1&&rankedState.matchId){
+    ws.send(JSON.stringify({type:'pvp_ranked_move',matchId:rankedState.matchId,action,skillIdx:si,playerId:player.playerId}));
+  }
+  // Bot response after short delay
+  if(rankedState.isBot){
+    setTimeout(()=>{
+      const botMoves=['attack','attack','heavy','block','dodge','attack'];
+      const botMove=botMoves[Math.floor(Math.random()*botMoves.length)];
+      applyBothMoves(rankedState.myMove, {action:botMove,si:null});
+    }, 800+Math.random()*600);
+  }
+}
+
+function applyOpponentMove(action, si){
+  if(!rankedState.active||!rankedState.myMove) return;
+  applyBothMoves(rankedState.myMove, {action,si});
+}
+
+function applyBothMoves(myMove, oppMove){
+  if(!rankedState.active) return;
+  rankedState.locked=false;
+  const p=player;
+  const myAtk = calcRankedDmg(myMove, p);
+  const oppAtk = calcRankedDmg(oppMove, p);
+
+  // Apply damage
+  let myDmgTaken = 0, oppDmgTaken = 0;
+  // My attack vs their defense
+  if(oppMove.action==='block') oppDmgTaken = Math.floor(myAtk*.25);
+  else if(oppMove.action==='dodge'){ if(Math.random()<.5){oppDmgTaken=0; myDmgTaken=Math.floor(oppAtk*.5);}else oppDmgTaken=myAtk;}
+  else oppDmgTaken = myAtk;
+  // Their attack vs my defense
+  if(myMove.action==='block') myDmgTaken = Math.floor(oppAtk*.25);
+  else if(myMove.action==='dodge'){ if(Math.random()<.5) myDmgTaken=0; else myDmgTaken=oppAtk;}
+  else if(myMove.action!=='attack'&&myMove.action!=='heavy'&&myMove.action!=='skill'&&myMove.action!=='domain') myDmgTaken=oppAtk;
+  else myDmgTaken = oppAtk;
+
+  rankedState.myHp  = Math.max(0, rankedState.myHp  - myDmgTaken);
+  rankedState.oppHp = Math.max(0, rankedState.oppHp - oppDmgTaken);
+  // Skill cooldowns
+  rankedState.skillCds = rankedState.skillCds.map(cd=>Math.max(0,cd-1));
+  if(myMove.action==='skill'&&myMove.si!=null) rankedState.skillCds[myMove.si]=player.skills?.[myMove.si]?.cd||3;
+
+  // Log
+  const moveNames={attack:'Attack',heavy:'Heavy',dodge:'Dodge',block:'Block',taunt:'Taunt',domain:'Stand Cry',skill:'Skill'};
+  addRankedLog(`Round ${rankedState.round}:`,'var(--gold)');
+  addRankedLog(`You used ${moveNames[myMove.action]||myMove.action} → dealt ${oppDmgTaken} dmg, took ${myDmgTaken} dmg`,'var(--ink)');
+
+  rankedState.round++;
+  updateRankedHUD();
+
+  if(rankedState.myHp<=0||rankedState.oppHp<=0){
+    endRankedBattle(rankedState.oppHp<=0&&rankedState.myHp>0);
+  } else {
+    rankedState.myMove=null; rankedState.oppMove=null;
+    document.getElementById('fround').textContent='ROUND '+rankedState.round;
+    setTimeout(()=>renderRankedActions(), 400);
+  }
+}
+
+function calcRankedDmg(move, p){
+  const base = Math.floor((p.str||5)*2+ri(5,20));
+  const mult = {attack:1,heavy:2.2,block:0,dodge:0,taunt:.5,domain:3,skill:1}[move.action]||1;
+  let dmg = Math.floor(base*mult);
+  if(move.action==='skill'&&move.si!=null){ const sk=p.skills?.[move.si]; if(sk) dmg=Math.floor(sk.dmg*(1+(p.skillDmgBonus||0))); }
+  if(move.action==='domain'){const cost=Math.floor((p.maxCe||100)*.4);if((p.ce||0)<cost)dmg=Math.floor(dmg*.3);}
+  return Math.max(1,dmg);
+}
+
+function addRankedLog(text, color){
+  const fl=document.getElementById('flog'); if(!fl) return;
+  const d=document.createElement('div');
+  d.style.color=color||'var(--ink)'; d.style.fontSize='11px'; d.style.padding='1px 0';
+  d.textContent=text; fl.appendChild(d); fl.scrollTop=fl.scrollHeight;
+}
+
+function updateRankedHUD(){
+  const p1h=document.getElementById('fp1h'),p2h=document.getElementById('fp2h');
+  const p1ht=document.getElementById('fp1ht'),p2ht=document.getElementById('fp2ht');
+  const myPct=Math.max(0,rankedState.myHp/rankedState.myMaxHp*100);
+  const oppPct=Math.max(0,rankedState.oppHp/rankedState.oppMaxHp*100);
+  if(rankedState.isP1){
+    if(p1h)p1h.style.width=myPct+'%'; if(p1ht)p1ht.textContent='HP: '+rankedState.myHp+'/'+rankedState.myMaxHp;
+    if(p2h)p2h.style.width=oppPct+'%'; if(p2ht)p2ht.textContent='HP: '+rankedState.oppHp+'/'+rankedState.oppMaxHp;
+  } else {
+    if(p2h)p2h.style.width=myPct+'%'; if(p2ht)p2ht.textContent='HP: '+rankedState.myHp+'/'+rankedState.myMaxHp;
+    if(p1h)p1h.style.width=oppPct+'%'; if(p1ht)p1ht.textContent='HP: '+rankedState.oppHp+'/'+rankedState.oppMaxHp;
+  }
+}
+
+function endRankedBattle(iWon){
+  rankedState.active=false;
+  const res=document.getElementById('fres'); if(!res) return;
+  res.style.display='block';
+  const tier=getRankedTier(getRankedPts());
+  res.innerHTML=`<div style="font-family:'Cinzel Decorative',serif;font-size:20px;color:${iWon?'var(--gold)':'var(--red3)'};letter-spacing:4px">${iWon?'🏆 VICTORY!':'💀 DEFEATED'}</div>
+  <div style="font-size:11px;color:var(--mut);margin-top:6px">${iWon?'+25 Ranked Points':'-10 Ranked Points'}</div>
+  <div style="font-family:'Cinzel Decorative',serif;font-size:10px;color:${tier.color==='rainbow'?'var(--gold)':tier.color};margin-top:4px">${tier.name} — ${getRankedPts()} pts</div>`;
+  document.getElementById('fact').innerHTML='';
+  giveRankedRewards(iWon);
+  // Don't auto-close — let player tap X
+}
+
+// ── Hook PvP WS events into handleWS ──
+const _origHandleWS = handleWS;
+handleWS = function(msg){
+  _origHandleWS(msg);
+  handlePvpWS(msg);
+};
+
 </script>
-</body>
-</html>
