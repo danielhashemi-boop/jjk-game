@@ -821,7 +821,18 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
       <!-- Manga speed lines -->
       <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.06" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
         <g stroke="#d4a017" stroke-width="1">
-          <script>/* speed lines injected by JS */</script>
+          <script>/* speed lines injected by JS */
+// Save on page close/refresh
+window.addEventListener('beforeunload', ()=>{ 
+  if(player){
+    try{
+      localStorage.setItem('jjba_save_'+player.name, JSON.stringify(player));
+      localStorage.setItem('jjba_save_latest', JSON.stringify(player));
+    }catch(e){}
+  }
+});
+
+</script>
         </g>
       </svg>
     </div>
@@ -1688,7 +1699,7 @@ function joinGame(){
 
   const playerId = name + '_' + room + '_' + Date.now();
 
-  // Always start immediately — load local save or create fresh
+  // Default fresh player
   player = {
     playerId, name, roomCode: room,
     level:1, xp:0, maxXp:100,
@@ -1700,35 +1711,33 @@ function joinGame(){
     trainCount:0
   };
 
-  // Load local save if exists
-  try{
-    const saved = localStorage.getItem('jjba_save_'+name);
-    if(saved){
-      const s = JSON.parse(saved);
-      // Only load if same room or compatible
-      player = {
-        ...s,
-        playerId,
-        roomCode: room,
-        name
-      };
-    }
-  } catch(e){ console.log('No save found, starting fresh'); }
+  // Try loading save - check all possible save keys
+  const saveKeys = [
+    'jjba_save_'+name,
+    'jjba_save_latest'
+  ];
+  
+  for(const key of saveKeys){
+    try{
+      const saved = localStorage.getItem(key);
+      if(saved){
+        const s = JSON.parse(saved);
+        if(s && s.name === name){
+          player = {...s, playerId, roomCode: room, name};
+          console.log('Save loaded from', key, 'Level:', player.level);
+          break;
+        }
+      }
+    } catch(e){ console.log('Failed to load', key, e); }
+  }
 
-  // Start game immediately — no server needed
+  // Start game immediately
   initGame();
 
-  // Try server in background silently
-  fetch('/api/rooms/join',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name, roomCode:room})
-  }).then(r=>r.json()).then(data=>{
-    if(data.player && !data.error){
-      player.playerId = data.player.playerId;
-      connectWS();
-    }
-  }).catch(()=>{ /* offline, no problem */ });
+  // Connect to server in background
+  setTimeout(()=>{
+    try{ connectWS(); } catch(e){}
+  }, 500);
 }
 function showErr(m){
   const e=document.getElementById('lerr');
@@ -1745,10 +1754,10 @@ function initGame(){
   document.getElementById('topbar').style.display='flex';
   document.getElementById('tabnav').style.display='flex';
   document.getElementById('tc').style.display='flex';
-  loadDailyMissions(); renderAll(); connectWS(); startIdle();
+  loadDailyMissions(); renderAll(); startIdle();
   setTimeout(()=>{ startAgiGame(); startMedGame(); }, 500);
   // Auto-save every 30 seconds
-  setInterval(()=>{ if(player) savePlayer(); }, 30000);
+  setInterval(()=>{ if(player) savePlayer(); }, 10000);
   // Initial save after short delay
   setTimeout(()=>{ if(player) savePlayer(); }, 2000);
   renderAch(); renderMissions(); renderElist(); renderShop();
@@ -1760,7 +1769,15 @@ function connectWS(){
     const proto = location.protocol==='https:'?'wss':'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
     ws.onopen=()=>{
-      try{ ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode})); }catch{}
+      try{
+        ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode}));
+        // Broadcast our player data right after auth
+        setTimeout(()=>{
+          if(ws&&ws.readyState===1&&player){
+            ws.send(JSON.stringify({type:'player_update',player}));
+          }
+        }, 500);
+      }catch{}
       setSave('saved');
     };
     ws.onmessage=e=>{ try{ handleWS(JSON.parse(e.data)); }catch{} };
@@ -1769,10 +1786,40 @@ function connectWS(){
   } catch(e){ ws=null; setTimeout(connectWS,8000); }
 }
 function handleWS(msg){
-  if(msg.type==='init'){ others={}; for(const p of msg.players) others[p.playerId]=p; renderPlayers(); }
-  if(msg.type==='join'){ chatLine(`⚡ ${msg.name} entered the bizarre adventure!`,'var(--blue3)'); }
-  if(msg.type==='leave'){ delete others[msg.playerId]; renderPlayers(); chatLine(`🚪 ${msg.name} left.`,'var(--mut)'); }
-  if(msg.type==='player_update'){ if(msg.player.playerId!==player.playerId){ others[msg.player.playerId]=msg.player; renderPlayers(); } }
+  if(msg.type==='init'){
+    others = {};
+    if(msg.players && msg.players.length){
+      for(const p of msg.players){
+        if(p.playerId !== player.playerId) others[p.playerId] = p;
+      }
+    }
+    renderPlayers();
+    // Broadcast our own data so others see us
+    setTimeout(()=>{
+      if(ws && ws.readyState===1){
+        ws.send(JSON.stringify({type:'player_update', player}));
+      }
+    }, 200);
+  }
+  if(msg.type==='join'){
+    chatLine('⚡ ' + msg.name + ' entered the bizarre adventure!','var(--blue3)');
+    // Request their data by sending our own update
+    if(ws && ws.readyState===1){
+      ws.send(JSON.stringify({type:'player_update', player}));
+    }
+    renderPlayers();
+  }
+  if(msg.type==='leave'){
+    if(msg.playerId) delete others[msg.playerId];
+    renderPlayers();
+    chatLine('🚪 ' + (msg.name||'Someone') + ' left.','var(--mut)');
+  }
+  if(msg.type==='player_update'){
+    if(msg.player && msg.player.playerId && msg.player.playerId!==player.playerId){
+      others[msg.player.playerId] = msg.player;
+      renderPlayers();
+    }
+  }
   if(msg.type==='chat'){ chatLine(`<${msg.name}> ${msg.msg}`); }
   if(msg.type==='pvp_start'){
     liveFs[msg.fightId]={p1Name:msg.p1Name,p2Name:msg.p2Name}; renderLiveFs();
@@ -1791,23 +1838,25 @@ function setSave(s){
 }
 async function savePlayer(){
   if(!player) return;
-  // Always save locally first
+  // ALWAYS save to localStorage immediately - never lose progress
   try{
-    localStorage.setItem('jjba_save_'+player.name, JSON.stringify(player));
+    const saveData = JSON.stringify(player);
+    localStorage.setItem('jjba_save_'+player.name, saveData);
+    localStorage.setItem('jjba_save_latest', saveData);
     setSave('saved');
-  } catch(e){ console.log('Local save error',e); }
-  // Try server save
+  } catch(e){ console.error('LocalStorage save failed', e); }
+  // Try server in background
   try{
+    if(ws && ws.readyState === 1){
+      ws.send(JSON.stringify({type:'player_update', player}));
+    }
     const ctrl = new AbortController();
     setTimeout(()=>ctrl.abort(), 3000);
-    await fetch(`/api/rooms/${player.roomCode}/save`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({player}),
-      signal: ctrl.signal
+    await fetch('/api/rooms/'+player.roomCode+'/save',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({player}), signal: ctrl.signal
     });
-    if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'player_update',player}));
-  } catch(e){ /* offline is fine, local save worked */ }
+  } catch(e){ /* server offline, local save is fine */ }
 }
 function schedSave(){
   if(saveTO) clearTimeout(saveTO);
@@ -2374,6 +2423,8 @@ function killEnemy(){
   checkLevelUp();
   const wasWave=waveMode, wasDungeon=dungeonMode;
   curEnemy=null; combo=0; updateCombo(); checkAch(); renderAll(); schedSave();
+  // Hard save on kill
+  try{ localStorage.setItem('jjba_save_'+player.name, JSON.stringify(player)); }catch{}
   if(wasWave) setTimeout(nextWave,800);
   else if(wasDungeon) setTimeout(nextDungeonRoom,800);
 }
@@ -2389,6 +2440,8 @@ function checkLevelUp(){
     logLine(`🔥 LEVEL UP! Level ${p.level}!`,'var(--gold)');
     updateDailyP('level',1);
     if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'levelup',name:p.name,level:p.level}));
+    // Save immediately on level up
+    try{ localStorage.setItem('jjba_save_'+p.name, JSON.stringify(p)); }catch{}
   }
 }
 
