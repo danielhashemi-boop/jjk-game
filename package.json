@@ -1,4 +1,7 @@
-const express = require('express');
-const app = express();
-app.use(express.static('.'));
-app.listen(process.env.PORT || 3000);
+{
+  "name": "jjba-game",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.18.0" }
+}
