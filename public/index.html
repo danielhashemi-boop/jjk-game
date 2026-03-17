@@ -1680,17 +1680,17 @@ function domainVFX(techName){
 // ══════════════════════════════════════════════════════════
 // LOGIN
 // ══════════════════════════════════════════════════════════
-async function joinGame(){
+function joinGame(){
   const name = document.getElementById('inp-name').value.trim();
-  const roomCode = document.getElementById('inp-room').value.trim().toUpperCase();
+  const room = document.getElementById('inp-room').value.trim().toUpperCase();
   if(!name){ showErr('Enter your name!'); return; }
-  if(!roomCode){ showErr('Enter a room code!'); return; }
-  
-  const playerId = name + '_' + Date.now();
-  
-  // Default player template
+  if(!room){ showErr('Enter a room code!'); return; }
+
+  const playerId = name + '_' + room + '_' + Date.now();
+
+  // Always start immediately — load local save or create fresh
   player = {
-    playerId, name, roomCode,
+    playerId, name, roomCode: room,
     level:1, xp:0, maxXp:100,
     str:5, agi:5, end:5,
     hp:100, maxHp:100,
@@ -1699,39 +1699,43 @@ async function joinGame(){
     kills:0, rankIdx:0,
     trainCount:0
   };
-  
-  // Load local save first
+
+  // Load local save if exists
   try{
     const saved = localStorage.getItem('jjba_save_'+name);
     if(saved){
       const s = JSON.parse(saved);
-      player = {...s, playerId, roomCode, name};
+      // Only load if same room or compatible
+      player = {
+        ...s,
+        playerId,
+        roomCode: room,
+        name
+      };
     }
-  } catch(e){ console.log('Local save load error', e); }
-  
-  // Try server in background (non-blocking)
-  try{
-    const ctrl = new AbortController();
-    const tout = setTimeout(()=>ctrl.abort(), 3000);
-    const res = await fetch('/api/rooms/join',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,roomCode}),
-      signal: ctrl.signal
-    });
-    clearTimeout(tout);
-    const data = await res.json();
-    if(data.player && !data.error){
-      // Merge server player with local save
-      player.playerId = data.player.playerId;
-    }
-  } catch(e){ 
-    console.log('Server offline, playing locally');
-  }
-  
+  } catch(e){ console.log('No save found, starting fresh'); }
+
+  // Start game immediately — no server needed
   initGame();
+
+  // Try server in background silently
+  fetch('/api/rooms/join',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name, roomCode:room})
+  }).then(r=>r.json()).then(data=>{
+    if(data.player && !data.error){
+      player.playerId = data.player.playerId;
+      connectWS();
+    }
+  }).catch(()=>{ /* offline, no problem */ });
 }
-function showErr(m){ const e=document.getElementById('lerr'); e.textContent=m; e.style.display='block'; }
+function showErr(m){
+  const e=document.getElementById('lerr');
+  if(!e) return;
+  e.textContent=m; e.style.display='block';
+  setTimeout(()=>e.style.display='none', 4000);
+}
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -1930,17 +1934,7 @@ function renderElist(){
   el.innerHTML=html;
 }
 
-function renderPlayers(){
-  const el=document.getElementById('plist'); if(!el) return;
-  const p=player;
-  let h=`<div class="pc me"><div style="display:flex;justify-content:space-between;align-items:center"><span class="pn" style="color:var(--gold)">${p.name} <span style="font-size:9px;color:var(--mut)">YOU</span></span><span style="font-size:11px;color:var(--mut)">Lv.${p.level}</span></div><div class="ps">HP:${p.hp}/${p.maxHp} | Kills:${p.kills||0}${p.tech?` | ${p.tech}`:''}</div></div>`;
-  for(const pid in others){
-    const op=others[pid];
-    h+=`<div class="pc"><div style="display:flex;justify-content:space-between;align-items:center"><span class="pn">${op.name}</span><div style="display:flex;gap:4px;align-items:center"><span style="font-size:11px;color:var(--mut)">Lv.${op.level||1}</span><button class="pvp-btn" onclick="startPvp('${pid}')">⚔ Duel</button><button class="rnk-btn" onclick="startRanked('${pid}')">🏆</button></div></div><div class="ps">HP:${op.hp||'?'}/${op.maxHp||'?'} | ${op.tech||'?'}</div></div>`;
-  }
-  if(!Object.keys(others).length) h+=`<div style="font-size:11px;text-align:center;padding:10px;color:var(--mut);font-style:italic">Share room code to play with others</div>`;
-  el.innerHTML=h;
-}
+
 
 function renderLiveFs(){
   const el=document.getElementById('lfights'); if(!el) return;
@@ -2050,14 +2044,14 @@ function tapMed(){
   _doTrainCommon();
 }
 function stopMedGame(){ clearInterval(medPulseInt); medPulseInt=null; medCombo=0; }
-let _renderDebounce=null;
 function _doTrainCommon(){
   if(!player) return;
+  if(typeof _renderDebounce==='undefined') window._renderDebounce=null;
   player.trainCount=(player.trainCount||0)+1;
   updateDailyP('trainCount',1);
   // Debounce renderAll to avoid spam
-  if(_renderDebounce) clearTimeout(_renderDebounce);
-  _renderDebounce=setTimeout(()=>{ _renderDebounce=null; renderAll(); },150);
+  if(window._renderDebounce) clearTimeout(window._renderDebounce);
+  window._renderDebounce=setTimeout(()=>{ window._renderDebounce=null; renderAll(); },150);
   schedSave();
 }
 function doTrain(type){
@@ -2813,7 +2807,7 @@ const RANKED_TIERS = [
   {name:'Stand Master', min:4000, color:'#fbbf24'},
 ];
 
-function getRankedTier(pts){ let t=RANKED_TIERS[0]; for(const r of RANKED_TIERS){ if(pts>=r.min) t=r; } return t; }
+
 
 // ── QUEUE ──
 function openPvpQueue(mode, ranked=false){
@@ -2854,14 +2848,7 @@ function openPvpQueue(mode, ranked=false){
   }, 6000);
 }
 
-function leaveQueue(){
-  PVP.inQueue = false;
-  clearTimeout(PVP._queueTimeout);
-  document.getElementById('queue-ov').style.display = 'none';
-  if(ws && ws.readyState === 1){
-    ws.send(JSON.stringify({ type:'pvp_queue_leave', playerId:player.playerId }));
-  }
-}
+
 
 // Handle match found from server
 function handlePvpMatchFound(msg){
@@ -2974,7 +2961,7 @@ function declineDuel(){
 }
 
 // ══ HANDLE WS PVP MESSAGES ══
-const _origHandleWS = handleWS;
+var _origHandleWS = handleWS;
 handleWS = function(msg){
   _origHandleWS(msg);
   if(msg.type === 'pvp_match_found') handlePvpMatchFound(msg);
@@ -3053,23 +3040,9 @@ function openMashBattle(oppName, isBot){
   PVP._p2Taps = ()=>p2Taps;
 }
 
-function doMash(){
-  if(!PVP.mashActive) return;
-  const taps = PVP._addP1Tap();
-  PVP.mashP1 = Math.min(95, PVP.mashP1 + 2.2);
-  document.getElementById('mash-p1score').textContent = taps;
-  updateMashBars(taps, PVP._p2Taps());
-  // Send to server
-  if(ws && ws.readyState === 1 && !PVP._isBot){
-    ws.send(JSON.stringify({ type:'pvp_mash_tap', matchId:PVP.matchId, playerId:player.playerId }));
-  }
-}
 
-function updateMashBars(p1, p2){
-  const w = PVP.mashP1;
-  document.getElementById('mash-bar-p1').style.width = w + '%';
-  document.getElementById('mash-bar-p2').style.width = (100-w) + '%';
-}
+
+
 
 function finishMash(p1Taps, p2Taps, isBot){
   PVP.mashActive = false;
@@ -3155,29 +3128,7 @@ function openDodgeBattle(oppName, oppTech, isBot){
   PVP.dodgeAnimId = requestAnimationFrame(dodgeLoop);
 }
 
-function spawnDodgeBullets(tech){
-  const col = STANDS.find(s=>s.name===tech)?.skills?.[0]?.color || '#e74c3c';
-  const type = Math.floor(Math.random()*4);
-  if(type===0){ // Horizontal waves
-    for(let i=0;i<4;i++) setTimeout(()=>{
-      PVP.bullets.push({x:-15,y:DBOX.y+30+i*55,vx:4,vy:0,r:9,color:col,born:Date.now(),life:3000});
-    },i*200);
-  } else if(type===1){ // Radial burst from center
-    for(let i=0;i<8;i++){
-      const a=(i/8)*Math.PI*2;
-      PVP.bullets.push({x:DBOX.x+DBOX.w/2,y:DBOX.y+DBOX.h/2,vx:Math.cos(a)*3,vy:Math.sin(a)*3,r:10,color:col,born:Date.now(),life:3500});
-    }
-  } else if(type===2){ // Rain from top
-    for(let i=0;i<6;i++) setTimeout(()=>{
-      PVP.bullets.push({x:DBOX.x+20+Math.random()*(DBOX.w-40),y:DBOX.y-10,vx:(Math.random()-.5),vy:3.5,r:9,color:col,born:Date.now(),life:3000});
-    },i*250);
-  } else { // Homing orbs
-    for(let i=0;i<3;i++) setTimeout(()=>{
-      const a=Math.random()*Math.PI*2;
-      PVP.bullets.push({x:DBOX.x+Math.cos(a)*180+DBOX.w/2,y:DBOX.y+Math.sin(a)*140+DBOX.h/2,vx:-Math.cos(a)*1.5,vy:-Math.sin(a)*1.5,r:12,color:col,homing:true,born:Date.now(),life:5000});
-    },i*400);
-  }
-}
+
 
 function dodgeLoop(){
   if(!PVP.dodgeActive){ PVP.dodgeAnimId=null; return; }
@@ -3512,7 +3463,7 @@ function resolveTurnBattle(){
 }
 
 // Override closeFight to also close turn battles
-const _origCloseFight = closeFight;
+var _origCloseFight = closeFight;
 closeFight = function(){
   _origCloseFight();
   if(PVP.turnPollInt){ clearInterval(PVP.turnPollInt); PVP.turnPollInt=null; }
@@ -3590,7 +3541,7 @@ function closeRankedModal(){ document.getElementById('ranked-ov').style.display=
 // ══════════════════════
 // UPDATE PLAYER LIST to show challenge buttons
 // ══════════════════════
-const _origRenderPlayers = renderPlayers;
+var _origRenderPlayers = renderPlayers;
 renderPlayers = function(){
   const el = document.getElementById('plist'); if(!el) return;
   const p = player;
@@ -4416,7 +4367,7 @@ function endRankedBattle(iWon){
 }
 
 // ── Hook PvP WS events into handleWS ──
-const _origHandleWS = handleWS;
+var _origHandleWS = handleWS;
 handleWS = function(msg){
   _origHandleWS(msg);
   handlePvpWS(msg);
