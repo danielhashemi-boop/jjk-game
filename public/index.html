@@ -1409,15 +1409,51 @@ async function joinGame(){
   const roomCode = document.getElementById('inp-room').value.trim().toUpperCase();
   if(!name){ showErr('Enter your name!'); return; }
   if(!roomCode){ showErr('Enter a room code!'); return; }
+  
+  const playerId = name + '_' + Date.now();
+  
+  // Default player template
+  player = {
+    playerId, name, roomCode,
+    level:1, xp:0, maxXp:100,
+    str:5, agi:5, end:5,
+    hp:100, maxHp:100,
+    ce:100, maxCe:100,
+    coins:100, spins:3,
+    kills:0, rankIdx:0,
+    trainCount:0
+  };
+  
+  // Load local save first
   try{
-    const res = await fetch('/api/rooms/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,roomCode})});
-    const data = await res.json();
-    if(data.error){ showErr(data.error); return; }
-    player = {...data.player};
     const saved = localStorage.getItem('jjba_save_'+name);
-    if(saved){ try{ const s=JSON.parse(saved); player={...s,playerId:player.playerId,roomCode,name}; }catch{} }
-    initGame();
-  } catch(e){ showErr('Cannot reach server.'); console.error(e); }
+    if(saved){
+      const s = JSON.parse(saved);
+      player = {...s, playerId, roomCode, name};
+    }
+  } catch(e){ console.log('Local save load error', e); }
+  
+  // Try server in background (non-blocking)
+  try{
+    const ctrl = new AbortController();
+    const tout = setTimeout(()=>ctrl.abort(), 3000);
+    const res = await fetch('/api/rooms/join',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,roomCode}),
+      signal: ctrl.signal
+    });
+    clearTimeout(tout);
+    const data = await res.json();
+    if(data.player && !data.error){
+      // Merge server player with local save
+      player.playerId = data.player.playerId;
+    }
+  } catch(e){ 
+    console.log('Server offline, playing locally');
+  }
+  
+  initGame();
 }
 function showErr(m){ const e=document.getElementById('lerr'); e.textContent=m; e.style.display='block'; }
 
@@ -1431,17 +1467,26 @@ function initGame(){
   document.getElementById('tc').style.display='flex';
   loadDailyMissions(); renderAll(); connectWS(); startIdle();
   setTimeout(()=>{ startAgiGame(); startMedGame(); }, 500);
-  setInterval(()=>savePlayer(), 30000); savePlayer();
+  // Auto-save every 30 seconds
+  setInterval(()=>{ if(player) savePlayer(); }, 30000);
+  // Initial save after short delay
+  setTimeout(()=>{ if(player) savePlayer(); }, 2000);
   renderAch(); renderMissions(); renderElist(); renderShop();
   prevKills=player.kills||0; prevCoins=player.coins||0; prevLevel=player.level||1; prevTrains=player.trainCount||0;
 }
 
 function connectWS(){
-  const proto = location.protocol==='https:'?'wss':'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
-  ws.onopen=()=>{ ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode})); setSave('saved'); };
-  ws.onmessage=e=>{ try{ handleWS(JSON.parse(e.data)); }catch{} };
-  ws.onclose=()=>{ setSave('offline'); setTimeout(connectWS,3000); };
+  try{
+    const proto = location.protocol==='https:'?'wss':'ws';
+    ws = new WebSocket(`${proto}://${location.host}`);
+    ws.onopen=()=>{
+      try{ ws.send(JSON.stringify({type:'auth',playerId:player.playerId,roomCode:player.roomCode})); }catch{}
+      setSave('saved');
+    };
+    ws.onmessage=e=>{ try{ handleWS(JSON.parse(e.data)); }catch{} };
+    ws.onerror=()=>{ ws=null; };
+    ws.onclose=()=>{ ws=null; setSave('offline'); setTimeout(connectWS,8000); };
+  } catch(e){ ws=null; setTimeout(connectWS,8000); }
 }
 function handleWS(msg){
   if(msg.type==='init'){ others={}; for(const p of msg.players) others[p.playerId]=p; renderPlayers(); }
@@ -1459,20 +1504,35 @@ function handleWS(msg){
 }
 function setSave(s){
   const d=document.getElementById('sdot'),t=document.getElementById('sstatus');
+  if(!d||!t) return;
   if(s==='saved'){d.style.background='var(--grn2)';t.style.color='var(--grn2)';t.textContent='Saved';}
   else if(s==='saving'){d.style.background='var(--gold)';t.style.color='var(--gold)';t.textContent='Saving...';}
   else{d.style.background='var(--red3)';t.style.color='var(--red3)';t.textContent='Offline';}
 }
 async function savePlayer(){
-  if(!player) return; setSave('saving');
+  if(!player) return;
+  // Always save locally first
   try{
     localStorage.setItem('jjba_save_'+player.name, JSON.stringify(player));
-    await fetch(`/api/rooms/${player.roomCode}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({player})});
     setSave('saved');
+  } catch(e){ console.log('Local save error',e); }
+  // Try server save
+  try{
+    const ctrl = new AbortController();
+    setTimeout(()=>ctrl.abort(), 3000);
+    await fetch(`/api/rooms/${player.roomCode}/save`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({player}),
+      signal: ctrl.signal
+    });
     if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'player_update',player}));
-  } catch{ setSave('offline'); }
+  } catch(e){ /* offline is fine, local save worked */ }
 }
-function schedSave(){ if(saveTO) clearTimeout(saveTO); saveTO=setTimeout(()=>savePlayer(),2000); }
+function schedSave(){
+  if(saveTO) clearTimeout(saveTO);
+  saveTO = setTimeout(()=>{ saveTO=null; savePlayer(); }, 3000);
+}
 
 // ══════════════════════════════════════════════════════════
 // RENDER
@@ -1714,11 +1774,15 @@ function tapMed(){
   _doTrainCommon();
 }
 function stopMedGame(){ clearInterval(medPulseInt); medPulseInt=null; medCombo=0; }
+let _renderDebounce=null;
 function _doTrainCommon(){
   if(!player) return;
   player.trainCount=(player.trainCount||0)+1;
   updateDailyP('trainCount',1);
-  renderAll(); schedSave();
+  // Debounce renderAll to avoid spam
+  if(_renderDebounce) clearTimeout(_renderDebounce);
+  _renderDebounce=setTimeout(()=>{ _renderDebounce=null; renderAll(); },150);
+  schedSave();
 }
 function doTrain(type){
   if(!player) return;
@@ -1730,19 +1794,22 @@ function doTrain(type){
 function toggleAuto(e,type){
   e.stopPropagation();
   if(autoAction===type){ stopAuto(); return; }
-  stopAuto(); autoAction=type;
-  const ab=document.getElementById(`ab-${type}`); if(ab) ab.classList.add('on');
-  const tc=document.getElementById(`tc-${type}`); if(tc) tc.classList.add('ao');
+  stopAuto();
+  autoAction=type;
+  const ab=document.getElementById('ab-'+type); if(ab) ab.classList.add('on');
+  const tc=document.getElementById('tc-'+type); if(tc) tc.classList.add('ao');
   const hdr=document.getElementById('auto-hdr'); if(hdr) hdr.style.display='inline';
   if(type==='agi') startAgiGame();
   if(type==='med') startMedGame();
   doTrainAuto(type);
+  if(autoInt) clearInterval(autoInt);
   autoInt=setInterval(()=>{
-    if(type==='agi'){ if(agiActive) hitAgiTarget(); }
+    if(!player||!autoAction) return;
+    if(type==='agi'){ if(agiActive) hitAgiTarget(); else {} }
     else if(type==='med') tapMed();
-    else if(type==='sta'){ if(player){ player.ce=Math.min(player.maxCe,(player.ce||0)+ri(3,8)); _doTrainCommon(); renderAll(); } }
+    else if(type==='sta'){ player.ce=Math.min(player.maxCe,(player.ce||0)+ri(3,8)); _doTrainCommon(); }
     else doTrainAuto(type);
-  },900);
+  }, 1000);
 }
 function doTrainAuto(type){
   if(!player) return;
@@ -1763,7 +1830,16 @@ function stopAuto(){
 }
 function startIdle(){
   if(idleInt) clearInterval(idleInt);
-  idleInt=setInterval(()=>{ if(!player) return; player.ce=Math.min(player.maxCe,(player.ce||0)+1); renderAll(); },2000);
+  idleInt=setInterval(()=>{
+    if(!player) return;
+    player.ce=Math.min(player.maxCe,(player.ce||0)+1);
+    // Only re-render bars, not everything
+    const hpEl=document.getElementById('bar-hp');
+    const staEl=document.getElementById('bar-sta');
+    const staTxt=document.getElementById('bar-sta-t');
+    if(staEl) staEl.style.width=Math.min(100,(player.ce/player.maxCe)*100)+'%';
+    if(staTxt) staTxt.textContent='STA: '+Math.floor(player.ce)+'/'+player.maxCe;
+  }, 2000);
 }
 function setTrainTab(tab){
   document.querySelectorAll('.stb').forEach((b,i)=>b.classList.toggle('active',['train','rolls'][i]===tab));
@@ -2080,8 +2156,26 @@ async function startBoss(type){
     if(data.fightId) openFight(data.fightId);
   }catch{}
 }
-async function startPvp(tid){ if(activeFight) return; try{ const res=await fetch(`/api/rooms/${player.roomCode}/pvp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId:tid})}); const d=await res.json(); if(d.fightId) openFight(d.fightId); }catch{} }
-async function startRanked(tid){ if(activeFight) return; try{ const res=await fetch(`/api/rooms/${player.roomCode}/pvp/ranked`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId:tid})}); const d=await res.json(); if(d.fightId) openFight(d.fightId); }catch{} }
+async function startPvp(tid){ 
+  if(activeFight) return; 
+  try{ 
+    const ctrl=new AbortController(); setTimeout(()=>ctrl.abort(),3000);
+    const res=await fetch('/api/rooms/'+player.roomCode+'/pvp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId:tid}),signal:ctrl.signal}); 
+    const d=await res.json(); 
+    if(d.fightId) openFight(d.fightId); 
+    else toast('⚠','PvP not available offline');
+  }catch{ toast('⚠','PvP requires server connection'); } 
+}
+async function startRanked(tid){ 
+  if(activeFight) return; 
+  try{ 
+    const ctrl=new AbortController(); setTimeout(()=>ctrl.abort(),3000);
+    const res=await fetch('/api/rooms/'+player.roomCode+'/pvp/ranked',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengerId:player.playerId,targetId:tid}),signal:ctrl.signal}); 
+    const d=await res.json(); 
+    if(d.fightId) openFight(d.fightId);
+    else toast('⚠','Ranked not available offline');
+  }catch{ toast('⚠','Ranked requires server connection'); } 
+}
 async function openFight(fid){ activeFight=fid; myMoveLocked=false; document.getElementById('fight-ov').style.display='flex'; await pollFight(); }
 function closeFight(){ activeFight=null; document.getElementById('fight-ov').style.display='none'; }
 async function pollFight(){ if(!activeFight) return; try{ const r=await fetch(`/api/fights/${activeFight}`); const f=await r.json(); renderFight(f); }catch{} }
@@ -2211,12 +2305,18 @@ function closeShop(){ document.getElementById('shop-ov').style.display='none'; }
 // ══════════════════════════════════════════════════════════
 async function openLb(){
   document.getElementById('lb-ov').style.display='flex';
+  const el=document.getElementById('lb-list');
+  el.innerHTML='<div style="color:var(--mut);text-align:center;padding:20px;font-style:italic">Loading...</div>';
   try{
-    const res=await fetch('/api/leaderboard'); const data=await res.json();
-    const el=document.getElementById('lb-list');
-    if(!data.length){ el.innerHTML=`<div style="color:var(--mut);text-align:center;padding:20px;font-style:italic">No data yet</div>`; return; }
-    el.innerHTML=data.map((e,i)=>`<div class="lb-row"><span class="lb-rank" style="color:var(--gold)">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</span><span class="lb-name">${e.name} <span style="font-size:9px;color:var(--mut)">Lv.${e.level}</span></span>${e.clan?`<span style="font-size:10px;color:var(--gold)">${e.clan}</span>`:''}<span style="font-size:11px;color:var(--mut)">${e.kills||0}💀</span></div>`).join('');
-  }catch{}
+    const ctrl=new AbortController();
+    setTimeout(()=>ctrl.abort(),3000);
+    const res=await fetch('/api/leaderboard',{signal:ctrl.signal});
+    const data=await res.json();
+    if(!data.length){ el.innerHTML='<div style="color:var(--mut);text-align:center;padding:20px;font-style:italic">No data yet</div>'; return; }
+    el.innerHTML=data.map((e,i)=>`<div class="lb-row"><span class="lb-rank" style="color:var(--gold)">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span><span class="lb-name">${e.name} <span style="font-size:9px;color:var(--mut)">Lv.${e.level}</span></span>${e.clan?`<span style="font-size:10px;color:var(--gold)">${e.clan}</span>`:''}<span style="font-size:11px;color:var(--mut)">${e.kills||0}💀</span></div>`).join('');
+  }catch{
+    el.innerHTML='<div style="color:var(--mut);text-align:center;padding:20px;font-style:italic">Offline — no leaderboard available</div>';
+  }
 }
 function closeLb(){ document.getElementById('lb-ov').style.display='none'; }
 
