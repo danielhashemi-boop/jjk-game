@@ -292,6 +292,8 @@ body::before {
   animation: rbShift 2s linear infinite;
 }
 @keyframes rbShift { to { background-position: 200% center; } }
+@keyframes ssspulse { 0%,100%{text-shadow:0 0 8px #00ffff,0 0 16px #00e5ff} 50%{text-shadow:0 0 20px #00ffff,0 0 40px #00e5ff,0 0 60px #18ffff} }
+@keyframes sssglow  { 0%,100%{text-shadow:0 0 8px #b388ff,0 0 16px #7c4dff} 50%{text-shadow:0 0 20px #b388ff,0 0 40px #ea80fc} }
 
 /* ══ TECH FOOTER ══ */
 .tech-foot {
@@ -1006,7 +1008,7 @@ window.addEventListener('beforeunload', ()=>{
             <span class="rar" style="color:var(--gold)">A</span>
             <span class="rar" style="color:var(--red3)">S</span>
             <span class="rar" style="color:var(--pink3)">SS</span>
-            <span class="rar rainbow" style="-webkit-text-fill-color:unset">SS+</span>
+            <span class="rar rainbow" style="-webkit-text-fill-color:unset">SS+</span><span class="rar" style="color:#b388ff;text-shadow:0 0 6px #b388ff">SSS</span><span class="rar" style="color:#00ffff;text-shadow:0 0 8px #00ffff;animation:ssspulse 1.5s infinite">SSS+</span>
           </div>
           <div class="roll-box" id="roll-res">Discover your Stand and bloodline...</div>
           <div class="roll-btns">
@@ -1291,7 +1293,22 @@ const BLOODLINES = [
 
 // ── STANDS (replaces Techniques) ──
 const STANDS = [
-  // SS+
+  // SSS+ — Light Novel Kars (Ultimate Life Form)
+  {name:'Ultimate Life Form', r:'SSS+', color:'#00ffff', skills:[
+    {name:'Perfect Hamon',     dmg:280, cost:120, cd:10, status:'curse',  color:'#00ffff'},
+    {name:'Blade Evolution',   dmg:200, cost:80,  cd:7,  status:'bleed',  color:'#00e5ff'},
+    {name:'Adaptive Body',     dmg:0,   cost:60,  cd:8,  heal:200,        color:'#18ffff'},
+    {name:'Ultimate Lifeform', dmg:450, cost:200, cd:20, status:'curse',  color:'#e0ffff'},
+  ], w:0.2},
+
+  // SSS — Wonder of U (Calamity Stand)
+  {name:'Wonder of U', r:'SSS', color:'#b388ff', skills:[
+    {name:'Calamity Pursuit',  dmg:160, cost:70,  cd:6,  status:'curse',  color:'#b388ff'},
+    {name:'Natural Disaster',  dmg:200, cost:90,  cd:8,  status:'burn',   color:'#7c4dff'},
+    {name:'Calamity Flow',     dmg:240, cost:110, cd:10, status:'curse',  color:'#ea80fc'},
+    {name:'Wonder of U: Full', dmg:380, cost:170, cd:18, status:'curse',  color:'#e040fb'},
+  ], w:0.5},
+
   {name:'Tusk Act 4',       r:'SS+', color:'#fcd34d', skills:[
     {name:'Infinite Rotation',dmg:150,cost:80,cd:9,status:'curse',color:'#fcd34d'},
     {name:'Nail Spin',       dmg:65,cost:32,cd:4,color:'#fbbf24'},
@@ -1456,6 +1473,8 @@ const DOMAIN_NAMES = {
   'Hermit Purple':       {name:'Vine Prison',               shard:'Purple Thorn',  color:'#a855f7'},
   'Pluck':               {name:'Sword Domain',              shard:'Steel Chip',    color:'#78716c'},
   'Hamon Technique':     {name:'Overdrive Sunlight',        shard:'Hamon Shard',   color:'#fbbf24'},
+  'Wonder of U':          {name:'Calamity: Wonder of U',       shard:'Calamity Shard', color:'#b388ff'},
+  'Ultimate Life Form':   {name:'Perfect Ultimate Lifeform',   shard:'Kars Crystal',   color:'#00ffff'},
 };
 const DOMAIN_SHARD_REQ = 5;
 
@@ -1635,7 +1654,13 @@ function wr(items, weights){
   return items[items.length-1];
 }
 function rc(r){ return {E:'#888',D:getComputedStyle(document.documentElement).getPropertyValue('--blue3').trim()||'#5dade2',C:'#86efac',B:'#a855f7',A:'var(--gold)',S:'#e74c3c',SS:'#ff69b4','SS+':'rainbow'}[r]||'var(--ink)'; }
-function rs(r, t){ if(r==='SS+') return `<span class="rainbow">${t}</span>`; const c=rc(r); return c.startsWith('var')||c.startsWith('#')?`<span style="color:${c.replace('var(','{').replace(')','}').replace('{','var(')}">${t}</span>`:`<span style="color:${c}">${t}</span>`; }
+function rs(r, t){ 
+  if(r==='SS+') return '<span class="rainbow">'+t+'</span>';
+  if(r==='SSS') return '<span style="color:#b388ff;text-shadow:0 0 8px #b388ff">'+t+'</span>';
+  if(r==='SSS+') return '<span style="color:#00ffff;text-shadow:0 0 10px #00ffff,0 0 20px #00e5ff;animation:ssspulse 1.5s infinite">'+t+'</span>';
+  const c=rc(r); 
+  return '<span style="color:'+c+'">'+t+'</span>';
+}
 function logLine(text, color='var(--ink)'){
   clog.push({text,color}); if(clog.length>80) clog.shift();
   const el = document.getElementById('clog'); if(!el) return;
@@ -2851,6 +2876,16 @@ const PVP = {
 };
 
 // Ranked tiers
+// SSS rarity colors
+function rc(r){ 
+  const map = {
+    'E':'#888','D':'#5dade2','C':'#86efac','B':'#a855f7',
+    'A':'#d4a017','S':'#e74c3c','SS':'#ff69b4',
+    'SS+':'rainbow','SSS':'#b388ff','SSS+':'#00ffff'
+  };
+  return map[r]||'var(--ink)';
+}
+
 const RANKED_TIERS = [
   {name:'Bronze',   min:0,    color:'#cd7f32'},
   {name:'Silver',   min:200,  color:'#c0c0c0'},
