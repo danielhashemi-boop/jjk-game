@@ -80,6 +80,70 @@ app.post('/api/rooms/:room/pvp/ranked', (req, res) => res.json({ fightId: null }
 app.get('/api/fights/:id', (req, res) => res.json({}));
 app.post('/api/fights/:id/action', (req, res) => res.json({ fight: {} }));
 
+
+// ══ ACCOUNT SYSTEM ══
+const crypto = require('crypto');
+const accounts = {}; // username -> { passwordHash, token, saveData }
+
+function hashPassword(pass){ return crypto.createHash('sha256').update(pass+'jjba_salt_2026').digest('hex'); }
+function makeToken(user){ return crypto.createHash('sha256').update(user+Date.now()+Math.random()).digest('hex'); }
+function authToken(req){ 
+  const auth = req.headers.authorization||'';
+  return auth.replace('Bearer ','').trim();
+}
+
+app.post('/api/account/register', (req, res)=>{
+  const { username, password } = req.body;
+  if(!username||!password) return res.json({error:'Missing fields'});
+  if(username.length<3) return res.json({error:'Username too short (min 3)'});
+  if(password.length<6) return res.json({error:'Password too short (min 6)'});
+  if(accounts[username.toLowerCase()]) return res.json({error:'Username already taken!'});
+  const token = makeToken(username);
+  accounts[username.toLowerCase()] = {
+    username, 
+    passwordHash: hashPassword(password), 
+    token, 
+    saveData: null,
+    createdAt: Date.now()
+  };
+  console.log('New account:', username);
+  res.json({ ok:true, token });
+});
+
+app.post('/api/account/login', (req, res)=>{
+  const { username, password } = req.body;
+  if(!username||!password) return res.json({error:'Missing fields'});
+  const acc = accounts[username.toLowerCase()];
+  if(!acc) return res.json({error:'Account not found'});
+  if(acc.passwordHash !== hashPassword(password)) return res.json({error:'Wrong password'});
+  // Generate new token
+  acc.token = makeToken(username);
+  console.log('Login:', username);
+  res.json({ ok:true, token:acc.token, saveData: acc.saveData||null });
+});
+
+app.post('/api/account/save', (req, res)=>{
+  const { username, saveData } = req.body;
+  const token = authToken(req);
+  const acc = accounts[username?.toLowerCase()];
+  if(!acc) return res.json({error:'Account not found'});
+  if(acc.token !== token) return res.json({error:'Invalid token — please login again'});
+  acc.saveData = saveData;
+  acc.lastSaved = Date.now();
+  console.log('Save synced for:', username, 'Level:', saveData?.level);
+  res.json({ ok:true });
+});
+
+app.get('/api/account/load', (req, res)=>{
+  const username = req.query.username;
+  const token = authToken(req);
+  const acc = accounts[username?.toLowerCase()];
+  if(!acc) return res.json({error:'Account not found'});
+  if(acc.token !== token) return res.json({error:'Invalid token'});
+  res.json({ ok:true, saveData: acc.saveData||null });
+});
+
+
 // ── WEBSOCKET ──
 wss.on('connection', (ws) => {
   let myId = null;
