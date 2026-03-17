@@ -1909,8 +1909,79 @@ function freshPlayer(name, room){
 }
 
 function startGame(room){
+  // Special founder account
+  if(player && player.name && player.name.toLowerCase() === 'xerxes'){
+    const accKey = 'jjba_account_' + player.name.toLowerCase();
+    try{
+      const acc = JSON.parse(localStorage.getItem(accKey)||'{}');
+      if(acc.passwordHash === hashPass('HASHEMI222')){
+        applyFounderPerks();
+      }
+    } catch(e){}
+  }
   initGame();
   setTimeout(connectWS, 800);
+}
+
+function applyFounderPerks(){
+  if(!player) return;
+  // Z+ Stand
+  const saikiStand = STANDS.find(s=>s.name==='Psychic Sovereign') || STANDS.find(s=>s.r==='SSS+') || STANDS[0];
+  player.tech = saikiStand.name;
+  player.techRarity = 'Z+';
+  player.skills = saikiStand.skills;
+  // Z+ Bloodline
+  player.clan = 'Saiki';
+  player.clanRarity = 'Z+';
+  // Max stats
+  player.level = 50;
+  player.str = 999; player.agi = 999; player.end = 999;
+  player.maxHp = 99999; player.hp = 99999;
+  player.maxCe = 99999; player.ce = 99999;
+  player.coins = 999999; player.spins = 9999;
+  player.kills = 9999; player.rankIdx = 6;
+  player.xp = 0; player.maxXp = 999999;
+  player.ascensions = 10; player.xpMult = 3; player.coinMult = 3;
+  // All traits
+  if(typeof TRAITS !== 'undefined'){
+    player.traits = TRAITS.map(t=>({...t}));
+    TRAITS.forEach(t=>{ try{ t.apply(player); } catch(e){} });
+  }
+  // All outfits
+  player.outfits = OUTFITS.map(o=>o.id);
+  player.outfitId = 'saiki_uniform';
+  // Domain unlocked
+  player.domainUnlocked = true;
+  player.domainShards = 99;
+  // Saiki achievements
+  player.saikiEncountered = true;
+  player.saikiDefeated = true;
+  player.saikiEventCompleted = true;
+  player.saikiDomainUsed = true;
+  player.saikiDmgDealt = 99999;
+  player.coffeeJellyCount = 99;
+  player.pvpWins = 99;
+  player.comboCharm = true;
+  player.critCharm = true;
+  player.critBonus = 0.5;
+  player.xpCharm = true;
+  player.coinCharm = true;
+  player.regenCharm = true;
+  player.dmgBonus = 2.0;
+  player.skillDmgBonus = 2.0;
+  player.bfTrait = true;
+  player.sixEyes = true;
+  player.rctTrait = true;
+  player.innateDomain = true;
+  player.stunImmune = true;
+  player.completedQuests = [];
+  // All quests auto-completed
+  if(typeof QUEST_CHAINS !== 'undefined'){
+    QUEST_CHAINS.forEach(chain=>{
+      chain.quests.forEach(q=>player.completedQuests.push(q.id));
+    });
+  }
+  console.log('Founder perks applied for Xerxes!');
 }
 function showErr(m){
   const e=document.getElementById('lerr');
