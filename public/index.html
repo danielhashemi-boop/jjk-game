@@ -294,6 +294,7 @@ body::before {
 @keyframes rbShift { to { background-position: 200% center; } }
 @keyframes ssspulse { 0%,100%{text-shadow:0 0 8px #00ffff,0 0 16px #00e5ff} 50%{text-shadow:0 0 20px #00ffff,0 0 40px #00e5ff,0 0 60px #18ffff} }
 @keyframes sssglow  { 0%,100%{text-shadow:0 0 8px #b388ff,0 0 16px #7c4dff} 50%{text-shadow:0 0 20px #b388ff,0 0 40px #ea80fc} }
+@keyframes parryPulse { 0%,100%{box-shadow:0 0 5px var(--gold)} 50%{box-shadow:0 0 20px var(--gold),0 0 40px var(--gold)} }
 @keyframes zpulse { 0%,100%{text-shadow:0 0 8px #ff00ff,0 0 16px #ff00ff;opacity:1} 50%{text-shadow:0 0 30px #ff00ff,0 0 60px #ff69b4,0 0 90px #fff;opacity:.8} }
 
 /* ══ TECH FOOTER ══ */
@@ -1040,6 +1041,9 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
             <button class="rbtn" onclick="doRoll('stand')">✦ Roll Stand</button>
           </div>
           <button class="rbtn" style="width:100%;margin-bottom:7px;background:linear-gradient(135deg,var(--purple-bg),rgba(125,60,255,.08));border-color:var(--purple2);color:var(--purple4)" onclick="doRoll('trait')">🌟 Roll Trait (1 spin)</button>
+          <button class="rbtn" style="width:100%;margin-bottom:7px;background:rgba(255,215,0,.08);border-color:#ffd700;color:#ffd700" onclick="tryRequiemArrow()">🏹 REQUIEM ARROW (3 spins — 50/50!)</button>
+          <button class="rbtn" style="width:100%;margin-bottom:7px;background:rgba(125,60,255,.08);border-color:var(--purple2);color:var(--purple4)" onclick="openTraitFusion()">✦ FUSE TRAITS (combine 2 same rarity)</button>
+          <div id="pity-display" style="text-align:center;font-size:10px;color:var(--mut);margin-bottom:5px;font-family:'Share Tech Mono',monospace"></div>
           <div id="shard-panel" style="display:none">
             <div style="font-family:'Cinzel Decorative',serif;font-size:9px;font-weight:700;color:var(--mut);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Requiem Arrows</div>
             <div class="shard-row">
@@ -1059,7 +1063,7 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
         <span class="tf-l">STAND</span>
         <div style="width:1px;background:var(--border);align-self:stretch"></div>
         <span id="tech-disp" style="font-size:12px"></span>
-        <span id="skills-disp" style="font-size:10px;color:var(--mut);font-style:italic"></span>
+        <span id="skills-disp" style="font-size:10px;color:var(--mut);font-style:italic"></span><span id="mastery-disp" style="font-size:9px;color:var(--gold);font-style:italic"></span>
       </div>
 
       <!-- Prestige -->
@@ -1104,6 +1108,10 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
           <div id="combo-d" style="display:none" class="combo-row"><span class="cx" id="cx">×1</span><span style="font-size:10px;letter-spacing:2px;font-family:'Cinzel Decorative',serif">COMBO!</span><span id="cb" style="font-size:10px;color:var(--gold)"></span></div>
           <div class="srow" id="p-status"></div>
           <button class="atk-btn" id="atk-btn" onclick="doAttack()">⚔ BASIC ATTACK</button>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <button id="parry-btn-combat" onclick="doParryCombat()" style="display:none;flex:1;padding:8px;background:rgba(212,160,23,.15);border:2px solid var(--gold);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer;animation:parryPulse .3s infinite">⚔ PARRY!</button>
+            <button id="combo-finisher-btn" onclick="doComboFinisher()" style="display:none;flex:1;padding:8px;background:rgba(255,100,0,.15);border:2px solid #ff6400;color:#ffaa00;font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer">💥 FINISHER!</button>
+          </div>
           <button class="resp-btn" id="resp-btn" onclick="respawn()">🌀 RESPAWN (FREE)</button>
           <div class="log-box" id="clog"></div>
         </div>
@@ -1318,6 +1326,50 @@ const BLOODLINES = [
 
 // ── STANDS (replaces Techniques) ──
 const STANDS = [
+
+  // ── REQUIEM VARIANTS (evolved from SS stands via arrow) ──
+  {name:'Star Platinum Requiem',   r:'SS+', color:'#00bfff', skills:[
+    {name:'ORA Requiem',          dmg:180, cost:80,  cd:6,  status:'stun',  color:'#00bfff'},
+    {name:'Time Stop: Requiem',   dmg:250, cost:120, cd:10, status:'stun',  color:'#7ec8e3'},
+    {name:'Star Finger: Infinite',dmg:200, cost:95,  cd:8,  status:'bleed', color:'#aed6f1'},
+    {name:'Za Warudo: Requiem',   dmg:400, cost:180, cd:18, status:'curse', color:'#ffffff'},
+  ], w:0, requiem:true, baseStand:'Star Platinum'},
+
+  {name:'Crazy Diamond Requiem',   r:'SS+', color:'#ff00ff', skills:[
+    {name:'Dora Requiem',         dmg:170, cost:75,  cd:6,  status:'stun',  color:'#ff00ff'},
+    {name:'Restoration: Requiem', dmg:0,   cost:60,  cd:5,  heal:400,       color:'#e879f9'},
+    {name:'Diamond Shatter',      dmg:300, cost:140, cd:12, status:'stun',  color:'#f0abfc'},
+    {name:'Unbreakable: Requiem', dmg:450, cost:200, cd:20, status:'curse', color:'#fae8ff'},
+  ], w:0, requiem:true, baseStand:'Crazy Diamond'},
+
+  {name:'Killer Queen Requiem',    r:'SS+', color:'#ffe000', skills:[
+    {name:'Bomb Requiem',         dmg:190, cost:85,  cd:7,  status:'burn',  color:'#ffe000'},
+    {name:'BtD: Requiem',         dmg:280, cost:130, cd:11, status:'curse', color:'#fcd34d'},
+    {name:'4th Bomb',             dmg:350, cost:160, cd:15, status:'curse', color:'#fffbeb'},
+    {name:'Requiem Explosion',    dmg:500, cost:220, cd:22, status:'curse', color:'#ffffff'},
+  ], w:0, requiem:true, baseStand:'Killer Queen'},
+
+  {name:'The World Requiem',       r:'SS+', color:'#ff4444', skills:[
+    {name:'Road Roller: Requiem', dmg:200, cost:90,  cd:8,  status:'stun',  color:'#ff4444'},
+    {name:'Knife Storm',          dmg:160, cost:70,  cd:6,  status:'bleed', color:'#e74c3c'},
+    {name:'Time Stop: 11 Sec',    dmg:300, cost:150, cd:14, status:'stun',  color:'#ff6b5b'},
+    {name:'MUDA Requiem',         dmg:420, cost:190, cd:19, status:'curse', color:'#ffffff'},
+  ], w:0, requiem:true, baseStand:'The World'},
+
+  {name:'Purple Haze Requiem',     r:'SS+', color:'#cc00ff', skills:[
+    {name:'Virus Requiem',        dmg:220, cost:100, cd:8,  status:'curse', color:'#cc00ff'},
+    {name:'Plague Requiem',       dmg:180, cost:80,  cd:7,  status:'burn',  color:'#a855f7'},
+    {name:'Death Cloud',          dmg:300, cost:140, cd:13, status:'curse', color:'#e9d5ff'},
+    {name:'Requiem Miasma',       dmg:480, cost:210, cd:21, status:'curse', color:'#ffffff'},
+  ], w:0, requiem:true, baseStand:'Purple Haze'},
+
+  {name:'Silver Chariot Requiem',  r:'SS+', color:'#c0c0c0', skills:[
+    {name:'Requiem Rapier',       dmg:200, cost:90,  cd:7,  status:'bleed', color:'#e2e8f0'},
+    {name:'Sleep Inducement',     dmg:0,   cost:60,  cd:8,  status:'stun',  color:'#cbd5e1'},
+    {name:'Soul Scatter',         dmg:280, cost:130, cd:12, status:'curse', color:'#f1f5f9'},
+    {name:'Arrow Requiem',        dmg:460, cost:200, cd:20, status:'stun',  color:'#ffffff'},
+  ], w:0, requiem:true, baseStand:'Silver Chariot'},
+
   // SSS+ — Light Novel Kars (Ultimate Life Form)
   {name:'Ultimate Life Form', r:'SSS+', color:'#00ffff', skills:[
     {name:'Perfect Hamon',     dmg:280, cost:120, cd:10, status:'curse',  color:'#00ffff'},
@@ -1505,6 +1557,13 @@ const DOMAIN_NAMES = {
   'Echoes Act 3':        {name:'Heavy Reality',             shard:'Echo Stone',    color:'#38bdf8'},
   'Hermit Purple':       {name:'Vine Prison',               shard:'Purple Thorn',  color:'#a855f7'},
   'Pluck':               {name:'Sword Domain',              shard:'Steel Chip',    color:'#78716c'},
+
+  'Star Platinum Requiem':  {name:'Star Platinum: The World Requiem', shard:'Requiem Shard', color:'#00bfff'},
+  'Crazy Diamond Requiem':  {name:'Crazy Diamond: Unbreakable Requiem', shard:'Diamond Shard', color:'#ff00ff'},
+  'Killer Queen Requiem':   {name:'Killer Queen: Bites the Dust Requiem', shard:'Bomb Shard', color:'#ffe000'},
+  'The World Requiem':      {name:'The World: Over Heaven', shard:'Heaven Shard', color:'#ff4444'},
+  'Purple Haze Requiem':    {name:'Purple Haze: Feedback Requiem', shard:'Virus Shard', color:'#cc00ff'},
+  'Silver Chariot Requiem': {name:'Silver Chariot: Soul Scatter', shard:'Soul Shard', color:'#c0c0c0'},
   'Hamon Technique':     {name:'Overdrive Sunlight',        shard:'Hamon Shard',   color:'#fbbf24'},
   'Psychic Sovereign':    {name:'Ζ Saiki Reality Erasure',    shard:'Psychic Crystal', color:'#ff00ff'},
   'Wonder of U':          {name:'Calamity: Wonder of U',       shard:'Calamity Shard', color:'#b388ff'},
@@ -2047,10 +2106,9 @@ function connectWS(){
     ws = new WebSocket(proto + '://' + location.host);
 
     ws.onopen = function(){
-      console.log('WS connected!');
+      console.log('WS connected to room: ' + player.roomCode);
       setSave('saved');
       updateWsIndicator('connecting');
-      // Send auth with full player info
       ws.send(JSON.stringify({
         type: 'auth',
         playerId: player.playerId,
@@ -2058,6 +2116,12 @@ function connectWS(){
         name: player.name,
         player: player
       }));
+      // Re-send player update after short delay to ensure server registered us
+      setTimeout(()=>{
+        if(ws && ws.readyState === WebSocket.OPEN){
+          ws.send(JSON.stringify({ type: 'player_update', player: player }));
+        }
+      }, 500);
     };
 
     ws.onmessage = function(e){
@@ -2085,90 +2149,88 @@ function connectWS(){
 }
 function handleWS(msg){
   if(!msg || !msg.type) return;
+  const type = msg.type;
 
-  switch(msg.type){
-    case 'init':
-      // Server sends all existing players in room
-      others = {};
-      if(msg.players && Array.isArray(msg.players)){
-        msg.players.forEach(p => {
-          if(p && p.playerId && p.playerId !== player.playerId){
-            others[p.playerId] = p;
-          }
-        });
+  if(type === 'init'){
+    // Server sends all players currently in room
+    others = {};
+    const players = msg.players || [];
+    players.forEach(p => {
+      if(p && p.playerId && p.playerId !== player.playerId){
+        others[p.playerId] = p;
       }
-      console.log('Room init: ' + Object.keys(others).length + ' other players');
-      updateWsIndicator('online');
+    });
+    updateWsIndicator('online');
+    renderPlayers();
+    chatLine('✓ Connected to room ' + player.roomCode + ' · ' + players.length + ' others here', 'var(--grn3)');
+    return;
+  }
+
+  if(type === 'join'){
+    if(msg.player && msg.player.playerId !== player.playerId){
+      others[msg.player.playerId] = msg.player;
+    } else if(msg.playerId && msg.playerId !== player.playerId && !others[msg.playerId]){
+      others[msg.playerId] = {playerId: msg.playerId, name: msg.name || '?', roomCode: player.roomCode};
+    }
+    updateWsIndicator('online');
+    renderPlayers();
+    chatLine('⚡ ' + (msg.name||'Someone') + ' joined the room!', 'var(--blue3)');
+    return;
+  }
+
+  if(type === 'leave'){
+    if(msg.playerId) delete others[msg.playerId];
+    updateWsIndicator('online');
+    renderPlayers();
+    chatLine('🚪 ' + (msg.name||'Someone') + ' left.', 'var(--mut)');
+    return;
+  }
+
+  if(type === 'player_update'){
+    if(msg.player && msg.player.playerId && msg.player.playerId !== player.playerId){
+      others[msg.player.playerId] = msg.player;
       renderPlayers();
-      break;
+    }
+    return;
+  }
 
-    case 'join':
-      chatLine('⚡ ' + msg.name + ' entered the bizarre adventure!', 'var(--blue3)');
-      if(msg.player && msg.player.playerId !== player.playerId){
-        others[msg.player.playerId] = msg.player;
-      }
-      updateWsIndicator('online');
-      renderPlayers();
-      break;
+  if(type === 'chat'){
+    chatLine('<' + (msg.name||'?') + '> ' + msg.msg);
+    return;
+  }
 
-    case 'leave':
-      if(msg.playerId) delete others[msg.playerId];
-      chatLine('🚪 ' + (msg.name||'Someone') + ' left.', 'var(--mut)');
-      updateWsIndicator('online');
-      renderPlayers();
-      break;
+  if(type === 'kill'){
+    chatLine('⚔ ' + msg.name + ' defeated ' + msg.enemy + '! (+' + msg.xp + 'XP)', 'var(--grn3)');
+    return;
+  }
 
-    case 'player_update':
-      if(msg.player && msg.player.playerId && msg.player.playerId !== player.playerId){
-        others[msg.player.playerId] = msg.player;
-        renderPlayers();
-      }
-      break;
+  if(type === 'levelup'){
+    chatLine('🔥 ' + msg.name + ' reached Level ' + msg.level + '!', 'var(--gold)');
+    return;
+  }
 
-    case 'chat':
-      chatLine('<' + msg.name + '> ' + msg.msg);
-      break;
-
-    case 'kill':
-      chatLine('⚔ ' + msg.name + ' defeated ' + msg.enemy + '! (+' + msg.xp + 'XP)', 'var(--grn3)');
-      break;
-
-    case 'levelup':
-      chatLine('🔥 ' + msg.name + ' reached Level ' + msg.level + '!', 'var(--gold)');
-      break;
-
-    case 'pvp_match_found':
-      handlePvpMatchFound(msg);
-      break;
-
-    case 'pvp_duel_request':
-      receiveDuelRequest(msg);
-      break;
-
-    case 'pvp_duel_accepted':
-      toast('✓', msg.byName + ' accepted! Starting battle...');
-      PVP.opponentName = msg.byName;
-      PVP.opponentTech = msg.byTech;
-      PVP.isP1 = true;
-      startPvpBattle(msg.mode || 'turn', msg.byName, msg.byTech, false);
-      break;
-
-    case 'pvp_duel_declined':
-      toast('✗', (msg.byName||'Opponent') + ' declined your challenge.');
-      break;
-
-    case 'pvp_turn_move':
-      if(PVP.turnActive){ turnState.oppMove = msg.move; if(turnState.myMove) resolveTurnBattle(); }
-      break;
-
-    case 'pvp_mash_update':
-      // opponent mashed
-      break;
-
-    case 'pvp_queue_status':
-      const qel = document.getElementById('queue-status');
-      if(qel) qel.textContent = msg.status || 'Searching...';
-      break;
+  if(type === 'pvp_match_found'){ handlePvpMatchFound(msg); return; }
+  if(type === 'pvp_duel_request'){ receiveDuelRequest(msg); return; }
+  if(type === 'pvp_duel_accepted'){
+    toast('✓', msg.byName + ' accepted! Starting battle...');
+    PVP.opponentName = msg.byName;
+    PVP.opponentTech = msg.byTech;
+    PVP.isP1 = true;
+    startPvpBattle(msg.mode || 'turn', msg.byName, msg.byTech, false);
+    return;
+  }
+  if(type === 'pvp_duel_declined'){ toast('✗', (msg.byName||'Opponent') + ' declined.'); return; }
+  if(type === 'pvp_turn_move'){
+    if(typeof turnState !== 'undefined' && turnState.turnActive !== false){
+      turnState.oppMove = msg.move;
+      if(turnState.myMove) resolveTurnBattle();
+    }
+    return;
+  }
+  if(type === 'pvp_queue_status'){
+    const el = document.getElementById('queue-status');
+    if(el) el.textContent = msg.status || 'Searching...';
+    return;
   }
 }
 function setSave(s){
@@ -2240,7 +2302,7 @@ function schedSave(){
 function renderAll(){
   const p = player; if(!p) return;
   document.getElementById('tb-room').textContent = p.roomCode;
-  document.getElementById('tb-rank').textContent = RANKS[p.rankIdx||0];
+  document.getElementById('tb-rank').textContent = RANKS[p.rankIdx||0] + (p.ascensions>0?' · '+getPrestigeTitle():'');
   document.getElementById('tb-spins').textContent = p.spins||0;
   document.getElementById('tb-coins').textContent = p.coins||0;
   const evEl = document.getElementById('tb-event');
@@ -2300,6 +2362,15 @@ function renderAll(){
   if(di&&dungeonMode) di.textContent=`🏰 Dungeon Room ${dungeonRoom}/5`;
   const sp=document.getElementById('special-train'); if(sp) sp.style.display=p.level>=15?'block':'none';
   renderSkillGrid(); renderEnemyBox(); renderStatusBars();
+  // Update pity display
+  const pd = document.getElementById('pity-display');
+  if(pd && player){
+    const sp = getPity('stand'), bp = getPity('blood');
+    pd.textContent = 'Stand pity: '+sp+'/50 (S) '+sp+'/100 (SS) | Blood pity: '+bp+'/50';
+  }
+  // Mastery display in tech foot
+  const mast = document.getElementById('mastery-disp');
+  if(mast) mast.textContent = '  [' + getMasteryTitle() + ' — ' + getStandMastery() + ' uses]';
   // Show roll warning for high rarity
   const rw = document.getElementById('roll-warning');
   if(rw && p.tech){
@@ -2565,6 +2636,12 @@ function doRoll(type){
     if(!confirm('⚠️ WARNING — RARE STAND!\n\nYou currently have:\n['+rname+'] '+p.tech+'\n\nRolling will PERMANENTLY REPLACE it!\nYour domain shards will also reset.\nThis cannot be undone.\n\nAre you sure?')) return;
   }
   p.spins--; rollCount++; p.rollCount=(p.rollCount||0)+1; updateDailyP('rolls',1);
+  // Pity system
+  const pityCount = addPity(type);
+  let forcedRarity = null;
+  if(pityCount >= 100) { forcedRarity = 'SS'; resetPity(type); logLine('🎯 PITY: Guaranteed SS roll!','rainbow'); }
+  else if(pityCount >= 50) { forcedRarity = 'S'; }
+
   if(type==='blood'){
     const bl=wr(BLOODLINES,BLOODLINES.map(b=>b.w));
     p.clan=bl.name; p.clanRarity=bl.r;
@@ -2722,7 +2799,7 @@ function doAttack(){
   if(er) showDmgNum(dmg,er.left+er.width/2,er.top,crit||bf?'#ff8c00':'#e8dfc4',crit||bf);
   if(crit||bf) logLine(`💥 ${bf?'BRUTAL HIT':'CRIT'}! Hit for ${dmg}!`,'#ff8c00');
   else logLine(`⚔ You hit ${e.name} for ${dmg}!${domainActive?' [STAND]':''}`,crit?'#ff8c00':'var(--ink)');
-  updateCombo(); tickStatus('enemy');
+  updateCombo(); checkComboFinisher(); tickStatus('enemy');
   if(curEnemy&&curEnemy.hp<=0){ killEnemy(); return; }
   if(!isStunned('enemy')) enemyCounter(curEnemy?.isElite?2:1);
   else if(eStatus.stun) eStatus.stun.turns--;
@@ -2756,11 +2833,12 @@ function doSkill(idx){
   if((p.ce||0)<sk.cost){ logLine('Not enough Stamina!','var(--red3)'); return; }
   const e=curEnemy.isEventBoss?{name:curEnemy.label}:ENEMIES[curEnemy.id];
   const bn=getBloodBonus();
-  const staCost=Math.floor(sk.cost*(1-(p.domainDiscount||0)));
+  const staCost=p.zeroCost?0:Math.floor(sk.cost*(1-(p.domainDiscount||0)));
   p.ce-=staCost;
   let dmg=(sk.dmg||0)+ri(0,Math.floor((sk.dmg||0)*.25));
   dmg=Math.floor(dmg*(bn.skillM||1)*(bn.allM||1)*(1+(p.skillDmgBonus||0))*(1+(p.dmgBonus||0)));
   if(domainActive) dmg=Math.floor(dmg*1.6);
+  dmg=Math.floor(dmg*(1+(p.masteryDmgBonus||0)));
   if(p.berserker&&p.hp<p.maxHp*.3) dmg=Math.floor(dmg*1.25);
   const critChance=.15+(p.critCharm?(.08+(p.critBonus||0)):0), crit=Math.random()<critChance;
   if(crit) dmg=Math.floor(dmg*1.6);
@@ -2773,9 +2851,10 @@ function doSkill(idx){
   if(crit) logLine(`💥 CRIT! ${sk.name} → ${dmg}!`,'#ff8c00');
   else logLine(`✦ ${sk.name} → ${e.name} for ${dmg}!${domainActive?' [STAND]':''}`,sk.color||'var(--purple4)');
   if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'skill_used',name:p.name,skill:sk.name,enemy:e.name,dmg}));
+  addStandMastery(1); // mastery per skill use
   skillCds[key]=sk.cd*1000;
   const cdi=setInterval(()=>{ skillCds[key]=Math.max(0,(skillCds[key]||0)-100); if(skillCds[key]<=0) clearInterval(cdi); renderSkillGrid(); },100);
-  updateCombo(); tickStatus('enemy');
+  updateCombo(); checkComboFinisher(); tickStatus('enemy');
   if(curEnemy&&curEnemy.hp<=0){ killEnemy(); return; }
   if(!isStunned('enemy')) enemyCounter(curEnemy?.isElite?2:1);
   else if(eStatus.stun) eStatus.stun.turns--;
@@ -2822,7 +2901,8 @@ function checkLevelUp(){
     p.maxHp=Math.floor(100+(p.end||5)*10+p.level*5); p.hp=p.maxHp;
     p.maxCe=Math.floor(100+p.level*8); p.ce=p.maxCe;
     for(let i=RANK_THR.length-1;i>=0;i--){ if(p.level>=RANK_THR[i]){ p.rankIdx=i; break; } }
-    logLine(`🔥 LEVEL UP! Level ${p.level}!`,'var(--gold)');
+    logLine('🔥 LEVEL UP! Level '+p.level+'!','var(--gold)');
+    checkBloodlineAwakening();
     updateDailyP('level',1);
     if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'levelup',name:p.name,level:p.level}));
     // Save immediately on level up
@@ -2846,7 +2926,12 @@ function doAscend(){
   const m=1+p.ascensions*.2; p.xpMult=m; p.coinMult=m;
   const saved={coins:p.coins,clan:p.clan,clanRarity:p.clanRarity,tech:p.tech,techRarity:p.techRarity,skills:p.skills,ascensions:p.ascensions,xpMult:m,coinMult:m,spins:p.spins,domainUsed:p.domainUsed,maxCombo:p.maxCombo,comboCharm:p.comboCharm,critCharm:p.critCharm};
   Object.assign(p,{level:1,xp:0,maxXp:100,str:5,agi:5,end:5,hp:100,maxHp:100,ce:100,maxCe:100,rankIdx:0,kills:0,trainCount:0},...[saved]);
-  const msg=document.getElementById('asc-msg'); msg.textContent=`🌀 Ascension ${p.ascensions}! ×${m.toFixed(1)} multiplier!`; msg.style.color='var(--purple4)'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',4000);
+  const legacy = chooseLegacy();
+  applyLegacy();
+  const msg=document.getElementById('asc-msg'); 
+  msg.innerHTML='🌀 Ascension '+p.ascensions+'! ×'+m.toFixed(1)+' multiplier!<br><span style="font-size:10px;color:var(--gold)">Legacy: '+legacy.label+'</span>'; 
+  msg.style.color='var(--purple4)'; msg.style.display='block'; 
+  setTimeout(()=>msg.style.display='none',5000);
   renderAll(); schedSave(); checkAch();
 }
 
@@ -4001,30 +4086,37 @@ var _origRenderPlayers = renderPlayers;
 renderPlayers = function(){
   const el = document.getElementById('plist'); if(!el) return;
   const p = player;
+  const tier = typeof getRankedTier === 'function' ? getRankedTier(PVP.rankedPts||0) : {name:'Bronze',color:'#cd7f32'};
+  const prestige = p.ascensions > 0 ? ' · ' + getPrestigeTitle() : '';
+  
   let h = `<div class="pc me">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="pn" style="color:var(--gold)">${p.name} <span style="font-size:9px;color:var(--mut)">YOU</span></span>
-      <span style="font-size:11px;color:var(--mut)">Lv.${p.level||1}</span>
+      <span class="pn" style="color:var(--gold)">${p.name}<span style="font-size:8px;color:var(--mut)"> YOU</span>${prestige?'<span style="font-size:8px;color:var(--purple4)"> '+prestige+'</span>':''}</span>
+      <span style="font-size:10px;color:var(--mut)">Lv.${p.level||1}</span>
     </div>
-    <div class="ps">${p.tech||'No Stand'} | W:${PVP.wins||0} L:${PVP.losses||0} | ${getRankedTier(PVP.rankedPts).name}</div>
+    <div class="ps">${p.tech||'No Stand'} | W:${PVP.wins||0} L:${PVP.losses||0} | <span style="color:${tier.color}">${tier.name}</span></div>
   </div>`;
-  for(const pid in others){
-    const op = others[pid];
-    h += `<div class="pc">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="pn">${op.name}</span>
-        <div style="display:flex;gap:4px;align-items:center">
-          <span style="font-size:10px;color:var(--mut)">Lv.${op.level||1}</span>
-          <button class="pvp-btn" onclick="openDuelMenu('${pid}','${op.name}','${op.tech||''}')">⚔</button>
-          <button class="rnk-btn" onclick="openRankedModal()">🏆</button>
+  
+  const otherList = Object.values(others);
+  if(otherList.length === 0){
+    h += '<div style="font-size:11px;text-align:center;padding:12px;color:var(--mut);font-style:italic">Share room code <b style="color:var(--gold)">' + p.roomCode + '</b> to fight others!</div>';
+  } else {
+    otherList.forEach(op => {
+      const pid = op.playerId;
+      h += `<div class="pc">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="pn">${op.name||'?'}</span>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="font-size:10px;color:var(--mut)">Lv.${op.level||1}</span>
+            <button class="pvp-btn" onclick="openDuelMenu('${pid}','${op.name||'?'}','${op.tech||''}')">⚔ Duel</button>
+          </div>
         </div>
-      </div>
-      <div class="ps">${op.tech||'?'}</div>
-    </div>`;
+        <div class="ps">${op.tech||'No Stand'} | Kills: ${op.kills||0}</div>
+      </div>`;
+    });
   }
-  if(!Object.keys(others).length) h += `<div style="font-size:11px;text-align:center;padding:10px;color:var(--mut);font-style:italic">Share room code to fight others!</div>`;
   el.innerHTML = h;
-};
+};;
 
 // Duel menu — show mode picker
 function openDuelMenu(pid, name, tech){
@@ -5028,5 +5120,293 @@ function doLogout(){
 
 // Auto-sync every 5 minutes when logged in
 setInterval(()=>{ if(ACC.loggedIn && player) syncAccountSave(); }, 300000);
+
+
+// ════════════════════════════════════════════
+// REQUIEM ARROW EVOLUTION SYSTEM
+// ════════════════════════════════════════════
+const REQUIEM_MAP = {
+  'Star Platinum':   'Star Platinum Requiem',
+  'Crazy Diamond':   'Crazy Diamond Requiem',
+  'Killer Queen':    'Killer Queen Requiem',
+  'The World':       'The World Requiem',
+  'Purple Haze':     'Purple Haze Requiem',
+  'Silver Chariot':  'Silver Chariot Requiem',
+};
+
+function tryRequiemArrow(){
+  const p = player;
+  if(!p.tech){ toast('⚠','No Stand to pierce!'); return; }
+  if((p.spins||0) < 3){ toast('⚠','Need 3 spins to attempt Requiem Arrow!'); return; }
+  if(!REQUIEM_MAP[p.tech]){ toast('⚠', p.tech + ' has no Requiem form!'); return; }
+  if(p.techRarity === 'SS+' && p.tech.includes('Requiem')){ toast('⚠','Already at Requiem!'); return; }
+
+  const high = ['SS+','SSS','SSS+','Z+'];
+  if(high.includes(p.techRarity)){
+    if(!confirm('⚠️ REQUIEM ARROW GAMBLE!\n\n50% → EVOLVE to ' + REQUIEM_MAP[p.tech] + '\n50% → DESTROY your Stand forever!\n\nThis costs 3 spins. Continue?')) return;
+  } else {
+    if(!confirm('⚠️ REQUIEM ARROW!\n\nYour Stand must be SS rank or higher.\nCurrent rank: ' + p.techRarity + '\n\nCannot be pierced at this rank.')) return;
+    return;
+  }
+
+  p.spins -= 3;
+  const success = Math.random() < 0.5;
+
+  if(success){
+    const newStand = REQUIEM_MAP[p.tech];
+    const standData = STANDS.find(s=>s.name===newStand);
+    p.tech = newStand;
+    p.techRarity = 'SS+';
+    p.skills = standData?.skills || p.skills;
+    p.domainUnlocked = false;
+    p.domainShards = 0;
+    logLine('🏹 REQUIEM ARROW PIERCED! ' + newStand + ' AWAKENED!', 'rainbow');
+    toast('✨', 'STAND EVOLVED TO REQUIEM!');
+    skillCds = {};
+  } else {
+    const lost = p.tech;
+    p.tech = null; p.techRarity = null; p.skills = [];
+    p.domainUnlocked = false; p.domainShards = 0;
+    logLine('💔 The arrow rejected you... ' + lost + ' is DESTROYED!', 'var(--red3)');
+    toast('💀', 'Your Stand was destroyed by the arrow!');
+  }
+  renderAll(); schedSave(); checkAch();
+}
+
+// ════════════════════════════════════════════
+// PITY SYSTEM
+// ════════════════════════════════════════════
+// pity counter: guaranteed S+ after 50 rolls, SS after 100
+function getPity(type){
+  return parseInt(localStorage.getItem('jjba_pity_'+type+'_'+player?.name)||'0');
+}
+function addPity(type){
+  const p = getPity(type)+1;
+  localStorage.setItem('jjba_pity_'+type+'_'+player?.name, p);
+  return p;
+}
+function resetPity(type){
+  localStorage.setItem('jjba_pity_'+type+'_'+player?.name, '0');
+}
+
+// ════════════════════════════════════════════
+// STAND MASTERY SYSTEM
+// ════════════════════════════════════════════
+function getStandMastery(){
+  if(!player?.tech) return 0;
+  return player.standMastery?.[player.tech] || 0;
+}
+function addStandMastery(amount){
+  if(!player?.tech) return;
+  if(!player.standMastery) player.standMastery = {};
+  player.standMastery[player.tech] = (player.standMastery[player.tech]||0) + amount;
+  const m = player.standMastery[player.tech];
+  // Mastery milestones
+  if(m === 100)  { toast('⭐','Stand Mastery: Apprentice! +5% dmg'); player.masteryDmgBonus = (player.masteryDmgBonus||0)+0.05; }
+  if(m === 500)  { toast('⭐⭐','Stand Mastery: Adept! +10% dmg'); player.masteryDmgBonus = (player.masteryDmgBonus||0)+0.10; }
+  if(m === 2000) { toast('⭐⭐⭐','Stand Mastery: Master! +20% dmg'); player.masteryDmgBonus = (player.masteryDmgBonus||0)+0.20; }
+  if(m === 5000) { toast('🌟','Stand Mastery: LEGEND! +50% dmg'); player.masteryDmgBonus = (player.masteryDmgBonus||0)+0.50; }
+}
+
+function getMasteryTitle(){
+  const m = getStandMastery();
+  if(m >= 5000) return '🌟 LEGEND';
+  if(m >= 2000) return '⭐⭐⭐ Master';
+  if(m >= 500)  return '⭐⭐ Adept';
+  if(m >= 100)  return '⭐ Apprentice';
+  return 'Novice';
+}
+
+// ════════════════════════════════════════════
+// PARRY SYSTEM
+// ════════════════════════════════════════════
+let parryWindow = false;
+let parryTimeout = null;
+let parrySuccess = false;
+
+function openParryWindow(){
+  parryWindow = true;
+  parrySuccess = false;
+  const pb = document.getElementById('parry-btn-combat');
+  if(pb){ pb.style.display='block'; pb.style.animation='parryPulse .3s infinite'; }
+  parryTimeout = setTimeout(()=>{
+    parryWindow = false;
+    if(pb){ pb.style.display='none'; pb.style.animation=''; }
+  }, 600); // 600ms window
+}
+
+function doParryCombat(){
+  if(!parryWindow) return;
+  parrySuccess = true;
+  parryWindow = false;
+  clearTimeout(parryTimeout);
+  const pb = document.getElementById('parry-btn-combat');
+  if(pb){ pb.style.display='none'; }
+  logLine('⚔ PERFECT PARRY! Counter attack!', 'var(--gold)');
+  // Deal counter damage
+  if(curEnemy){
+    const counterDmg = Math.floor((player.str||5) * 5 + 50);
+    curEnemy.hp = Math.max(0, curEnemy.hp - counterDmg);
+    logLine('↩ Counter: ' + counterDmg + ' damage!', 'var(--gold)');
+    skillFlash('#ffd700');
+    if(curEnemy.hp <= 0){ killEnemy(); return; }
+    renderAll();
+  }
+}
+
+// ════════════════════════════════════════════
+// COMBO FINISHER
+// ════════════════════════════════════════════
+function checkComboFinisher(){
+  if(combo >= 10 && player.tech && curEnemy){
+    const fb = document.getElementById('combo-finisher-btn');
+    if(fb) fb.style.display='block';
+  }
+}
+
+function doComboFinisher(){
+  if(!curEnemy || combo < 10) return;
+  const p = player;
+  const sk = p.skills?.[p.skills.length-1] || p.skills?.[0];
+  if(!sk){ toast('⚠','No Stand abilities!'); return; }
+
+  const baseDmg = Math.floor((p.str||5) * combo * 2 * (1+(p.skillDmgBonus||0)) * (1+(p.masteryDmgBonus||0)));
+  curEnemy.hp = Math.max(0, curEnemy.hp - baseDmg);
+  logLine('💥 ' + combo + '-HIT FINISHER! ' + baseDmg + ' DAMAGE!', 'rainbow');
+  skillFlash(sk.color||'#ffd700');
+  shakeScreen();
+  combo = 0;
+  const fb = document.getElementById('combo-finisher-btn');
+  if(fb) fb.style.display='none';
+  if(curEnemy.hp <= 0){ killEnemy(); return; }
+  renderAll();
+}
+
+// ════════════════════════════════════════════
+// TRAIT FUSION
+// ════════════════════════════════════════════
+const RARITY_UP = {E:'D', D:'C', C:'B', B:'A', A:'S', S:'SS'};
+
+function openTraitFusion(){
+  const p = player;
+  if(!p.traits || p.traits.length < 2){
+    toast('⚠','Need at least 2 traits to fuse!');
+    return;
+  }
+  // Build fusion UI in roll box
+  const el = document.getElementById('roll-res');
+  const traitOptions = p.traits.map((t,i)=>
+    '<option value="'+i+'">['+ t.rarity+'] '+t.name+'</option>'
+  ).join('');
+  el.innerHTML = '<div style="text-align:left;width:100%">' +
+    '<div style="font-family:Cinzel Decorative,serif;font-size:9px;color:var(--gold);margin-bottom:8px">Select 2 traits to fuse:</div>' +
+    '<select id="fuse-t1" style="width:100%;background:var(--card3);color:var(--ink);border:1px solid var(--border2);padding:5px;margin-bottom:6px;border-radius:var(--r)">'+traitOptions+'</select>' +
+    '<select id="fuse-t2" style="width:100%;background:var(--card3);color:var(--ink);border:1px solid var(--border2);padding:5px;margin-bottom:8px;border-radius:var(--r)">'+traitOptions+'</select>' +
+    '<button onclick="doTraitFusion()" style="width:100%;padding:8px;background:var(--purple-bg);border:1px solid var(--purple2);color:var(--purple4);font-family:Cinzel Decorative,serif;font-size:9px;border-radius:var(--r);cursor:pointer">✦ FUSE TRAITS</button>' +
+    '</div>';
+}
+
+function doTraitFusion(){
+  const p = player;
+  const i1 = parseInt(document.getElementById('fuse-t1')?.value||0);
+  const i2 = parseInt(document.getElementById('fuse-t2')?.value||1);
+  if(i1 === i2){ toast('⚠','Select 2 different traits!'); return; }
+
+  const t1 = p.traits[i1], t2 = p.traits[i2];
+  if(t1.rarity !== t2.rarity){ toast('⚠','Both traits must be the same rarity!'); return; }
+
+  const newRarity = RARITY_UP[t1.rarity];
+  if(!newRarity){ toast('⚠','Cannot fuse SS traits further!'); return; }
+
+  // Remove the two traits (higher index first)
+  const higher = Math.max(i1,i2), lower = Math.min(i1,i2);
+  p.traits.splice(higher,1); p.traits.splice(lower,1);
+
+  // Roll a new trait of higher rarity
+  const pool = TRAITS.filter(t=>t.rarity===newRarity);
+  if(!pool.length){ toast('⚠','No traits of that rarity exist!'); return; }
+  const newTrait = pool[Math.floor(Math.random()*pool.length)];
+  p.traits.push({...newTrait});
+  try{ newTrait.apply(p); } catch(e){}
+
+  logLine('✦ TRAIT FUSION: ['+t1.rarity+'] + ['+t2.rarity+'] → ['+newRarity+'] '+newTrait.name+'!', 'var(--purple4)');
+  toast('✦','Fusion: ['+newRarity+'] '+newTrait.name+'!');
+  document.getElementById('roll-res').innerHTML = '<span style="color:var(--purple4)">['+newRarity+'] '+newTrait.icon+' '+newTrait.name+'</span><br><span style="font-size:10px;color:var(--mut)">'+newTrait.desc+'</span>';
+  renderAll(); schedSave(); checkAch();
+}
+
+// ════════════════════════════════════════════
+// PRESTIGE TITLES
+// ════════════════════════════════════════════
+const PRESTIGE_TITLES = [
+  'Stand User', 'Cursed Fighter', 'Bizarre Warrior',
+  'Stand Master', 'Requiem Seeker', 'Arrow Bearer',
+  'Platinum Legend', 'King of Stands', 'Bizarre God',
+  'YARE YARE DAZE', 'Sono Chi no Kioku'
+];
+function getPrestigeTitle(){
+  const asc = player?.ascensions||0;
+  return PRESTIGE_TITLES[Math.min(asc, PRESTIGE_TITLES.length-1)];
+}
+
+// ════════════════════════════════════════════
+// BLOODLINE AWAKENING (at level 25)
+// ════════════════════════════════════════════
+const AWAKENING_BONUSES = {
+  'Joestar':     {desc:'Hamon Mastery: +30% all dmg, Spin unlock', apply:p=>{p.dmgBonus=(p.dmgBonus||0)+.3; p.spinMaster=true;}},
+  'Brando':      {desc:'True Vampire: Full HP restore on kill',      apply:p=>{p.vampireAwakened=true;}},
+  'Zeppeli':     {desc:'Zeppeli Technique: +25% crit + crit dmg',   apply:p=>{p.critBonus=(p.critBonus||0)+.25; p.critCharm=true;}},
+  'Speedwagon':  {desc:'SPEEEDWAGON: +50% coins forever',           apply:p=>{p.coinMult=(p.coinMult||1)*1.5;}},
+  'Caesar':      {desc:'Bubble Launcher: Stand costs -30%',         apply:p=>{p.domainDiscount=(p.domainDiscount||0)+.3;}},
+  'Kujo':        {desc:'Jotaro Spirit: ORA hits never miss',        apply:p=>{p.neverMiss=true; p.critBonus=(p.critBonus||0)+.2;}},
+  'Giorno':      {desc:'Golden Wind: Heal 10% HP on kill',          apply:p=>{p.rctTrait=true; p.regenAmt=Math.floor((p.maxHp||100)*.1);}},
+  'Higashikata': {desc:'Calamity Resist: Immune to curse+burn',     apply:p=>{p.statusImmune=true;}},
+  'Passione':    {desc:'Gang Boss: +100% coins for 1 hour',         apply:p=>{p.coinMult=(p.coinMult||1)*2; setTimeout(()=>{p.coinMult=Math.max(1,(p.coinMult||1)/2);},3600000);}},
+  'Saiki':       {desc:'Psychic Overflow: All skills cost 0 STA',   apply:p=>{p.zeroCost=true;}},
+  'Commoner':    {desc:'Underdog Spirit: +200% XP when below lv10', apply:p=>{p.underdogSpirit=true;}},
+};
+
+function checkBloodlineAwakening(){
+  const p = player;
+  if(!p.clan || p.level < 25 || p.bloodlineAwakened) return;
+  const awk = AWAKENING_BONUSES[p.clan];
+  if(!awk) return;
+  p.bloodlineAwakened = true;
+  try{ awk.apply(p); } catch(e){}
+  logLine('🌟 BLOODLINE AWAKENED: ' + p.clan + ' — ' + awk.desc, 'rainbow');
+  toast('🌟', p.clan + ' Bloodline Awakened!');
+  renderAll(); schedSave();
+}
+
+// ════════════════════════════════════════════
+// LEGACY SYSTEM (pass one stat on ascension)
+// ════════════════════════════════════════════
+function chooseLegacy(){
+  const p = player;
+  const options = [
+    {key:'str', label:'STR +'+Math.floor(p.str*0.1)+' permanently', val:Math.floor(p.str*0.1)},
+    {key:'agi', label:'SPD +'+Math.floor(p.agi*0.1)+' permanently', val:Math.floor(p.agi*0.1)},
+    {key:'end', label:'END +'+Math.floor(p.end*0.1)+' permanently', val:Math.floor(p.end*0.1)},
+    {key:'coins', label:'Keep 10% of current coins ('+Math.floor(p.coins*0.1)+')', val:Math.floor(p.coins*0.1)},
+    {key:'spins', label:'Keep 5 extra spins', val:5},
+  ];
+  
+  const choice = options[Math.floor(Math.random()*options.length)]; // For now random, can be UI later
+  if(!p.legacyBonuses) p.legacyBonuses = {};
+  p.legacyBonuses[choice.key] = (p.legacyBonuses[choice.key]||0) + choice.val;
+  logLine('🏛 Legacy chosen: ' + choice.label, 'var(--gold)');
+  toast('🏛','Legacy: '+choice.label);
+  return choice;
+}
+
+function applyLegacy(){
+  const p = player;
+  if(!p.legacyBonuses) return;
+  if(p.legacyBonuses.str) p.str = (p.str||5) + p.legacyBonuses.str;
+  if(p.legacyBonuses.agi) p.agi = (p.agi||5) + p.legacyBonuses.agi;
+  if(p.legacyBonuses.end){ p.end = (p.end||5) + p.legacyBonuses.end; p.maxHp = Math.floor(100+p.end*10+p.level*5); }
+  if(p.legacyBonuses.coins) p.coins = (p.coins||0) + p.legacyBonuses.coins;
+  if(p.legacyBonuses.spins) p.spins = (p.spins||0) + p.legacyBonuses.spins;
+}
 
 </script>
