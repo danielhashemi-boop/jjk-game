@@ -808,6 +808,23 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
 .rank-name { flex: 1; font-weight: 700; }
 .rank-pts { color: var(--gold); font-family: 'Share Tech Mono', monospace; font-size: 11px; }
 .rank-badge { font-size: 9px; padding: 2px 7px; border-radius: 20px; border: 1px solid currentColor; font-family: 'Cinzel Decorative', serif; }
+
+/* ══ ACCOUNT SYSTEM ══ */
+.acc-tab-row { display: flex; gap: 6px; margin-bottom: 18px; }
+.acc-tab { flex: 1; padding: 9px; background: transparent; border: 1px solid var(--border2); color: var(--mut); font-family: 'Cinzel Decorative', serif; font-size: 9px; letter-spacing: .1em; border-radius: var(--r); cursor: pointer; transition: all .2s; }
+.acc-tab.active { border-color: var(--gold); color: var(--gold2); background: var(--gold-bg); }
+.acc-input { width: 100%; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.12); border-radius: 6px; color: #fff; padding: 11px 13px; font-family: 'Crimson Text', serif; font-size: 14px; outline: none; transition: border-color .2s; margin-bottom: 10px; }
+.acc-input:focus { border-color: var(--gold); }
+.acc-btn { width: 100%; padding: 12px; background: linear-gradient(135deg,rgba(212,160,23,.25),rgba(212,160,23,.1)); border: 2px solid var(--gold); border-radius: 6px; color: var(--gold2); font-family: 'Cinzel Decorative', serif; font-size: 10px; letter-spacing: .12em; cursor: pointer; transition: all .2s; margin-bottom: 8px; }
+.acc-btn:hover { box-shadow: 0 0 20px var(--glow-gold); }
+.acc-btn.secondary { background: transparent; border-color: var(--border2); color: var(--mut); font-size: 9px; }
+.acc-btn.secondary:hover { border-color: var(--gold); color: var(--gold); box-shadow: none; }
+.acc-msg { text-align: center; font-size: 12px; margin-top: 6px; padding: 8px; border-radius: var(--r); }
+.acc-msg.ok { color: var(--grn3); background: var(--grn-bg); border: 1px solid var(--grn2); }
+.acc-msg.err { color: var(--red4); background: var(--red-bg); border: 1px solid var(--red2); }
+.acc-info { background: var(--card3); border: 1px solid var(--border); border-radius: var(--r2); padding: 12px; margin-bottom: 10px; }
+.acc-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--gold-bg); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
 </style>
 </head>
 <body>
@@ -879,6 +896,7 @@ window.addEventListener('beforeunload', ()=>{
       <div class="tb-chip">🎲 <span class="tc-val" id="tb-spins">0</span></div>
       <div class="tb-chip">💰 <span class="tc-val" id="tb-coins">0</span></div>
       <span id="tb-event" style="display:none;color:var(--purple4);font-size:8px;letter-spacing:1px;font-family:'Cinzel Decorative',serif">★ EVENT</span>
+      <button class="tb-btn" onclick="openAccount()">👤 ACCOUNT</button>
       <button class="tb-btn" onclick="openShop()">SHOP</button>
       <button class="tb-btn" onclick="openLb()">🏆</button>
       <button class="tb-btn" onclick="openSave()">💾</button>
@@ -1011,6 +1029,7 @@ window.addEventListener('beforeunload', ()=>{
             <span class="rar rainbow" style="-webkit-text-fill-color:unset">SS+</span><span class="rar" style="color:#b388ff;text-shadow:0 0 6px #b388ff">SSS</span><span class="rar" style="color:#00ffff;text-shadow:0 0 8px #00ffff;animation:ssspulse 1.5s infinite">SSS+</span>
           </div>
           <div class="roll-box" id="roll-res">Discover your Stand and bloodline...</div>
+          <div id="roll-warning" style="display:none;background:rgba(139,26,26,.2);border:1px solid var(--red2);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--red4);text-align:center;font-style:italic"></div>
           <div class="roll-btns">
             <button class="rbtn" onclick="doRoll('blood')">🩸 Roll Bloodline</button>
             <button class="rbtn" onclick="doRoll('stand')">✦ Roll Stand</button>
@@ -1954,6 +1973,16 @@ function renderAll(){
   if(di&&dungeonMode) di.textContent=`🏰 Dungeon Room ${dungeonRoom}/5`;
   const sp=document.getElementById('special-train'); if(sp) sp.style.display=p.level>=15?'block':'none';
   renderSkillGrid(); renderEnemyBox(); renderStatusBars();
+  // Show roll warning for high rarity
+  const rw = document.getElementById('roll-warning');
+  if(rw && p.tech){
+    const highR = ['SS','SS+','SSS','SSS+'];
+    const rnames = {'SS':'SS','SS+':'SS+','SSS':'SSS ⚠','SSS+':'SSS+ ⚠⚠'};
+    if(highR.includes(p.techRarity)){
+      rw.style.display='block';
+      rw.innerHTML='⚠ You have ['+rnames[p.techRarity]+'] <b>'+p.tech+'</b> — Rolling Stand will replace it forever!';
+    } else { rw.style.display='none'; }
+  }
 }
 
 function renderSkillGrid(){
@@ -2198,12 +2227,15 @@ function setTrainTab(tab){
 function doRoll(type){
   const p=player;
   if((p.spins||0)<=0){ document.getElementById('roll-res').innerHTML=`<span style="color:var(--red3)">No spins left!</span>`; return; }
-  const highRarities=['SS','SS+'];
+  const highRarities=['SS','SS+','SSS','SSS+'];
+  const rarityNames={'SS':'★★ SS','SS+':'★★★ SS+','SSS':'💜 SSS — WONDER OF U','SSS+':'💠 SSS+ — ULTIMATE LIFE FORM'};
   if(type==='blood'&&p.clan&&highRarities.includes(p.clanRarity)){
-    if(!confirm(`⚠️ WARNING!\n\nYou have [${p.clanRarity}] ${p.clan}!\nRolling will REPLACE it. Continue?`)) return;
+    const rname = rarityNames[p.clanRarity]||p.clanRarity;
+    if(!confirm('⚠️ WARNING — RARE BLOODLINE!\n\nYou currently have:\n['+rname+'] '+p.clan+'\n\nRolling will PERMANENTLY REPLACE it!\nThis cannot be undone.\n\nAre you sure?')) return;
   }
   if(type==='stand'&&p.tech&&highRarities.includes(p.techRarity)){
-    if(!confirm(`⚠️ WARNING!\n\nYou have [${p.techRarity}] ${p.tech}!\nRolling will REPLACE it. Continue?`)) return;
+    const rname = rarityNames[p.techRarity]||p.techRarity;
+    if(!confirm('⚠️ WARNING — RARE STAND!\n\nYou currently have:\n['+rname+'] '+p.tech+'\n\nRolling will PERMANENTLY REPLACE it!\nYour domain shards will also reset.\nThis cannot be undone.\n\nAre you sure?')) return;
   }
   p.spins--; rollCount++; p.rollCount=(p.rollCount||0)+1; updateDailyP('rolls',1);
   if(type==='blood'){
@@ -4460,5 +4492,194 @@ handleWS = function(msg){
   _origHandleWS(msg);
   handlePvpWS(msg);
 };
+
+
+// ══════════════════════════════════════════════════════════
+// ACCOUNT SYSTEM
+// ══════════════════════════════════════════════════════════
+const ACC = {
+  loggedIn: false,
+  username: null,
+  token: null,
+};
+
+// Load account from localStorage on startup
+(function(){
+  try{
+    const saved = localStorage.getItem('jjba_account');
+    if(saved){
+      const a = JSON.parse(saved);
+      if(a.username && a.token){
+        ACC.loggedIn = true;
+        ACC.username = a.username;
+        ACC.token = a.token;
+        // Auto-sync save after login
+        setTimeout(()=>{ if(player) syncAccountSave(); }, 3000);
+      }
+    }
+  } catch(e){}
+})();
+
+function openAccount(){
+  document.getElementById('account-ov').style.display = 'flex';
+  if(ACC.loggedIn) showAccLoggedIn();
+  else showAccLoggedOut();
+}
+function closeAccount(){ document.getElementById('account-ov').style.display = 'none'; }
+
+function showAccLoggedOut(){
+  document.getElementById('acc-loggedout').style.display = 'block';
+  document.getElementById('acc-loggedin').style.display = 'none';
+}
+
+function showAccLoggedIn(){
+  document.getElementById('acc-loggedout').style.display = 'none';
+  document.getElementById('acc-loggedin').style.display = 'block';
+  document.getElementById('acc-username-display').textContent = ACC.username;
+  if(player){
+    document.getElementById('acc-rank-display').textContent = 'Rank: ' + (RANKS[player.rankIdx||0]||'Civilian');
+    document.getElementById('acc-level-disp').textContent = player.level||1;
+    document.getElementById('acc-kills-disp').textContent = player.kills||0;
+    document.getElementById('acc-stand-disp').textContent = player.tech||'None';
+    document.getElementById('acc-avatar').textContent = player.tech ? '⚡' : '👤';
+  }
+}
+
+function switchAccTab(tab){
+  document.getElementById('acc-tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('acc-tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('acc-login-form').style.display = tab==='login'?'block':'none';
+  document.getElementById('acc-register-form').style.display = tab==='register'?'block':'none';
+}
+
+function showAccMsg(elId, msg, isOk){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'acc-msg ' + (isOk?'ok':'err');
+  el.style.display = 'block';
+  if(isOk) setTimeout(()=>el.style.display='none', 3000);
+}
+
+async function doRegister(){
+  const user = document.getElementById('acc-reg-user').value.trim();
+  const pass = document.getElementById('acc-reg-pass').value;
+  const pass2 = document.getElementById('acc-reg-pass2').value;
+  if(!user){ showAccMsg('acc-reg-msg','Enter a username',false); return; }
+  if(user.length < 3){ showAccMsg('acc-reg-msg','Username must be at least 3 characters',false); return; }
+  if(!pass){ showAccMsg('acc-reg-msg','Enter a password',false); return; }
+  if(pass.length < 6){ showAccMsg('acc-reg-msg','Password must be at least 6 characters',false); return; }
+  if(pass !== pass2){ showAccMsg('acc-reg-msg','Passwords do not match!',false); return; }
+  
+  showAccMsg('acc-reg-msg','Creating account...', true);
+  try{
+    const res = await fetch('/api/account/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:user, password:pass})
+    });
+    const data = await res.json();
+    if(data.error){ showAccMsg('acc-reg-msg', data.error, false); return; }
+    // Auto-login after register
+    ACC.loggedIn = true;
+    ACC.username = user;
+    ACC.token = data.token;
+    localStorage.setItem('jjba_account', JSON.stringify({username:user, token:data.token}));
+    showAccMsg('acc-reg-msg','Account created! Welcome!', true);
+    setTimeout(()=>{ showAccLoggedIn(); if(player) syncAccountSave(); }, 1000);
+  } catch(e){
+    // Server offline — save account locally as fallback
+    ACC.loggedIn = true;
+    ACC.username = user;
+    ACC.token = 'local_'+Date.now();
+    localStorage.setItem('jjba_account', JSON.stringify({username:user, token:ACC.token}));
+    showAccMsg('acc-reg-msg','Account saved locally (server offline)', true);
+    setTimeout(()=>showAccLoggedIn(), 1000);
+  }
+}
+
+async function doLogin(){
+  const user = document.getElementById('acc-login-user').value.trim();
+  const pass = document.getElementById('acc-login-pass').value;
+  if(!user || !pass){ showAccMsg('acc-login-msg','Enter username and password',false); return; }
+  
+  showAccMsg('acc-login-msg','Logging in...', true);
+  try{
+    const res = await fetch('/api/account/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:user, password:pass})
+    });
+    const data = await res.json();
+    if(data.error){ showAccMsg('acc-login-msg', data.error, false); return; }
+    ACC.loggedIn = true;
+    ACC.username = user;
+    ACC.token = data.token;
+    localStorage.setItem('jjba_account', JSON.stringify({username:user, token:data.token}));
+    showAccMsg('acc-login-msg','Logged in!', true);
+    // Load cloud save
+    if(data.saveData){
+      if(confirm('Load your cloud save?\nWarning: This will replace your current local progress!')){
+        player = {...data.saveData, playerId: player?.playerId||user+'_'+Date.now(), roomCode: player?.roomCode||'WORLD'};
+        renderAll(); schedSave();
+        showAccMsg('acc-login-msg','Cloud save loaded!', true);
+      }
+    }
+    setTimeout(()=>showAccLoggedIn(), 1000);
+  } catch(e){
+    showAccMsg('acc-login-msg','Server offline — cannot login right now',false);
+  }
+}
+
+async function syncAccountSave(){
+  if(!ACC.loggedIn || !player){ showAccMsg('acc-sync-msg','Not logged in',false); return; }
+  showAccMsg('acc-sync-msg','Syncing...', true);
+  try{
+    const res = await fetch('/api/account/save',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ACC.token},
+      body: JSON.stringify({username: ACC.username, saveData: player})
+    });
+    const data = await res.json();
+    if(data.error){ showAccMsg('acc-sync-msg', data.error, false); return; }
+    showAccMsg('acc-sync-msg','✓ Save synced to cloud!', true);
+    toast('☁','Save synced to your account!');
+  } catch(e){
+    showAccMsg('acc-sync-msg','Server offline — save locally only', false);
+  }
+}
+
+async function loadAccountSave(){
+  if(!ACC.loggedIn){ showAccMsg('acc-sync-msg','Not logged in',false); return; }
+  if(!confirm('Load your cloud save?\nThis will REPLACE your current progress!')) return;
+  try{
+    const res = await fetch('/api/account/load?username='+encodeURIComponent(ACC.username),{
+      headers:{'Authorization':'Bearer '+ACC.token}
+    });
+    const data = await res.json();
+    if(data.error){ showAccMsg('acc-sync-msg', data.error, false); return; }
+    if(!data.saveData){ showAccMsg('acc-sync-msg','No cloud save found', false); return; }
+    player = {...data.saveData, playerId: player?.playerId, roomCode: player?.roomCode};
+    renderAll(); schedSave();
+    showAccMsg('acc-sync-msg','✓ Cloud save loaded!', true);
+    toast('📥','Cloud save loaded successfully!');
+    showAccLoggedIn();
+  } catch(e){
+    showAccMsg('acc-sync-msg','Server offline — cannot load', false);
+  }
+}
+
+function doLogout(){
+  if(!confirm('Logout?\nMake sure your save is synced first!')) return;
+  ACC.loggedIn = false;
+  ACC.username = null;
+  ACC.token = null;
+  localStorage.removeItem('jjba_account');
+  showAccLoggedOut();
+  toast('👤','Logged out');
+}
+
+// Auto-sync every 5 minutes when logged in
+setInterval(()=>{ if(ACC.loggedIn && player) syncAccountSave(); }, 300000);
 
 </script>
