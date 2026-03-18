@@ -56,7 +56,9 @@ app.post('/api/rooms/join', (req, res) => {
 app.post('/api/rooms/:room/save', (req, res) => {
   const { player } = req.body;
   if(player && player.roomCode && player.playerId){
+    player.lastSave = Date.now();
     getRoom(player.roomCode)[player.playerId] = player;
+    console.log('Save: '+player.name+' in room '+player.roomCode+' ('+Object.keys(getRoom(player.roomCode)).length+' players in room)');
   }
   res.json({ ok: true });
 });
@@ -104,8 +106,12 @@ app.get('/api/rooms/:room/chat', (req, res) => {
 // GET all players in a room (for HTTP polling fallback)
 app.get('/api/rooms/:room/players', (req, res) => {
   const room = req.params.room;
-  const players = Object.values(rooms[room] || {});
-  res.json({ players });
+  const now = Date.now();
+  const allPlayers = Object.values(rooms[room] || {});
+  // Only return players active in last 60 seconds
+  const activePlayers = allPlayers.filter(p => !p.lastSave || (now - p.lastSave) < 60000);
+  console.log('Room '+room+': '+activePlayers.length+' active players ('+allPlayers.length+' total)');
+  res.json({ players: activePlayers });
 });
 
 // Stub PvP routes
@@ -115,6 +121,21 @@ app.post('/api/rooms/:room/pvp/boss/sukuna', (req,res) => res.json({fightId:null
 app.post('/api/rooms/:room/pvp/ranked', (req,res) => res.json({fightId:null}));
 app.get('/api/fights/:id', (req,res) => res.json({}));
 app.post('/api/fights/:id/action', (req,res) => res.json({fight:{}}));
+
+
+// DEBUG - see all rooms and players (remove in production)
+app.get('/api/debug', (req, res) => {
+  const summary = {};
+  for(const [code, players] of Object.entries(rooms)){
+    summary[code] = Object.values(players).map(p=>({
+      name: p.name, 
+      playerId: p.playerId?.slice(-8),
+      level: p.level,
+      lastSave: p.lastSave || 'unknown'
+    }));
+  }
+  res.json({ rooms: summary, totalRooms: Object.keys(rooms).length });
+});
 
 // ── ACCOUNT ROUTES ──
 app.post('/api/account/register', (req, res) => {
