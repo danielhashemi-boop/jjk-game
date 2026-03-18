@@ -68,6 +68,39 @@ app.get('/api/leaderboard', (req, res) => {
 });
 
 
+
+// ── CHAT STORAGE ──
+const chats = {}; // chats[roomCode] = [{id, name, msg, time}]
+let chatIdCounter = 0;
+
+function getRoomChat(code){
+  if(!chats[code]) chats[code] = [];
+  return chats[code];
+}
+
+// POST chat message
+app.post('/api/rooms/:room/chat', (req, res) => {
+  const { name, msg } = req.body;
+  const room = req.params.room;
+  if(!name || !msg) return res.json({ok:false});
+  const chat = getRoomChat(room);
+  const entry = { id: ++chatIdCounter, name, msg, time: Date.now() };
+  chat.push(entry);
+  // Keep only last 100 messages
+  if(chat.length > 100) chat.shift();
+  res.json({ ok: true, id: entry.id });
+});
+
+// GET chat messages since id
+app.get('/api/rooms/:room/chat', (req, res) => {
+  const room = req.params.room;
+  const since = parseInt(req.query.since || '0');
+  const chat = getRoomChat(room);
+  const messages = chat.filter(m => m.id > since);
+  res.json({ messages });
+});
+
+
 // GET all players in a room (for HTTP polling fallback)
 app.get('/api/rooms/:room/players', (req, res) => {
   const room = req.params.room;
