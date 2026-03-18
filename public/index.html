@@ -827,6 +827,39 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
 .acc-info { background: var(--card3); border: 1px solid var(--border); border-radius: var(--r2); padding: 12px; margin-bottom: 10px; }
 .acc-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--gold-bg); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
 
+
+/* ══ STEEL BALL RUN ══ */
+.sbr-overlay { position:fixed;inset:0;z-index:80;background:#0a0800;display:flex;flex-direction:column;align-items:center;overflow:hidden; }
+.sbr-sky { position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,#1a0a00 0%,#3d1f00 60%,#6b3a00 100%); }
+.sbr-ground { position:absolute;bottom:0;left:0;right:0;height:55%;background:linear-gradient(180deg,#4a3200 0%,#2d1e00 100%); }
+.sbr-track { position:absolute;bottom:0;left:0;right:0;height:55%;overflow:hidden; }
+.sbr-lane { position:absolute;bottom:0;left:0;right:0;height:100%; }
+.sbr-horse { position:absolute;bottom:20%;font-size:32px;transition:left .1s linear; }
+.sbr-obstacle { position:absolute;font-size:22px;bottom:20%; }
+.sbr-rival { position:absolute;font-size:28px;bottom:20%;color:#e74c3c; }
+.sbr-hud { position:relative;z-index:2;width:100%;max-width:600px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px; }
+.sbr-stat { background:rgba(0,0,0,.6);border:1px solid rgba(212,160,23,.4);border-radius:var(--r);padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--gold2); }
+.sbr-progress-bar { position:relative;z-index:2;width:calc(100% - 32px);max-width:600px;height:8px;background:rgba(0,0,0,.5);border:1px solid var(--gold);border-radius:4px;overflow:hidden;margin-bottom:8px; }
+.sbr-progress-fill { height:100%;background:linear-gradient(90deg,var(--gold),#ff8c00);transition:width .3s; }
+.sbr-rival-fill { position:absolute;top:0;height:100%;background:rgba(231,76,60,.6);transition:width .3s; }
+.sbr-arena { position:relative;z-index:2;width:100%;max-width:600px;flex:1;overflow:hidden;cursor:pointer; }
+.sbr-btn { padding:14px 32px;font-family:'Cinzel Decorative',serif;font-size:12px;font-weight:700;letter-spacing:.12em;cursor:pointer;border:2px solid var(--gold);color:var(--gold2);background:rgba(212,160,23,.1);border-radius:var(--r2);user-select:none;touch-action:manipulation;margin-top:8px; }
+.sbr-btn:active { background:rgba(212,160,23,.3); }
+.sbr-stage-banner { position:relative;z-index:2;font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--gold2);letter-spacing:.1em;text-align:center;padding:4px;text-shadow:0 0 20px var(--glow-gold); }
+.sbr-msg { position:relative;z-index:10;font-family:'Cinzel Decorative',serif;font-size:18px;letter-spacing:.1em;text-align:center;min-height:28px;text-shadow:0 0 20px currentColor; }
+@keyframes sbrFlash { 0%,100%{opacity:1} 50%{opacity:0} }
+
+
+/* ══ EXTRAS PANE ══ */
+.bet-btn { padding:8px 10px; background:rgba(125,60,255,.08); border:1px solid var(--purple2); color:var(--purple4); font-family:'Cinzel Decorative',serif; font-size:8px; border-radius:var(--r); cursor:pointer; transition:all .2s; }
+.bet-btn:hover { box-shadow:0 0 12px var(--glow-purple); }
+.quiz-opt { width:100%; padding:9px 12px; background:var(--card3); border:1px solid var(--border2); color:var(--ink); font-family:'Crimson Text',serif; font-size:13px; border-radius:var(--r); cursor:pointer; text-align:left; transition:all .2s; }
+.quiz-opt:hover { border-color:var(--gold); }
+.quiz-opt.correct { border-color:var(--grn2); background:var(--grn-bg); color:var(--grn3); }
+.quiz-opt.wrong { border-color:var(--red2); background:var(--red-bg); color:var(--red4); }
+@keyframes sbrBounce { 0%,100%{transform:translateY(-50%)} 50%{transform:translateY(-60%)} }
+#sbr-horse { animation: sbrBounce .4s infinite; }
+
 </style>
 </head>
 <body>
@@ -917,6 +950,7 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
     <button class="tnb" onclick="switchTab('q')">📜 QUESTS</button>
     <button class="tnb" onclick="switchTab('e')">🌟 EVENTS</button>
     <button class="tnb" onclick="switchTab('w')">🌐 WORLD</button>
+    <button class="tnb" onclick="switchTab('x')">🎪 EXTRAS</button>
   </div>
 
   <!-- CONTENT -->
@@ -1108,6 +1142,11 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
           <div id="combo-d" style="display:none" class="combo-row"><span class="cx" id="cx">×1</span><span style="font-size:10px;letter-spacing:2px;font-family:'Cinzel Decorative',serif">COMBO!</span><span id="cb" style="font-size:10px;color:var(--gold)"></span></div>
           <div class="srow" id="p-status"></div>
           <button class="atk-btn" id="atk-btn" onclick="doAttack()">⚔ BASIC ATTACK</button>
+          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+            <button onclick="toggleChaosMode()" style="flex:1;padding:6px;background:rgba(125,60,255,.1);border:1px solid var(--purple2);color:var(--purple4);font-family:'Cinzel Decorative',serif;font-size:7px;border-radius:var(--r);cursor:pointer" id="chaos-btn">🎲 CHAOS</button>
+            <button onclick="openTrashTalk()" style="flex:1;padding:6px;background:rgba(139,26,26,.1);border:1px solid var(--red2);color:var(--red4);font-family:'Cinzel Decorative',serif;font-size:7px;border-radius:var(--r);cursor:pointer">😤 TRASH</button>
+            <button onclick="openQuiz()" style="flex:1;padding:6px;background:rgba(52,152,219,.1);border:1px solid #3498db;color:#5dade2;font-family:'Cinzel Decorative',serif;font-size:7px;border-radius:var(--r);cursor:pointer">📚 QUIZ</button>
+          </div>
           <div style="display:flex;gap:6px;margin-bottom:6px">
             <button id="parry-btn-combat" onclick="doParryCombat()" style="display:none;flex:1;padding:8px;background:rgba(212,160,23,.15);border:2px solid var(--gold);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer;animation:parryPulse .3s infinite">⚔ PARRY!</button>
             <button id="combo-finisher-btn" onclick="doComboFinisher()" style="display:none;flex:1;padding:8px;background:rgba(255,100,0,.15);border:2px solid #ff6400;color:#ffaa00;font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer">💥 FINISHER!</button>
@@ -1167,6 +1206,7 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
 
           <div style="height:1px;background:var(--border);margin:8px 0"></div>
           <div class="panel-title" style="margin-bottom:6px">🗺 Bosses</div>
+          <button class="boss-btn" style="background:rgba(101,67,33,.15);border-color:#8b6914;color:#d4a017" onclick="openSbr()">🏇 STEEL BALL RUN</button>
           <button class="boss-btn" onclick="startBoss('diavolo')">💀 Boss: Diavolo</button>
           <button class="boss-btn red" onclick="startBoss('dio')">🧛 Boss: DIO</button>
 
@@ -1250,6 +1290,107 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
 
     <!-- CHALLENGE POPUP (injected dynamically) -->
     
+
+    <!-- EXTRAS PANE -->
+    <div id="pane-x" class="pane" style="flex-direction:column;overflow-y:auto;gap:10px;padding-bottom:16px">
+
+      <!-- Steel Ball Run -->
+      <div class="card" id="sbr-card">
+        <div class="panel-title">🐎 STEEL BALL RUN</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-style:italic">Race across America using your Spin ability. Dodge obstacles, collect Holy Corpse Parts, beat rivals!</div>
+        <div id="sbr-ui">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1;background:var(--card3);border:1px solid var(--border);border-radius:var(--r2);padding:10px;text-align:center">
+              <div style="font-family:'Cinzel Decorative',serif;font-size:7px;color:var(--mut);letter-spacing:.1em">STAGE</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--gold)" id="sbr-stage">1</div>
+              <div style="font-size:9px;color:var(--mut)" id="sbr-stage-name">1st Stage: San Diego</div>
+            </div>
+            <div style="flex:1;background:var(--card3);border:1px solid var(--border);border-radius:var(--r2);padding:10px;text-align:center">
+              <div style="font-family:'Cinzel Decorative',serif;font-size:7px;color:var(--mut);letter-spacing:.1em">DISTANCE</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--gold2)" id="sbr-dist">0</div>
+              <div style="font-size:9px;color:var(--mut)">/ <span id="sbr-dist-max">100</span> km</div>
+            </div>
+            <div style="flex:1;background:var(--card3);border:1px solid var(--border);border-radius:var(--r2);padding:10px;text-align:center">
+              <div style="font-family:'Cinzel Decorative',serif;font-size:7px;color:var(--mut);letter-spacing:.1em">CORPSE PARTS</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--red3)" id="sbr-parts">0</div>
+              <div style="font-size:9px;color:var(--mut)">/ 9</div>
+            </div>
+          </div>
+          <!-- Race track -->
+          <div style="position:relative;height:80px;background:linear-gradient(90deg,#1a0d00,#2d1a05,#1a0d00);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:8px" id="sbr-track">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.03) 40px,rgba(255,255,255,.03) 41px)"></div>
+            <div id="sbr-horse" style="position:absolute;top:50%;transform:translateY(-50%);font-size:28px;transition:left .3s;left:10%">🐎</div>
+            <div id="sbr-rival" style="position:absolute;top:20%;font-size:24px;transition:left .3s;left:10%">🏇</div>
+            <div id="sbr-obstacle" style="position:absolute;top:50%;transform:translateY(-50%);font-size:22px;display:none" id="sbr-obs">🪨</div>
+            <div id="sbr-item" style="position:absolute;top:50%;transform:translateY(-50%);font-size:18px;display:none">✨</div>
+            <div style="position:absolute;bottom:2px;left:0;right:0;height:3px;background:rgba(212,160,23,.3)">
+              <div id="sbr-progress-bar" style="height:100%;background:var(--gold);width:0%;transition:width .3s"></div>
+            </div>
+          </div>
+          <!-- SBR action buttons -->
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button onclick="sbrAction('sprint')" id="sbr-sprint-btn" style="flex:1;padding:10px;background:rgba(212,160,23,.1);border:1px solid var(--gold);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">🏃 SPRINT</button>
+            <button onclick="sbrAction('spin')" id="sbr-spin-btn" style="flex:1;padding:10px;background:rgba(125,60,255,.1);border:1px solid var(--purple2);color:var(--purple4);font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">🌀 SPIN</button>
+            <button onclick="sbrAction('dodge')" id="sbr-dodge-btn" style="flex:1;padding:10px;background:rgba(52,152,219,.1);border:1px solid var(--blue2);color:var(--blue3);font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">💨 DODGE</button>
+            <button onclick="sbrAction('attack')" id="sbr-atk-btn" style="flex:1;padding:10px;background:rgba(231,76,60,.1);border:1px solid var(--red2);color:var(--red4);font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">⚔ ATTACK</button>
+          </div>
+          <div id="sbr-log" style="background:var(--card3);border:1px solid var(--border);border-radius:var(--r);padding:8px;height:80px;overflow-y:auto;font-size:10px;font-family:'Crimson Text',serif"></div>
+          <div id="sbr-start-area">
+            <button onclick="startSBR()" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(212,160,23,.2),rgba(212,160,23,.05));border:2px solid var(--gold);border-radius:var(--r2);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:10px;letter-spacing:.1em;cursor:pointer">🐎 START THE RACE!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- JJBA Quiz -->
+      <div class="card">
+        <div class="panel-title">📚 JJBA TRIVIA</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-style:italic">Answer JoJo trivia for bonus spins! 3 questions per day.</div>
+        <div id="quiz-ui">
+          <div id="quiz-q" style="font-size:13px;color:var(--ink);margin-bottom:10px;min-height:40px;font-family:'Crimson Text',serif;font-style:italic"></div>
+          <div id="quiz-opts" style="display:flex;flex-direction:column;gap:6px"></div>
+          <div id="quiz-result" style="font-size:12px;margin-top:8px;min-height:18px;text-align:center"></div>
+          <button onclick="loadQuiz()" id="quiz-start-btn" style="width:100%;margin-top:8px;padding:10px;background:rgba(52,152,219,.1);border:1px solid var(--blue2);color:var(--blue3);font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer">📚 START TRIVIA</button>
+        </div>
+      </div>
+
+      <!-- Bizarre Betting -->
+      <div class="card">
+        <div class="panel-title">🎰 BIZARRE BETTING</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-style:italic">Bet coins on outcomes. High risk, high reward.</div>
+        <div id="bet-ui">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <button onclick="placeBet('double',100)" class="bet-btn">Double or Nothing (100💰)</button>
+            <button onclick="placeBet('triple',250)" class="bet-btn">Triple Threat (250💰)</button>
+            <button onclick="placeBet('jackpot',500)" class="bet-btn" style="border-color:var(--gold);color:var(--gold)">JACKPOT (500💰) ×10</button>
+            <button onclick="placeBet('cursed',50)" class="bet-btn" style="border-color:var(--red2);color:var(--red4)">Cursed Bet (50💰) — lose a spin on loss</button>
+          </div>
+          <div id="bet-result" style="text-align:center;font-size:13px;min-height:20px;font-family:'Cinzel Decorative',serif"></div>
+        </div>
+      </div>
+
+      <!-- Chaos Mode -->
+      <div class="card">
+        <div class="panel-title">🌀 CHAOS MODE</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-style:italic">Random ability roulette — fight with a random Stand you don't own!</div>
+        <button onclick="startChaosMode()" style="width:100%;padding:11px;background:rgba(255,0,255,.08);border:1px solid #ff00ff;color:#ff00ff;font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer;margin-bottom:6px">🌀 ENTER CHAOS MODE</button>
+        <div id="chaos-status" style="font-size:11px;color:var(--mut);text-align:center;font-style:italic"></div>
+      </div>
+
+      <!-- Trash Talk -->
+      <div class="card">
+        <div class="panel-title">😤 JOJO TRASH TALK</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:8px;font-style:italic">Send iconic JoJo quotes to your opponents!</div>
+        <div style="display:flex;flex-direction:column;gap:5px" id="trash-talk-btns"></div>
+      </div>
+
+      <!-- Cursed Rolls -->
+      <div class="card">
+        <div class="panel-title">☠ CURSED ROLL</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:8px;font-style:italic">1% chance per normal roll to get a CURSED result and lose a spin. High risk hidden in every pull...</div>
+        <div id="cursed-roll-info" style="font-size:11px;text-align:center;color:var(--red3)"></div>
+      </div>
+
+    </div>
 
   </div><!-- end #tc -->
 </div><!-- end #game-screen -->
@@ -1733,6 +1874,10 @@ const ACHIEVEMENTS = [
   {id:"coffee_jelly_fan",title:"Coffee Jelly Lover",   desc:"Buy 3 Coffee Jellies from event shop",  icon:"\u2615",     check:p=>(p.coffeeJellyCount||0)>=3},
   {id:"saiki_domain",    title:"Reality Erased",       desc:"Use Psychic Sovereign domain ability",  icon:"\U0001f30c", check:p=>!!(p.saikiDomainUsed)},
   {id:"saiki_10days",    title:"10 Days of Disaster",  desc:"Play during the full Saiki event",      icon:"\U0001f4c5", check:p=>!!(p.saikiEventCompleted)},
+  {id:"sbr_complete",    title:"Steel Ball Runner",     desc:"Complete the Steel Ball Run",           icon:"\U0001f3c7", check:p=>(p.completedSbr||0)>=1},
+  {id:"sbr_legend",      title:"SBR Legend",            desc:"Complete SBR 3 times",                  icon:"\U0001f3c6", check:p=>(p.completedSbr||0)>=3},
+  {id:"quiz_ace",        title:"Bizarre Genius",        desc:"Score 5/5 on the quiz",                 icon:"\U0001f4da", check:p=>!!(p.quizPerfect)},
+  {id:"chaos_kill",      title:"Chaotic Stand User",    desc:"Kill an enemy with chaos mode on",      icon:"\U0001f3b2", check:p=>!!(p.chaosKill)},
   {id:'quest1', title:'On a Mission',     desc:'Complete your first quest',  icon:'📜',  check:p=>(p.completedQuests||[]).length>=1},
 ];
 
@@ -2636,6 +2781,7 @@ function doRoll(type){
     if(!confirm('⚠️ WARNING — RARE STAND!\n\nYou currently have:\n['+rname+'] '+p.tech+'\n\nRolling will PERMANENTLY REPLACE it!\nYour domain shards will also reset.\nThis cannot be undone.\n\nAre you sure?')) return;
   }
   p.spins--; rollCount++; p.rollCount=(p.rollCount||0)+1; updateDailyP('rolls',1);
+  if(checkCursedRoll()) return; // 1% cursed roll
   // Pity system
   const pityCount = addPity(type);
   let forcedRarity = null;
@@ -5449,5 +5595,943 @@ function startPolling(){
 function stopPolling(){
   if(pollInt){ clearInterval(pollInt); pollInt=null; }
 }
+
+
+// ════════════════════════════════════════════
+// STEEL BALL RUN GAMEMODE
+// ════════════════════════════════════════════
+
+
+
+const SBR_QUOTES = [
+  "Gyro: WRYYYY wait wrong guy",
+  "Johnny your legs dont work but your stand does!",
+  "SPIN! The ultimate technique!",
+  "Dirty Deeds Done Dirt Cheap!",
+  "Lesson 1: A horse may be faster!",
+];
+
+let SBR = {
+  active: false,
+  stage: 0,
+  progress: 0,
+  rivalProgress: 0,
+  speed: 5,
+  baseSpeed: 5,
+  horseHp: 100,
+  steelBalls: 3,
+  jumping: false,
+  jumpY: 0,
+  jumpVY: 0,
+  obstacles: [],
+  spawnTimer: 0,
+  animId: null,
+  frameCount: 0,
+  coins: 0,
+  score: 0,
+  stageName: '',
+  position: 3,
+  rivalName: '',
+  spin: 0,  // spin meter 0-100
+  lastTime: 0,
+  finished: false,
+};
+
+function openSbr(){
+  if(!player){ toast('⚠','Log in first!'); return; }
+  SBR = { active:true, stage:0, progress:0, rivalProgress:0, speed:5, baseSpeed:5,
+    horseHp:100, steelBalls:3, jumping:false, jumpY:0, jumpVY:0,
+    obstacles:[], spawnTimer:0, animId:null, frameCount:0,
+    coins:0, score:0, stageName:'', position:3, rivalName:'', spin:0,
+    lastTime:0, finished:false };
+  document.getElementById('sbr-ov').style.display = 'flex';
+  sbrStartStage(0);
+}
+
+function closeSbr(){
+  SBR.active = false;
+  if(SBR.animId) cancelAnimationFrame(SBR.animId);
+  document.getElementById('sbr-ov').style.display = 'none';
+}
+
+function sbrStartStage(idx){
+  if(idx >= SBR_STAGES.length){ sbrVictory(); return; }
+  const stage = SBR_STAGES[idx];
+  SBR.stage = idx;
+  SBR.progress = 0;
+  SBR.rivalProgress = 0;
+  SBR.speed = 5 + idx;
+  SBR.baseSpeed = SBR.speed;
+  SBR.obstacles = [];
+  SBR.spawnTimer = 0;
+  SBR.finished = false;
+  SBR.rivalName = stage.rivals[Math.floor(Math.random()*stage.rivals.length)];
+  document.getElementById('sbr-stage-banner').textContent = '🏜 ' + stage.name.toUpperCase();
+  document.getElementById('sbr-stage-lbl').textContent = 'Stage '+(idx+1)+'/'+SBR_STAGES.length;
+  document.getElementById('sbr-msg').textContent = '';
+
+  const canvas = document.getElementById('sbr-canvas');
+  canvas.width = canvas.offsetWidth || 600;
+  canvas.height = canvas.offsetHeight || 260;
+
+  showMsg('🏇 STAGE '+(idx+1)+': '+stage.name.toUpperCase(), '#d4a017', 2000);
+  if(SBR.animId) cancelAnimationFrame(SBR.animId);
+  SBR.lastTime = performance.now();
+  SBR.animId = requestAnimationFrame(sbrLoop);
+}
+
+function sbrLoop(now){
+  if(!SBR.active){ return; }
+  const dt = Math.min((now - SBR.lastTime)/16.67, 3);
+  SBR.lastTime = now;
+  SBR.frameCount++;
+
+  const stage = SBR_STAGES[SBR.stage];
+  const canvas = document.getElementById('sbr-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const groundY = H * 0.72;
+  const horseX = W * 0.2;
+
+  // Update progress
+  SBR.progress += SBR.speed * dt * 0.5;
+  SBR.rivalProgress += (SBR.speed * 0.9 + Math.sin(now/2000)*0.5) * dt * 0.5;
+  const pct = Math.min(SBR.progress / stage.length * 100, 100);
+  const rpct = Math.min(SBR.rivalProgress / stage.length * 100, 100);
+  document.getElementById('sbr-progress-fill').style.width = pct + '%';
+  document.getElementById('sbr-rival-fill').style.width = rpct + '%';
+  SBR.position = SBR.progress > SBR.rivalProgress ? 1 : 2;
+
+  // Update HUD
+  document.getElementById('sbr-speed-lbl').textContent = 'Speed: ' + Math.floor(SBR.speed * 10);
+  document.getElementById('sbr-pos-lbl').textContent = SBR.position === 1 ? '1st 🥇' : '2nd';
+  document.getElementById('sbr-hp-lbl').textContent = 'HP: ' + SBR.horseHp;
+  document.getElementById('sbr-sb-lbl').textContent = 'Balls: ' + SBR.steelBalls;
+
+  // Jump physics
+  if(SBR.jumping){
+    SBR.jumpY += SBR.jumpVY * dt;
+    SBR.jumpVY += 1.2 * dt;
+    if(SBR.jumpY >= 0){ SBR.jumpY = 0; SBR.jumping = false; SBR.jumpVY = 0; }
+  }
+
+  // Spawn obstacles
+  SBR.spawnTimer -= dt;
+  if(SBR.spawnTimer <= 0){
+    SBR.obstacles.push({
+      x: W + 20,
+      type: SBR_OBSTACLES[Math.floor(Math.random()*SBR_OBSTACLES.length)],
+      speed: SBR.speed * 2.5 + Math.random()*2,
+      stunned: false,
+    });
+    SBR.spawnTimer = 40 + Math.random()*60 - SBR.stage*3;
+  }
+
+  // Move obstacles
+  SBR.obstacles.forEach(ob => {
+    if(!ob.stunned) ob.x -= ob.speed * dt;
+  });
+  SBR.obstacles = SBR.obstacles.filter(ob => ob.x > -40);
+
+  // Collision detection
+  const horseY = groundY + SBR.jumpY - 28;
+  SBR.obstacles.forEach((ob,i) => {
+    if(ob.stunned) return;
+    const dx = ob.x - horseX, dy = (groundY - 28) - horseY;
+    if(Math.abs(dx) < 28 && dy < 30 && !SBR.jumping){
+      SBR.horseHp = Math.max(0, SBR.horseHp - 12);
+      SBR.speed = Math.max(2, SBR.speed - 1);
+      ob.stunned = true;
+      if(SBR.horseHp <= 0){ sbrFail(); return; }
+    }
+  });
+
+  // Auto regen speed
+  if(SBR.speed < SBR.baseSpeed) SBR.speed += 0.02 * dt;
+
+  // ── DRAW ──
+  ctx.clearRect(0,0,W,H);
+
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,H*0.4);
+  sky.addColorStop(0,'#1a0800'); sky.addColorStop(1,'#5c3000');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H*0.4);
+
+  // Ground
+  const grd = ctx.createLinearGradient(0,H*0.4,0,H);
+  grd.addColorStop(0,'#5c3d00'); grd.addColorStop(1,'#2d1e00');
+  ctx.fillStyle = grd; ctx.fillRect(0,H*0.4,W,H);
+
+  // Ground line
+  ctx.strokeStyle='rgba(212,160,23,.3)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(W,groundY); ctx.stroke();
+
+  // Scrolling track lines
+  const offset = (SBR.frameCount * SBR.speed * 3) % 80;
+  ctx.strokeStyle='rgba(212,160,23,.15)'; ctx.lineWidth=1;
+  for(let x=-offset; x<W; x+=80){
+    ctx.beginPath(); ctx.moveTo(x,groundY+5); ctx.lineTo(x+40,groundY+5); ctx.stroke();
+  }
+
+  // Rival horse
+  const rivalScreenX = W * 0.75 + Math.sin(now/800)*8;
+  ctx.font = '28px serif';
+  ctx.globalAlpha = 0.7;
+  ctx.fillText('🐎', rivalScreenX, groundY - 8);
+  ctx.globalAlpha = 1;
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText(SBR.rivalName, rivalScreenX - 10, groundY - 38);
+
+  // Player horse
+  ctx.font = '34px serif';
+  ctx.fillText(SBR.horseHp > 50 ? '🐎' : '🐴', horseX - 16, groundY + SBR.jumpY - 8);
+
+  // Player name
+  ctx.font = 'bold 10px monospace';
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText(player.name, horseX - 16, groundY + SBR.jumpY - 46);
+
+  // Obstacles
+  ctx.font = '22px serif';
+  SBR.obstacles.forEach(ob => {
+    ctx.globalAlpha = ob.stunned ? 0.3 : 1;
+    ctx.fillText(ob.type, ob.x, groundY - 4);
+  });
+  ctx.globalAlpha = 1;
+
+  // Speed dust particles
+  if(SBR.speed > SBR.baseSpeed * 0.8){
+    for(let p=0; p<3; p++){
+      ctx.fillStyle = 'rgba(212,160,23,'+(0.1+Math.random()*0.2)+')';
+      ctx.beginPath();
+      ctx.arc(horseX - 20 - Math.random()*30, groundY - 10 - Math.random()*20, 2+Math.random()*4, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Stage complete check
+  if(SBR.progress >= stage.length && !SBR.finished){
+    SBR.finished = true;
+    sbrStageComplete();
+    return;
+  }
+
+  SBR.animId = requestAnimationFrame(sbrLoop);
+}
+
+function sbrJump(){
+  if(SBR.jumping || !SBR.active) return;
+  SBR.jumping = true;
+  SBR.jumpVY = -18;
+}
+
+
+
+function sbrStageComplete(){
+  if(SBR.animId) cancelAnimationFrame(SBR.animId);
+  const won = SBR.position === 1;
+  const stageReward = (SBR.stage+1) * 200;
+  const spinReward = won ? 3 : 1;
+  player.coins = (player.coins||0) + stageReward;
+  player.spins = (player.spins||0) + spinReward;
+  player.xp = (player.xp||0) + stageReward;
+  SBR.steelBalls = Math.min(SBR.steelBalls + 1, 5); // restore 1 ball
+  SBR.horseHp = Math.min(100, SBR.horseHp + 30); // partial heal
+  checkLevelUp(); schedSave();
+  showMsg((won?'🥇 STAGE CLEAR! ':'🥈 STAGE DONE! ')+'+'+ stageReward+'💰', won?'#ffd700':'#aaa', 2500);
+  setTimeout(()=>{
+    if(SBR.stage + 1 < SBR_STAGES.length) sbrStartStage(SBR.stage + 1);
+    else sbrVictory();
+  }, 2800);
+}
+
+function sbrFail(){
+  if(SBR.animId) cancelAnimationFrame(SBR.animId);
+  SBR.active = false;
+  showMsg('💀 HORSE DOWN! Race over!', '#e74c3c', 3000);
+  const consolation = (SBR.stage+1) * 50;
+  player.coins = (player.coins||0) + consolation;
+  schedSave();
+  setTimeout(()=>{ document.getElementById('sbr-ov').style.display='none'; renderAll(); }, 3200);
+}
+
+function sbrVictory(){
+  SBR.active = false;
+  if(SBR.animId) cancelAnimationFrame(SBR.animId);
+  const grand = 5000 + (player.level||1)*100;
+  player.coins = (player.coins||0) + grand;
+  player.spins = (player.spins||0) + 20;
+  player.xp = (player.xp||0) + grand;
+  if(!player.completedSbr) player.completedSbr = 0;
+  player.completedSbr++;
+  checkLevelUp(); schedSave(); checkAch();
+  logLine('🏇 STEEL BALL RUN COMPLETE! +'+grand+'💰 +20 Spins!','rainbow');
+  showMsg('🏆 STEEL BALL RUN COMPLETE!', '#ffd700', 4000);
+  setTimeout(()=>{ document.getElementById('sbr-ov').style.display='none'; renderAll(); }, 4200);
+}
+
+function showMsg(text, color, duration){
+  const el = document.getElementById('sbr-msg');
+  if(!el) return;
+  el.textContent = text; el.style.color = color || '#fff';
+  if(duration) setTimeout(()=>{ if(el.textContent===text) el.textContent=''; }, duration);
+}
+
+// ════════════════════════════════════════════
+// JJBA QUIZ MINIGAME
+// ════════════════════════════════════════════
+
+
+let quizState = { questions:[], current:0, score:0, answered:false };
+
+function openQuiz(){
+  if(!player){ toast('⚠','Log in first!'); return; }
+  if((player.spins||0) < 1){ toast('⚠','Need at least 1 spin to play quiz!'); return; }
+  // Pick 5 random questions
+  const shuffled = [...QUIZ_QUESTIONS].sort(()=>Math.random()-.5);
+  quizState = { questions: shuffled.slice(0,5), current:0, score:0, answered:false };
+  document.getElementById('quiz-ov').style.display = 'flex';
+  renderQuizQuestion();
+}
+
+function closeQuiz(){ document.getElementById('quiz-ov').style.display='none'; }
+
+function renderQuizQuestion(){
+  const qs = quizState;
+  if(qs.current >= qs.questions.length){ finishQuiz(); return; }
+  const q = qs.questions[qs.current];
+  document.getElementById('quiz-num').textContent = qs.current+1;
+  document.getElementById('quiz-score').textContent = qs.score;
+  document.getElementById('quiz-q').textContent = q.q;
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('quiz-result').style.color = '';
+  qs.answered = false;
+  const opts = document.getElementById('quiz-opts');
+  opts.innerHTML = q.opts.map((opt,i)=>
+    `<button onclick="answerQuiz(${i})" style="padding:10px 14px;background:var(--card3);border:1px solid var(--border2);color:var(--ink);border-radius:var(--r);cursor:pointer;font-family:'Crimson Text',serif;font-size:14px;text-align:left;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">${String.fromCharCode(65+i)}. ${opt}</button>`
+  ).join('');
+}
+
+
+
+function finishQuiz(){
+  const s = quizState.score;
+  const spinReward = s >= 5 ? 10 : s >= 4 ? 6 : s >= 3 ? 3 : s >= 2 ? 1 : 0;
+  player.spins = (player.spins||0) + spinReward;
+  player.xp = (player.xp||0) + s * 100;
+  schedSave();
+  document.getElementById('quiz-q').textContent = '';
+  document.getElementById('quiz-opts').innerHTML = '';
+  document.getElementById('quiz-result').innerHTML = `
+    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--gold);margin-bottom:8px">${s}/5 Correct!</div>
+    <div style="color:var(--grn3);margin-bottom:4px">+${spinReward} Spins · +${s*100} XP</div>
+    <button onclick="closeQuiz();renderAll()" style="margin-top:10px;padding:8px 20px;background:var(--gold-bg);border:1px solid var(--gold);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:9px;border-radius:var(--r);cursor:pointer">CLOSE</button>
+  `;
+  document.getElementById('quiz-result').style.color = 'var(--ink)';
+}
+
+// ════════════════════════════════════════════
+// STAND AWAKENING CUTSCENE
+// ════════════════════════════════════════════
+
+
+// Hook cutscene into roll reveal
+const _origRevealRoll = typeof revealRoll === 'function' ? revealRoll : null;
+function hookRevealRoll(rarity, name, color){
+  const highR = ['SS','SS+','SSS','SSS+','Z+'];
+  if(highR.includes(rarity)){
+    setTimeout(()=>playAwakeningCutscene(name, rarity, color||'#ffd700'), 400);
+  }
+}
+
+// ════════════════════════════════════════════
+// TRASH TALK SYSTEM
+// ════════════════════════════════════════════
+
+
+let trashActive = false;
+
+function openTrashTalk(){
+  trashActive = !trashActive;
+  const ov = document.getElementById('trash-ov');
+  if(!trashActive){ ov.style.display='none'; return; }
+  ov.style.display = 'block';
+  const list = document.getElementById('trash-list');
+  list.innerHTML = TRASH_QUOTES.slice(0,8).map(q=>
+    `<button onclick="sendTrash('${q.replace(/'/g,"\'")}') " style="padding:6px 8px;background:var(--card3);border:1px solid var(--border);color:var(--ink);border-radius:var(--r);cursor:pointer;font-size:10px;text-align:left;font-family:'Crimson Text',serif">${q}</button>`
+  ).join('');
+}
+
+function closeTrashTalk(){ trashActive=false; document.getElementById('trash-ov').style.display='none'; }
+
+function sendTrash(quote){
+  if(!player) return;
+  const msg = '😤 [' + player.name + ']: ' + quote;
+  chatLine(msg, 'var(--red3)');
+  if(ws && ws.readyState === WebSocket.OPEN){
+    ws.send(JSON.stringify({ type:'chat', msg: '😤 ' + quote }));
+  }
+  toast('😤','Trash talk sent!');
+  closeTrashTalk();
+}
+
+// Add trash talk button to combat area
+document.addEventListener('DOMContentLoaded',()=>{
+  const combatBtns = document.getElementById('dom-btn');
+  if(combatBtns){
+    const tb = document.createElement('button');
+    tb.textContent = '😤 TRASH TALK';
+    tb.style.cssText = 'padding:7px 12px;background:rgba(139,26,26,.1);border:1px solid var(--red2);color:var(--red4);font-family:Cinzel Decorative,serif;font-size:8px;border-radius:var(--r);cursor:pointer;margin-top:6px';
+    tb.onclick = openTrashTalk;
+    combatBtns.parentElement?.appendChild(tb);
+  }
+});
+
+// ════════════════════════════════════════════
+// BIZARRE BETTING SYSTEM
+// ════════════════════════════════════════════
+let activeBets = {}; // matchId -> { p1, p2, pool1, pool2, myBet }
+
+function openBetting(){
+  document.getElementById('betting-ov').style.display = 'flex';
+  renderBettingMatches();
+}
+function closeBetting(){ document.getElementById('betting-ov').style.display='none'; }
+
+function renderBettingMatches(){
+  const el = document.getElementById('betting-matches');
+  const liveMatches = Object.values(others).filter(o=>o.inFight);
+  if(!liveMatches.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--mut);padding:20px;font-style:italic">No live matches right now!<br>Wait for PvP battles to start.</div>';
+    return;
+  }
+  el.innerHTML = liveMatches.map(m=>`
+    <div style="background:var(--card3);border:1px solid var(--border);border-radius:var(--r2);padding:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--blue3);font-weight:700">${m.p1Name}</span>
+        <span style="color:var(--mut)">VS</span>
+        <span style="color:var(--red3);font-weight:700">${m.p2Name}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="placeBet('${m.id}','p1',100)" style="flex:1;padding:6px;background:rgba(52,152,219,.1);border:1px solid #3498db;color:#5dade2;font-size:9px;border-radius:var(--r);cursor:pointer">Bet 100 on ${m.p1Name}</button>
+        <button onclick="placeBet('${m.id}','p2',100)" style="flex:1;padding:6px;background:rgba(231,76,60,.1);border:1px solid #e74c3c;color:#ec7063;font-size:9px;border-radius:var(--r);cursor:pointer">Bet 100 on ${m.p2Name}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+
+
+// ════════════════════════════════════════════
+// CURSED ROLLS (1% chance lose a spin)
+// ════════════════════════════════════════════
+function checkCursedRoll(){
+  if(Math.random() < 0.01){
+    player.spins = Math.max(0, (player.spins||1)-1);
+    toast('💀','CURSED ROLL! Lost 1 spin...');
+    logLine('💀 The arrow was cursed! Lost 1 spin.','var(--red3)');
+    return true;
+  }
+  return false;
+}
+
+// ════════════════════════════════════════════  
+// RANDOM ABILITY ROULETTE (chaos mode)
+// ════════════════════════════════════════════
+let chaosAbility = null;
+let chaosMode = false;
+
+function toggleChaosMode(){
+  chaosMode = !chaosMode;
+  if(chaosMode){
+    rollChaosAbility();
+    toast('🎲','CHAOS MODE ON! Random ability every fight!');
+    logLine('🎲 Chaos Mode activated!','rainbow');
+  } else {
+    chaosAbility = null;
+    toast('🎲','Chaos Mode OFF');
+  }
+}
+
+function rollChaosAbility(){
+  // Pick from all stands and grab a random skill
+  const allSkills = STANDS.flatMap(s=>s.skills||[]);
+  chaosAbility = allSkills[Math.floor(Math.random()*allSkills.length)];
+  logLine('🎲 Chaos Ability: ' + chaosAbility.name + '!','var(--purple4)');
+}
+
+
+// ════════════════════════════════════════════
+// STEEL BALL RUN GAMEMODE
+// ════════════════════════════════════════════
+const SBR_STAGES = [
+  {name:'1st Stage: San Diego → Phedadelphia', dist:100, rival:'Gyro Zeppeli', rivalSpd:1.2, reward:{coins:500,xp:300,spins:2}},
+  {name:'2nd Stage: The Desert', dist:150, rival:'Diego Brando', rivalSpd:1.4, reward:{coins:800,xp:500,spins:3}},
+  {name:'3rd Stage: The Mountains', dist:200, rival:'Funny Valentine', rivalSpd:1.6, reward:{coins:1200,xp:800,spins:5}},
+  {name:'4th Stage: The Swamp', dist:180, rival:'Hot Pants', rivalSpd:1.5, reward:{coins:1000,xp:700,spins:4}},
+  {name:'5th Stage: The Plains', dist:250, rival:'Sandman', rivalSpd:1.7, reward:{coins:1500,xp:1000,spins:6}},
+  {name:'6th Stage: The River', dist:300, rival:'Ringo Roadagain', rivalSpd:1.8, reward:{coins:2000,xp:1500,spins:8}},
+  {name:'7th Stage: The Final Stretch', dist:400, rival:'President Valentine', rivalSpd:2.0, reward:{coins:5000,xp:5000,spins:20,stand:'Tusk Act 4'}},
+];
+const SBR_OBSTACLES = ['🪨','🌵','🐍','🌊','💨','⚡','🐂'];
+const SBR_ITEMS = ['✨ Holy Corpse Part','🌀 Steel Ball','⚡ Spin Boost','❤ Stamina','🏹 Shortcut'];
+const CORPSE_PARTS = ['Right Eye','Left Eye','Right Hand','Left Hand','Heart','Spine','Skull','Rib','Forehead Band'];
+
+const sbr = {
+  active: false,
+  stage: 0,
+  dist: 0,
+  rivalDist: 0,
+  parts: 0,
+  hp: 100,
+  stamina: 100,
+  spinCharge: 100,
+  obsPos: 150,
+  itemPos: 200,
+  obsActive: false,
+  itemActive: false,
+  int: null,
+  log: [],
+  dodging: false,
+  attacking: false,
+};
+
+function sbrLog(msg, color){
+  const el = document.getElementById('sbr-log');
+  if(!el) return;
+  sbr.log.push({msg, color});
+  if(sbr.log.length > 30) sbr.log.shift();
+  el.innerHTML = sbr.log.slice(-8).map(l=>`<div style="color:${l.color||'var(--ink)'}">${l.msg}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function startSBR(){
+  if(sbr.active){ sbrLog('Race already in progress!','var(--mut)'); return; }
+  const stage = SBR_STAGES[Math.min(player.sbrStage||0, SBR_STAGES.length-1)];
+  sbr.active = true;
+  sbr.dist = 0;
+  sbr.rivalDist = 0;
+  sbr.hp = 100;
+  sbr.stamina = 100;
+  sbr.spinCharge = 100;
+  sbr.obsPos = 120;
+  sbr.itemPos = 180;
+  sbr.obsActive = false;
+  sbr.itemActive = false;
+  sbr.dodging = false;
+  sbr.log = [];
+
+  document.getElementById('sbr-start-area').style.display = 'none';
+  document.getElementById('sbr-stage').textContent = (player.sbrStage||0) + 1;
+  document.getElementById('sbr-stage-name').textContent = stage.name;
+  document.getElementById('sbr-dist-max').textContent = stage.dist;
+
+  sbrLog('🏁 RACE STARTED! Beat ' + stage.rival + '!', 'var(--gold)');
+  sbrLog('📍 Destination: ' + stage.name.split(':')[1], 'var(--mut)');
+
+  // Spawn obstacles and items periodically
+  if(sbr.int) clearInterval(sbr.int);
+  sbr.int = setInterval(()=> sbrTick(stage), 800);
+}
+
+function sbrTick(stage){
+  if(!sbr.active) return;
+
+  // Rival auto-advances
+  sbr.rivalDist = Math.min(stage.dist, sbr.rivalDist + stage.rivalSpd * (0.8 + Math.random()*0.4));
+
+  // Stamina regen
+  sbr.stamina = Math.min(100, sbr.stamina + 2);
+
+  // Spawn obstacle
+  if(!sbr.obsActive && Math.random() < 0.3){
+    sbr.obsActive = true;
+    sbr.obsPos = 85;
+    const obs = document.getElementById('sbr-obstacle');
+    if(obs){ obs.style.display='block'; obs.style.left='85%'; obs.textContent = SBR_OBSTACLES[Math.floor(Math.random()*SBR_OBSTACLES.length)]; }
+  }
+
+  // Spawn item
+  if(!sbr.itemActive && Math.random() < 0.2){
+    sbr.itemActive = true;
+    const itEl = document.getElementById('sbr-item');
+    if(itEl){ itEl.style.display='block'; itEl.style.left='75%'; itEl.textContent='✨'; }
+    const partIdx = sbr.parts < CORPSE_PARTS.length ? sbr.parts : Math.floor(Math.random()*CORPSE_PARTS.length);
+    sbr._pendingItem = partIdx;
+  }
+
+  // Check collision with obstacle (horse at ~20%)
+  if(sbr.obsActive && sbr.obsPos <= 22){
+    if(!sbr.dodging){
+      sbr.hp = Math.max(0, sbr.hp - 20);
+      sbrLog('💥 Hit obstacle! -20 HP', 'var(--red3)');
+      shakeScreen && shakeScreen();
+    } else {
+      sbrLog('💨 Dodged obstacle!', 'var(--blue3)');
+    }
+    sbr.obsActive = false;
+    const obs = document.getElementById('sbr-obstacle');
+    if(obs) obs.style.display='none';
+    sbr.dodging = false;
+  }
+
+  // Check item pickup
+  if(sbr.itemActive){
+    const itEl = document.getElementById('sbr-item');
+    if(itEl){
+      const curLeft = parseInt(itEl.style.left||'75');
+      itEl.style.left = (curLeft - 3) + '%';
+      if(curLeft <= 22){
+        // Collect!
+        const part = CORPSE_PARTS[sbr._pendingItem||0];
+        sbr.parts = Math.min(9, sbr.parts+1);
+        document.getElementById('sbr-parts').textContent = sbr.parts;
+        sbrLog('✨ Collected: ' + part + '! (' + sbr.parts + '/9)', 'var(--gold)');
+        itEl.style.display='none';
+        sbr.itemActive = false;
+      }
+    }
+  }
+
+  // Move obstacle toward player
+  if(sbr.obsActive){
+    sbr.obsPos -= 4;
+    const obs = document.getElementById('sbr-obstacle');
+    if(obs) obs.style.left = sbr.obsPos + '%';
+  }
+
+  // Update UI
+  const pct = Math.min(100, sbr.dist/stage.dist*100);
+  const rivalPct = Math.min(100, sbr.rivalDist/stage.dist*100);
+  const horse = document.getElementById('sbr-horse');
+  const rival = document.getElementById('sbr-rival');
+  const bar = document.getElementById('sbr-progress-bar');
+  if(horse) horse.style.left = Math.min(80, 10 + pct*0.7) + '%';
+  if(rival) rival.style.left = Math.min(85, 10 + rivalPct*0.72) + '%';
+  if(bar) bar.style.width = pct + '%';
+  document.getElementById('sbr-dist').textContent = Math.floor(sbr.dist);
+
+  // Check death
+  if(sbr.hp <= 0){
+    sbrEnd(false, stage);
+    return;
+  }
+
+  // Check rival wins
+  if(sbr.rivalDist >= stage.dist && sbr.dist < stage.dist){
+    sbrLog('💀 ' + stage.rival + ' finished first! You lose!', 'var(--red3)');
+    sbrEnd(false, stage);
+    return;
+  }
+
+  // Check win
+  if(sbr.dist >= stage.dist){
+    sbrEnd(true, stage);
+    return;
+  }
+}
+
+function sbrAction(action){
+  if(!sbr.active){ sbrLog('Start the race first!','var(--mut)'); return; }
+  const stage = SBR_STAGES[Math.min(player.sbrStage||0, SBR_STAGES.length-1)];
+
+  if(action === 'sprint'){
+    if(sbr.stamina < 15){ sbrLog('Not enough stamina!','var(--red3)'); return; }
+    const gain = 8 + Math.floor(Math.random()*6) + Math.floor((player.agi||5)*0.3);
+    sbr.dist = Math.min(stage.dist, sbr.dist + gain);
+    sbr.stamina = Math.max(0, sbr.stamina - 15);
+    sbrLog('🏃 Sprint! +' + gain + ' km', 'var(--grn3)');
+  }
+  else if(action === 'spin'){
+    if(sbr.spinCharge < 20){ sbrLog('Spin not charged!','var(--red3)'); return; }
+    const gain = 15 + Math.floor(Math.random()*10) + Math.floor((player.str||5)*0.5);
+    sbr.dist = Math.min(stage.dist, sbr.dist + gain);
+    sbr.spinCharge = Math.max(0, sbr.spinCharge - 20);
+    if(sbr.obsActive){ sbr.obsActive=false; const obs=document.getElementById('sbr-obstacle'); if(obs) obs.style.display='none'; }
+    sbrLog('🌀 SPIN! +' + gain + ' km — obstacles cleared!', 'var(--purple4)');
+  }
+  else if(action === 'dodge'){
+    sbr.dodging = true;
+    sbr.spinCharge = Math.min(100, sbr.spinCharge + 5);
+    sbrLog('💨 Dodging next obstacle!', 'var(--blue3)');
+  }
+  else if(action === 'attack'){
+    if(Math.random() < 0.6){
+      const slow = 8 + Math.floor(Math.random()*8);
+      sbr.rivalDist = Math.max(0, sbr.rivalDist - slow);
+      sbrLog('⚔ Attacked rival! Slowed by ' + slow + ' km!', 'var(--gold)');
+    } else {
+      sbr.hp = Math.max(0, sbr.hp - 10);
+      sbrLog('⚔ Attack missed! Rival countered -10 HP', 'var(--red3)');
+    }
+  }
+}
+
+function sbrEnd(won, stage){
+  clearInterval(sbr.int);
+  sbr.active = false;
+  document.getElementById('sbr-start-area').style.display = 'block';
+
+  if(won){
+    const r = stage.reward;
+    player.coins = (player.coins||0) + r.coins;
+    player.xp = (player.xp||0) + r.xp;
+    player.spins = (player.spins||0) + r.spins;
+    player.sbrStage = Math.min((player.sbrStage||0)+1, SBR_STAGES.length-1);
+    player.sbrParts = (player.sbrParts||0) + sbr.parts;
+    if(r.stand){
+      const st = STANDS.find(s=>s.name===r.stand);
+      if(st){ player.tech=st.name; player.techRarity=st.r; player.skills=st.skills; }
+      sbrLog('🏆 SECRET STAND UNLOCKED: ' + r.stand + '!', 'rainbow');
+    }
+    sbrLog('🏆 STAGE CLEAR! +' + r.coins + '💰 +' + r.xp + 'XP +' + r.spins + '🎲', 'rainbow');
+    sbrLog('Next stage unlocked: ' + (SBR_STAGES[player.sbrStage]?.name||'You finished all stages!'), 'var(--gold)');
+    checkLevelUp(); renderAll(); schedSave(); checkAch();
+  } else {
+    sbrLog('💀 Race failed! Try again.', 'var(--red3)');
+    player.coins = (player.coins||0) + 50;
+    sbrLog('Consolation: +50 coins', 'var(--mut)');
+  }
+}
+
+// ════════════════════════════════════════════
+// JJBA TRIVIA
+// ════════════════════════════════════════════
+const QUIZ_QUESTIONS = [
+  {q:"What is Giorno Giovanna's Stand?",       opts:["Gold Experience","Star Platinum","Crazy Diamond","Killer Queen"], a:0},
+  {q:"What part does Yoshikage Kira appear in?", opts:["Part 3","Part 4","Part 5","Part 6"], a:1},
+  {q:"What is DIO's Stand?",                   opts:["Star Platinum","The World","Crazy Diamond","Gold Experience"], a:1},
+  {q:"What is the name of Jotaro's Stand?",    opts:["The World","Gold Experience","Star Platinum","Crazy Diamond"], a:2},
+  {q:"Which JoJo uses Hamon (Ripple)?",        opts:["Jotaro","Giorno","Jonathan and Joseph","Josuke"], a:2},
+  {q:"What are the Steel Balls used for in SBR?", opts:["Weapons","Creating Spin","Currency","Stand arrows"], a:1},
+  {q:"Who created the Stand Arrow?",           opts:["Dio","Yoshihiro Kira","The Bow and Arrow","Rock organisms"], a:1},
+  {q:"What is Killer Queen's main ability?",   opts:["Time stop","Turning things into bombs","Healing","Speed"], a:1},
+  {q:"Who says 'YARE YARE DAZE'?",             opts:["Giorno","Yoshikage Kira","Jotaro Kujo","Joseph Joestar"], a:2},
+  {q:"What does GER stand for?",               opts:["Gold Experience Requiem","Great Evil Requiem","Giorno's Elite Requiem","Golden Evolution Requiem"], a:0},
+  {q:"In which Part does Gyro Zeppeli appear?", opts:["Part 5","Part 6","Part 7","Part 8"], a:2},
+  {q:"What is Funny Valentine's Stand?",       opts:["D4C","Tusk","Wonder of U","Soft & Wet"], a:0},
+  {q:"Which Stand can stop time?",             opts:["GER","Star Platinum / The World","Crazy Diamond","Purple Haze"], a:1},
+  {q:"What does Crazy Diamond do?",            opts:["Create bombs","Stop time","Restore/fix things","Move at light speed"], a:2},
+  {q:"Who is the main villain of Part 5?",     opts:["DIO","Kira","Diavolo","Pucci"], a:2},
+];
+
+
+function loadQuiz(){
+  const today = new Date().toDateString();
+  const saved = JSON.parse(localStorage.getItem('jjba_quiz_'+player?.name)||'{"date":"","count":0}');
+  if(saved.date === today && saved.count >= 3){
+    document.getElementById('quiz-result').textContent = '✓ Daily trivia done! Come back tomorrow for more spins.';
+    document.getElementById('quiz-result').style.color = 'var(--mut)';
+    document.getElementById('quiz-start-btn').style.display = 'none';
+    return;
+  }
+  quizState.dailyCount = saved.date === today ? saved.count : 0;
+  quizState.used = [];
+  quizState.correct = 0;
+  quizState.active = true;
+  document.getElementById('quiz-start-btn').style.display = 'none';
+  showQuizQ();
+}
+
+function showQuizQ(){
+  const remaining = QUIZ_QUESTIONS.filter((_,i)=>!quizState.used.includes(i));
+  if(!remaining.length || quizState.used.length >= 5){
+    endQuiz(); return;
+  }
+  const pick = remaining[Math.floor(Math.random()*remaining.length)];
+  const idx = QUIZ_QUESTIONS.indexOf(pick);
+  quizState.used.push(idx);
+  quizState._current = idx;
+
+  document.getElementById('quiz-q').textContent = 'Q' + quizState.used.length + ': ' + pick.q;
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('quiz-opts').innerHTML = pick.opts.map((o,i)=>
+    `<button class="quiz-opt" onclick="answerQuiz(${i})">${o}</button>`
+  ).join('');
+}
+
+function answerQuiz(chosen){
+  const q = QUIZ_QUESTIONS[quizState._current];
+  const btns = document.querySelectorAll('.quiz-opt');
+  btns.forEach((b,i)=>{ b.disabled=true; if(i===q.a) b.classList.add('correct'); else if(i===chosen) b.classList.add('wrong'); });
+  if(chosen === q.a){
+    quizState.correct++;
+    document.getElementById('quiz-result').textContent = '✓ Correct! +1';
+    document.getElementById('quiz-result').style.color = 'var(--grn3)';
+  } else {
+    document.getElementById('quiz-result').textContent = '✗ Wrong! Answer: ' + q.opts[q.a];
+    document.getElementById('quiz-result').style.color = 'var(--red3)';
+  }
+  setTimeout(()=>{
+    if(quizState.used.length < 5) showQuizQ();
+    else endQuiz();
+  }, 1200);
+}
+
+function endQuiz(){
+  quizState.active = false;
+  const spinsEarned = quizState.correct >= 5 ? 5 : quizState.correct >= 3 ? 3 : quizState.correct >= 1 ? 1 : 0;
+  document.getElementById('quiz-q').textContent = 'Quiz complete! ' + quizState.correct + '/5 correct';
+  document.getElementById('quiz-opts').innerHTML = '';
+  document.getElementById('quiz-result').textContent = spinsEarned > 0 ? '🎲 Earned ' + spinsEarned + ' spins!' : 'No spins this time. Try again tomorrow!';
+  document.getElementById('quiz-result').style.color = spinsEarned > 0 ? 'var(--gold)' : 'var(--mut)';
+  if(spinsEarned > 0){ player.spins=(player.spins||0)+spinsEarned; schedSave(); }
+  document.getElementById('quiz-start-btn').style.display = 'block';
+  document.getElementById('quiz-start-btn').textContent = '🔄 Play Again';
+  const today = new Date().toDateString();
+  localStorage.setItem('jjba_quiz_'+player?.name, JSON.stringify({date:today, count:(quizState.dailyCount||0)+1}));
+}
+
+// ════════════════════════════════════════════
+// BIZARRE BETTING
+// ════════════════════════════════════════════
+function placeBet(type, cost){
+  const p = player;
+  if((p.coins||0) < cost){ toast('⚠','Not enough coins!'); return; }
+  p.coins -= cost;
+  const roll = Math.random();
+  const el = document.getElementById('bet-result');
+
+  if(type === 'double'){
+    if(roll < 0.45){ p.coins += cost*2; el.textContent='🏆 WON! +'+cost+'💰'; el.style.color='var(--grn3)'; }
+    else { el.textContent='💀 LOST '+cost+'💰'; el.style.color='var(--red3)'; }
+  } else if(type === 'triple'){
+    if(roll < 0.3){ p.coins += cost*3; el.textContent='🏆 WON! +'+(cost*2)+'💰'; el.style.color='var(--grn3)'; }
+    else { el.textContent='💀 LOST '+cost+'💰'; el.style.color='var(--red3)'; }
+  } else if(type === 'jackpot'){
+    if(roll < 0.1){ p.coins += cost*10; el.textContent='🎰 JACKPOT!! +'+(cost*9)+'💰'; el.style.color='rainbow'; }
+    else { el.textContent='💀 LOST '+cost+'💰 (10% chance)'; el.style.color='var(--red3)'; }
+  } else if(type === 'cursed'){
+    if(roll < 0.4){ p.coins += cost*4; p.spins=(p.spins||0)+2; el.textContent='✨ CURSED WIN! +'+(cost*3)+'💰 +2🎲'; el.style.color='#ff00ff'; }
+    else { p.spins=Math.max(0,(p.spins||0)-1); el.textContent='☠ CURSED LOSS! -'+cost+'💰 -1🎲'; el.style.color='var(--red3)'; }
+  }
+  renderAll(); schedSave();
+}
+
+// ════════════════════════════════════════════
+// CHAOS MODE
+// ════════════════════════════════════════════
+let chaosStand = null;
+
+function startChaosMode(){
+  const randomStand = STANDS[Math.floor(Math.random()*STANDS.length)];
+  chaosStand = randomStand;
+  const el = document.getElementById('chaos-status');
+  el.textContent = 'CHAOS STAND: ' + randomStand.name + ' [' + randomStand.r + '] — switching you to Combat!';
+  el.style.color = '#ff00ff';
+  // Temporarily give random stand
+  const origTech = player.tech, origSkills = player.skills, origTechR = player.techRarity;
+  player._origTech = origTech; player._origSkills = origSkills; player._origTechR = origTechR;
+  player.tech = randomStand.name;
+  player.skills = randomStand.skills;
+  player.techRarity = randomStand.r;
+  player.chaosMode = true;
+  toast('🌀','Chaos Stand: ' + randomStand.name + '! Go fight!');
+  switchTab('c');
+  renderAll();
+  // Restore after 5 minutes or on next tab switch
+  setTimeout(()=>endChaosMode(), 300000);
+}
+
+function endChaosMode(){
+  if(!player.chaosMode) return;
+  player.tech = player._origTech; player.skills = player._origSkills; player.techRarity = player._origTechR;
+  player.chaosMode = false;
+  const el = document.getElementById('chaos-status');
+  if(el){ el.textContent = 'Chaos mode ended. Your original Stand restored.'; el.style.color='var(--mut)'; }
+  renderAll();
+}
+
+// ════════════════════════════════════════════
+// TRASH TALK SYSTEM
+// ════════════════════════════════════════════
+const TRASH_QUOTES = [
+  {text:"YARE YARE DAZE... what a pain.", sender:"Jotaro"},
+  {text:"This is... USELESS!", sender:"DIO"},
+  {text:"OH? YOU'RE APPROACHING ME?", sender:"DIO"},
+  {text:"Your next line is... you're already defeated!", sender:"Joseph"},
+  {text:"NIGERUNDAYO!", sender:"Stroheim"},
+  {text:"MUDA MUDA MUDA MUDA MUDA!", sender:"DIO"},
+  {text:"ORA ORA ORA ORA ORA!", sender:"Jotaro"},
+  {text:"I, Giorno Giovanna, have a dream.", sender:"Giorno"},
+  {text:"Dojyaaa~~n! JOSEPH JOESTAR desu!", sender:"Joseph"},
+  {text:"ARE YOU APPROACHING ME?", sender:"DIO"},
+  {text:"Tsugi noせりふは... This battle is already over!", sender:"Joseph"},
+  {text:"The next world... will be mine.", sender:"Pucci"},
+];
+
+function initTrashTalk(){
+  const el = document.getElementById('trash-talk-btns');
+  if(!el) return;
+  el.innerHTML = TRASH_QUOTES.map((q,i)=>
+    `<button onclick="sendTrashTalk(${i})" style="padding:7px 10px;background:var(--card3);border:1px solid var(--border2);color:var(--ink);font-family:'Crimson Text',serif;font-size:12px;border-radius:var(--r);cursor:pointer;text-align:left;margin-bottom:3px;width:100%">
+      <span style="color:var(--gold);font-family:'Cinzel Decorative',serif;font-size:8px">${q.sender}:</span> "${q.text}"
+    </button>`
+  ).join('');
+}
+
+function sendTrashTalk(idx){
+  const q = TRASH_QUOTES[idx];
+  if(ws && ws.readyState === WebSocket.OPEN){
+    ws.send(JSON.stringify({type:'chat', msg:'['+q.sender+'] "'+q.text+'"'}));
+    toast('😤','Sent trash talk!');
+  } else {
+    chatLine('[' + q.sender + '] "' + q.text + '"', 'var(--gold)');
+    toast('😤','Trash talk sent locally!');
+  }
+}
+
+// ════════════════════════════════════════════
+// CURSED ROLL (1% chance per normal roll)
+// ════════════════════════════════════════════
+// Hook into doRoll - add cursed check
+const _origDoRoll = doRoll;
+doRoll = function(type){
+  // 1% cursed roll
+  if(Math.random() < 0.01){
+    player.spins = Math.max(0, (player.spins||0) - 1);
+    const el = document.getElementById('cursed-roll-info');
+    if(el){ el.textContent = '☠ CURSED ROLL! Lost 1 spin... ' + new Date().toLocaleTimeString(); }
+    logLine('☠ CURSED ROLL! -1 spin!', 'var(--red3)');
+    toast('☠','Cursed roll! Lost 1 spin!');
+    renderAll(); schedSave();
+    return;
+  }
+  _origDoRoll(type);
+};
+
+// ════════════════════════════════════════════
+// STAND AWAKENING CUTSCENE
+// ════════════════════════════════════════════
+function playAwakeningCutscene(standName, rarity){
+  const cutscene = document.createElement('div');
+  cutscene.style.cssText = 'position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn .3s';
+  const rarColor = rarity==='Z+'?'#ff00ff':rarity==='SSS+'?'#00ffff':rarity==='SSS'?'#b388ff':rarity==='SS+'?'#fbbf24':'#e74c3c';
+  cutscene.innerHTML = `
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,${rarColor}22 0%,#000 70%);animation:pulse 0.5s infinite"></div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:13px;letter-spacing:.3em;color:rgba(255,255,255,.5);margin-bottom:16px;animation:fadeIn .5s .2s both">A NEW STAND AWAKENS</div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:clamp(20px,5vw,36px);font-weight:900;color:${rarColor};text-shadow:0 0 40px ${rarColor};letter-spacing:.1em;text-align:center;animation:fadeIn .5s .4s both;margin-bottom:8px">${standName.toUpperCase()}</div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:${rarColor};letter-spacing:.3em;animation:fadeIn .5s .6s both">[${rarity}]</div>
+    <div style="position:absolute;bottom:30px;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.2em;animation:fadeIn .5s 1s both">TAP TO CONTINUE</div>
+  `;
+  cutscene.onclick = ()=>{ cutscene.style.animation='fadeOut .3s'; setTimeout(()=>cutscene.remove(), 300); };
+  document.body.appendChild(cutscene);
+  setTimeout(()=>{ cutscene.style.animation='fadeOut .3s'; setTimeout(()=>cutscene.remove(), 300); }, 5000);
+}
+
+// Hook into doRoll result to trigger cutscene for high rarities
+// This runs after roll result is shown
+function checkRollCutscene(rarity, name){
+  const highR = ['SS','SS+','SSS','SSS+','Z+'];
+  if(highR.includes(rarity)) setTimeout(()=>playAwakeningCutscene(name, rarity), 800);
+}
+
+// Init trash talk buttons when switching to extras
+const _origSwitchTab = switchTab;
+switchTab = function(tab){
+  _origSwitchTab(tab);
+  if(tab === 'x') initTrashTalk();
+};
 
 </script>
