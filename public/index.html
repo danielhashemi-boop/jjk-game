@@ -5409,4 +5409,45 @@ function applyLegacy(){
   if(p.legacyBonuses.spins) p.spins = (p.spins||0) + p.legacyBonuses.spins;
 }
 
+
+// ════════════════════════════════════════════
+// HTTP POLLING FALLBACK (works even without WS)
+// ════════════════════════════════════════════
+let pollInt = null;
+
+function startPolling(){
+  if(pollInt) clearInterval(pollInt);
+  pollInt = setInterval(async ()=>{
+    if(!player) return;
+    try{
+      // Push our data
+      await fetch('/api/rooms/'+player.roomCode+'/save',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({player}),
+        signal: AbortSignal.timeout(2000)
+      });
+      // Pull everyone else
+      const r = await fetch('/api/rooms/'+player.roomCode+'/players',{
+        signal: AbortSignal.timeout(2000)
+      });
+      const data = await r.json();
+      if(data.players){
+        others = {};
+        data.players.forEach(p=>{
+          if(p.playerId !== player.playerId) others[p.playerId] = p;
+        });
+        if(Object.keys(others).length > 0){
+          updateWsIndicator('online');
+        }
+        renderPlayers();
+      }
+    } catch(e){}
+  }, 3000);
+}
+
+function stopPolling(){
+  if(pollInt){ clearInterval(pollInt); pollInt=null; }
+}
+
 </script>
