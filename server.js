@@ -67,6 +67,14 @@ app.get('/api/leaderboard', (req, res) => {
   res.json(all.slice(0, 20));
 });
 
+
+// GET all players in a room (for HTTP polling fallback)
+app.get('/api/rooms/:room/players', (req, res) => {
+  const room = req.params.room;
+  const players = Object.values(rooms[room] || {});
+  res.json({ players });
+});
+
 // Stub PvP routes
 app.post('/api/rooms/:room/pvp', (req,res) => res.json({fightId:null}));
 app.post('/api/rooms/:room/pvp/boss', (req,res) => res.json({fightId:null}));
