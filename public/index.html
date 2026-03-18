@@ -2245,52 +2245,24 @@ function updateWsIndicator(status){
 }
 
 function connectWS(){
-  if(ws && ws.readyState === WebSocket.OPEN) return; // already connected
+  // Skip WebSocket entirely - use HTTP polling which always works
+  console.log('Using HTTP polling for multiplayer');
+  updateWsIndicator('online');
+  setSave('saved');
+  // Push our player data immediately
+  pushPlayerData();
+}
+
+async function pushPlayerData(){
+  if(!player) return;
   try{
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(proto + '://' + location.host);
-
-    ws.onopen = function(){
-      console.log('WS connected to room: ' + player.roomCode);
-      setSave('saved');
-      updateWsIndicator('connecting');
-      ws.send(JSON.stringify({
-        type: 'auth',
-        playerId: player.playerId,
-        roomCode: player.roomCode,
-        name: player.name,
-        player: player
-      }));
-      // Re-send player update after short delay to ensure server registered us
-      setTimeout(()=>{
-        if(ws && ws.readyState === WebSocket.OPEN){
-          ws.send(JSON.stringify({ type: 'player_update', player: player }));
-        }
-      }, 500);
-    };
-
-    ws.onmessage = function(e){
-      try{ handleWS(JSON.parse(e.data)); }
-      catch(err){ console.log('WS message error:', err); }
-    };
-
-    ws.onerror = function(e){
-      console.log('WS error:', e);
-    };
-
-    ws.onclose = function(){
-      console.log('WS closed, reconnecting in 5s...');
-      ws = null;
-      setSave('offline');
-      updateWsIndicator('offline');
-      setTimeout(connectWS, 5000);
-    };
-
-  } catch(e){
-    console.log('WS connect failed:', e);
-    ws = null;
-    setTimeout(connectWS, 5000);
-  }
+    await fetch('/api/rooms/'+player.roomCode+'/save',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({player}),
+      signal: AbortSignal.timeout(3000)
+    });
+  } catch(e){}
 }
 function handleWS(msg){
   if(!msg || !msg.type) return;
@@ -2403,12 +2375,7 @@ async function savePlayer(){
     setSave('saved');
   } catch(e){ console.log('localStorage save error:', e); }
 
-  // Step 2: Sync via WebSocket if connected
-  if(ws && ws.readyState === WebSocket.OPEN){
-    try{
-      ws.send(JSON.stringify({ type: 'player_update', player: player }));
-    } catch(e){}
-  }
+  // Step 2: Polling handles sync automatically
 
   // Step 3: Try server HTTP save
   try{
@@ -5567,29 +5534,39 @@ function startPolling(){
     if(!player) return;
     try{
       // Push our data
-      await fetch('/api/rooms/'+player.roomCode+'/save',{
+      const saveRes = await fetch('/api/rooms/'+player.roomCode+'/save',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({player}),
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(2500)
       });
+
       // Pull everyone else
       const r = await fetch('/api/rooms/'+player.roomCode+'/players',{
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(2500)
       });
       const data = await r.json();
-      if(data.players){
-        others = {};
+      if(data.players && Array.isArray(data.players)){
+        const newOthers = {};
         data.players.forEach(p=>{
-          if(p.playerId !== player.playerId) others[p.playerId] = p;
+          if(p && p.playerId !== player.playerId){
+            newOthers[p.playerId] = p;
+          }
         });
-        if(Object.keys(others).length > 0){
-          updateWsIndicator('online');
-        }
-        renderPlayers();
+        // Check if anything changed
+        const changed = JSON.stringify(Object.keys(newOthers).sort()) !== JSON.stringify(Object.keys(others).sort());
+        others = newOthers;
+        const count = Object.keys(others).length;
+        updateWsIndicator('online');
+        if(changed) renderPlayers();
+        // Update indicator with count
+        const cnt = document.getElementById('ws-player-count');
+        if(cnt) cnt.textContent = count > 0 ? ' · '+(count+1)+' in room' : ' · alone';
       }
-    } catch(e){}
-  }, 3000);
+    } catch(e){
+      updateWsIndicator('offline');
+    }
+  }, 2500); // every 2.5 seconds
 }
 
 function stopPolling(){
@@ -6533,5 +6510,33 @@ switchTab = function(tab){
   _origSwitchTab(tab);
   if(tab === 'x') initTrashTalk();
 };
+
+
+// ── CHAT POLLING ──
+let chatPollInt = null;
+let lastChatId = 0;
+
+function startChatPolling(){
+  if(chatPollInt) clearInterval(chatPollInt);
+  chatPollInt = setInterval(async ()=>{
+    if(!player) return;
+    try{
+      const r = await fetch('/api/rooms/'+player.roomCode+'/chat?since='+lastChatId,{
+        signal: AbortSignal.timeout(2000)
+      });
+      const data = await r.json();
+      if(data.messages && data.messages.length > 0){
+        data.messages.forEach(m=>{
+          if(m.id > lastChatId){
+            lastChatId = m.id;
+            if(m.name !== player.name){
+              chatLine('<'+m.name+'> '+m.msg);
+            }
+          }
+        });
+      }
+    } catch(e){}
+  }, 3000);
+}
 
 </script>
