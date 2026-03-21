@@ -1142,6 +1142,22 @@ canvas#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; 
           <div id="combo-d" style="display:none" class="combo-row"><span class="cx" id="cx">×1</span><span style="font-size:10px;letter-spacing:2px;font-family:'Cinzel Decorative',serif">COMBO!</span><span id="cb" style="font-size:10px;color:var(--gold)"></span></div>
           <div class="srow" id="p-status"></div>
           <button class="atk-btn" id="atk-btn" onclick="doAttack()">⚔ BASIC ATTACK</button>
+          <!-- Charge bar -->
+          <div style="height:6px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:3px;overflow:hidden;margin:4px 0">
+            <div id="charge-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold),#ff6400);transition:width .05s"></div>
+          </div>
+          <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap">
+            <button id="charge-btn" 
+              onmousedown="startCharge()" ontouchstart="startCharge()"
+              onmouseup="releaseCharge()" ontouchend="releaseCharge()"
+              style="flex:1;padding:8px 4px;background:rgba(255,100,0,.1);border:1px solid #ff6400;color:#ffaa00;font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer;user-select:none">⚡ HOLD CHARGE</button>
+            <button id="dodge-roll-btn" onclick="doDodgeRoll()"
+              style="flex:1;padding:8px 4px;background:rgba(0,191,255,.1);border:1px solid #00bfff;color:#00bfff;font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">💨 DODGE</button>
+            <button onclick="tryMidFightEvolution()"
+              style="flex:1;padding:8px 4px;background:rgba(212,160,23,.1);border:1px solid var(--gold);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:8px;border-radius:var(--r);cursor:pointer">🌟 EVOLVE</button>
+          </div>
+          <!-- Kill streak display -->
+          <div id="streak-display" style="display:none;text-align:center;font-family:'Cinzel Decorative',serif;font-size:10px;color:#ff8c00;letter-spacing:.1em;padding:4px;background:rgba(255,100,0,.1);border:1px solid #ff6400;border-radius:var(--r);margin-bottom:4px"></div>
           <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
             <button onclick="toggleChaosMode()" style="flex:1;padding:6px;background:rgba(125,60,255,.1);border:1px solid var(--purple2);color:var(--purple4);font-family:'Cinzel Decorative',serif;font-size:7px;border-radius:var(--r);cursor:pointer" id="chaos-btn">🎲 CHAOS</button>
             <button onclick="openTrashTalk()" style="flex:1;padding:6px;background:rgba(139,26,26,.1);border:1px solid var(--red2);color:var(--red4);font-family:'Cinzel Decorative',serif;font-size:7px;border-radius:var(--r);cursor:pointer">😤 TRASH</button>
@@ -1663,18 +1679,83 @@ const STANDS = [
 ];
 
 // ── ENEMIES ──
+const ELEMENTS = {
+  fire:   {color:'#ff6b35', weak:'water', resist:'fire',  icon:'🔥'},
+  water:  {color:'#60a5fa', weak:'lightning', resist:'water', icon:'💧'},
+  lightning:{color:'#fbbf24',weak:'earth',  resist:'lightning', icon:'⚡'},
+  earth:  {color:'#92400e', weak:'fire',   resist:'earth', icon:'🪨'},
+  void:   {color:'#a855f7', weak:'light',  resist:'void',  icon:'🌑'},
+  light:  {color:'#fef3c7', weak:'void',   resist:'light', icon:'✨'},
+  none:   {color:'#888',    weak:null,     resist:null,    icon:''},
+};
+
 const ENEMIES = [
-  {name:'Zombie',        grade:'Undead',         maxHp:60,  dmg:8,  xp:18,  coins:12,  spins:0,  color:'#888'},
-  {name:'Vampire Minion',grade:'Henchman',       maxHp:140, dmg:15, xp:42,  coins:28,  spins:1,  color:'#a78bfa'},
-  {name:'Pillar Man Pawn',grade:'Ancient',       maxHp:340, dmg:30, xp:90,  coins:68,  spins:2,  color:'#fbbf24'},
-  {name:'Esidisi Clone', grade:'Pillar Man',     maxHp:680, dmg:52, xp:200, coins:130, spins:3,  color:'#f97316'},
-  {name:'Wamuu Remnant', grade:'Pillar Man',     maxHp:1200,dmg:80, xp:380, coins:280, spins:5,  color:'#60a5fa'},
-  {name:'The Priest',    grade:'Special Enemy',  maxHp:2000,dmg:100,xp:560, coins:400, spins:8,  color:'#4ade80'},
-  {name:'Dio Brando',    grade:'Vampire Lord',   maxHp:3200,dmg:145,xp:1000,coins:750, spins:12, color:'#fbbf24'},
-  {name:'Yoshikage Kira',grade:'Serial Killer',  maxHp:4800,dmg:210,xp:1900,coins:1300,spins:18, color:'#fcd34d'},
-  {name:'Diavolo',       grade:'Boss of Passione',maxHp:7200,dmg:280,xp:3000,coins:2000,spins:25, color:'#e879f9'},
-  {name:'Funny Valentine',grade:'President',     maxHp:10000,dmg:320,xp:5500,coins:3200,spins:35, color:'#60a5fa'},
-  {name:'Pucci Ascended',grade:'New Universe',   maxHp:16000,dmg:450,xp:9000,coins:5500,spins:50, color:'#e0f2fe'},
+  {name:'Zombie',         grade:'Undead',          maxHp:60,   dmg:8,   xp:18,   coins:12,   spins:0,  color:'#888',    element:'none',
+   abilities:[{name:'Shamble',    dmg:0.8, effect:'slow',  msg:"shambles toward you!", cd:3}]},
+
+  {name:'Vampire Minion', grade:'Henchman',        maxHp:140,  dmg:15,  xp:42,   coins:28,   spins:1,  color:'#a78bfa', element:'void',
+   abilities:[{name:'Blood Drain',dmg:0.6, effect:'drain', msg:"drains your blood! +HP", cd:4}]},
+
+  {name:'Pillar Man Pawn',grade:'Ancient',         maxHp:340,  dmg:30,  xp:90,   coins:68,   spins:2,  color:'#fbbf24', element:'fire',
+   abilities:[{name:'Hamon Absorb',dmg:1.2,effect:'burn',  msg:"absorbs your Hamon!", cd:4}]},
+
+  {name:'Esidisi Clone',  grade:'Pillar Man',      maxHp:680,  dmg:52,  xp:200,  coins:130,  spins:3,  color:'#f97316', element:'fire',
+   abilities:[
+     {name:'Blood Boil',  dmg:1.5, effect:'burn',  msg:"boils your blood!", cd:3},
+     {name:'Vein Injection',dmg:0.8,effect:'poison',msg:"injects burning blood!", cd:5},
+   ]},
+
+  {name:'Wamuu Remnant',  grade:'Pillar Man',      maxHp:1200, dmg:80,  xp:380,  coins:280,  spins:5,  color:'#60a5fa', element:'lightning',
+   abilities:[
+     {name:'Wind Mode',   dmg:1.8, effect:'stun',  msg:"unleashes Divine Sandstorm!", cd:4},
+     {name:'Horn Drill',  dmg:2.2, effect:'bleed', msg:"impales with Holy Sandstorm!", cd:6},
+   ]},
+
+  {name:'The Priest',     grade:'Special Enemy',   maxHp:2000, dmg:100, xp:560,  coins:400,  spins:8,  color:'#4ade80', element:'light',
+   abilities:[
+     {name:'Holy Beam',   dmg:2.0, effect:'curse', msg:"channels holy energy!", cd:4},
+     {name:'Benediction', dmg:0,   effect:'regen', msg:"heals himself!", cd:6, selfHeal:0.15},
+   ]},
+
+  {name:'Dio Brando',     grade:'Vampire Lord',    maxHp:3200, dmg:145, xp:1000, coins:750,  spins:12, color:'#fbbf24', element:'void',
+   rage:true,
+   abilities:[
+     {name:'WRYYYY!!!',   dmg:2.5, effect:'stun',  msg:"screams! WRYYYY!!!", cd:3},
+     {name:'Knife Barrage',dmg:1.8,effect:'bleed', msg:"throws a dozen knives!", cd:4},
+     {name:'ZA WARUDO',   dmg:0,   effect:'skip',  msg:"stops time! Your turn is skipped!", cd:8},
+   ]},
+
+  {name:'Yoshikage Kira', grade:'Serial Killer',   maxHp:4800, dmg:210, xp:1900, coins:1300, spins:18, color:'#fcd34d', element:'earth',
+   rage:true,
+   abilities:[
+     {name:'Killer Queen',dmg:2.8, effect:'burn',  msg:"Killer Queen detonates you!", cd:3},
+     {name:'Sheer Heart Attack',dmg:3.5,effect:'burn',msg:"Sheer Heart Attack wont stop!",cd:5},
+     {name:'Bites the Dust',dmg:0, effect:'curse', msg:"Bites the Dust activates! Youre cursed!", cd:8},
+   ]},
+
+  {name:'Diavolo',        grade:'Boss of Passione',maxHp:7200, dmg:280, xp:3000, coins:2000, spins:25, color:'#e879f9', element:'void',
+   rage:true,
+   abilities:[
+     {name:'Time Erasure',dmg:0,   effect:'skip',  msg:"erases your turn from time!", cd:4},
+     {name:'King Crimson',dmg:3.0, effect:'stun',  msg:"King Crimson strikes during erased time!", cd:3},
+     {name:'Epitaph',     dmg:2.0, effect:'curse', msg:"foresees your attack and counters!", cd:6},
+   ]},
+
+  {name:'Funny Valentine',grade:'President',       maxHp:10000,dmg:320, xp:5500, coins:3200, spins:35, color:'#60a5fa', element:'light',
+   rage:true,
+   abilities:[
+     {name:'D4C',         dmg:2.5, effect:'stun',  msg:"swaps you with a parallel version!", cd:4},
+     {name:'Love Train',  dmg:0,   effect:'reflect',msg:"Love Train reflects your next attack!", cd:6},
+     {name:'Dirty Deeds', dmg:4.0, effect:'curse', msg:"Dirty Deeds Done Dirt Cheap!", cd:8},
+   ]},
+
+  {name:'Pucci Ascended', grade:'New Universe',    maxHp:16000,dmg:450, xp:9000, coins:5500, spins:50, color:'#e0f2fe', element:'light',
+   rage:true,
+   abilities:[
+     {name:'Made in Heaven',dmg:0, effect:'speed', msg:"accelerates time! He attacks twice!", cd:3, doubleAttack:true},
+     {name:'C-Moon',       dmg:3.5,effect:'curse', msg:"inverts gravity on you!", cd:4},
+     {name:'Universe Reset',dmg:5.0,effect:'curse',msg:"MADE IN HEAVEN! Universe is reset!", cd:10},
+   ]},
 ];
 
 // ── REQUIEM DOMAIN NAMES (replaces Domain Expansion) ──
@@ -2894,10 +2975,16 @@ function respawn(){ player.hp=Math.floor(player.maxHp*.3); player.ce=Math.floor(
 
 function doAttack(){
   if(!curEnemy||player.hp<=0) return;
+  if(skipNextTurn){ skipNextTurn=false; logLine('⏭ YOUR TURN WAS SKIPPED!','#ff0000'); enemyCounter(); renderAll(); return; }
+  recordComboAction('attack');
   if(isStunned('player')){ logLine('⚡ STUNNED! Cannot act!','#f1c40f'); tickStatus('player'); enemyCounter(); renderAll(); return; }
   const p=player, bn=getBloodBonus();
   const e=curEnemy.isEventBoss?{name:curEnemy.label,dmg:curEnemy.dmg,maxHp:curEnemy.maxHp}:ENEMIES[curEnemy.id];
+  const elemMult = getElementalMult(getPlayerElement(), getEnemyDef()?.element||'none');
   let dmg=Math.max(1,Math.floor((p.str*(bn.strM||1)*(bn.allM||1))*2+ri(1,15)));
+  dmg = Math.floor(dmg * elemMult);
+  if(elemMult > 1) logLine('⚡ ELEMENTAL WEAKNESS! ×'+elemMult.toFixed(1),'#fbbf24');
+  else if(elemMult < 1) logLine('🛡 Elemental resistance...','#888');
   if(combo>=5) dmg=Math.floor(dmg*(1+Math.min(60,combo*6)/100*(p.comboCharm?1.5:1)*(bn.comboM||1)));
   if(domainActive) dmg=Math.floor(dmg*1.4);
   const critChance=.1+(p.critCharm?.08:0), crit=Math.random()<critChance;
@@ -2906,6 +2993,7 @@ function doAttack(){
   if(bf){ dmg=Math.floor(dmg*2.5); logLine(`⚡ BRUTAL HIT! ${dmg}!`,'rainbow'); shakeScreen(); }
   if(bn.vampRegen) p.hp=Math.min(p.maxHp,p.hp+bn.vampRegen);
   if(p.regenCharm) p.hp=Math.min(p.maxHp,(p.hp||0)+2);
+  if(reflectNext){ reflectNext=false; p.hp=Math.max(0,p.hp-Math.floor(dmg*.5)); logLine('🔄 REFLECTED! '+Math.floor(dmg*.5)+' damage to you!','#60a5fa'); }
   curEnemy.hp=Math.max(0,curEnemy.hp-dmg); combo++;
   if(Math.random()<.05){ applyStatus('enemy','bleed',1,3); logLine(`🩸 ${e.name} bleeds!`,SCOLORS.bleed); }
   const eb=document.getElementById('ebox'); const er=eb?.getBoundingClientRect();
@@ -2923,6 +3011,9 @@ function doAttack(){
 
 function enemyCounter(dmgMult=1){
   if(!curEnemy) return;
+  tickEnemyAbilityCooldowns();
+  const usedAbility = useEnemyAbility();
+  if(doubleAttackPending){ doubleAttackPending=false; enemyCounter(dmgMult); }
   const p=player, bn=getBloodBonus();
   const eDmgBase=curEnemy.isEventBoss?curEnemy.dmg:(ENEMIES[curEnemy.id]?.dmg||10);
   const eName=curEnemy.isEventBoss?curEnemy.label:(ENEMIES[curEnemy.id]?.name||'Enemy');
@@ -2944,6 +3035,7 @@ function doSkill(idx){
   const p=player, sk=p.skills[idx], key=`${p.tech}:${idx}`;
   if(skillCds[key]>0) return;
   if((p.ce||0)<sk.cost){ logLine('Not enough Stamina!','var(--red3)'); return; }
+  recordComboAction('skill');
   const e=curEnemy.isEventBoss?{name:curEnemy.label}:ENEMIES[curEnemy.id];
   const bn=getBloodBonus();
   const staCost=p.zeroCost?0:Math.floor(sk.cost*(1-(p.domainDiscount||0)));
@@ -2988,6 +3080,17 @@ function killEnemy(){
   if(waveMode) xp=Math.floor(xp*(1+waveNum*.12));
   if(dungeonMode) xp=Math.floor(xp*1.6);
   p.kills=(p.kills||0)+1; p.xp=(p.xp||0)+xp; p.coins=(p.coins||0)+coins; p.totalCoins=(p.totalCoins||0)+coins;
+  // Kill streak
+  const streakMult = addKillStreak();
+  if(streakMult > 1){ p.xp=Math.floor(p.xp+xp*(streakMult-1)); p.coins=Math.floor(p.coins+coins*(streakMult-1)); }
+  // Bestiary
+  if(!p.bestiaryKills) p.bestiaryKills={};
+  p.bestiaryKills[e.name]=(p.bestiaryKills[e.name]||0)+1;
+  // Loot drop
+  const loot = rollLootDrop(e.grade||'C');
+  if(loot) applyLoot(loot);
+  // Reset rage
+  rageActive=false; midFightEvoUsed=false;
   if(spins>0) p.spins=(p.spins||0)+spins;
   p.maxCombo=Math.max(p.maxCombo||0,combo);
   eStatus={};
@@ -4215,7 +4318,7 @@ renderPlayers = function(){
     h += '<div style="font-size:11px;text-align:center;padding:12px;color:var(--mut);font-style:italic">Share room code <b style="color:var(--gold)">' + p.roomCode + '</b> to fight others!</div>';
   } else {
     otherList.forEach(op => {
-      const pid = op.playerId;
+      const pid = op.playerId || op.name;
       h += `<div class="pc">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span class="pn">${op.name||'?'}</span>
@@ -5548,13 +5651,21 @@ function startPolling(){
       const data = await r.json();
       if(data.players && Array.isArray(data.players)){
         const newOthers = {};
+        // Deduplicate by name, keep most recent save, exclude ourselves
+        const byName = {};
         data.players.forEach(p=>{
-          if(p && p.playerId !== player.playerId){
-            newOthers[p.playerId] = p;
+          if(!p || !p.name) return;
+          if(p.name === player.name) return; // exclude self by name
+          // Keep most recent save per name
+          if(!byName[p.name] || (p.lastSave||0) > (byName[p.name].lastSave||0)){
+            byName[p.name] = p;
           }
         });
+        Object.values(byName).forEach(p => { newOthers[p.name] = p; });
         // Check if anything changed
-        const changed = JSON.stringify(Object.keys(newOthers).sort()) !== JSON.stringify(Object.keys(others).sort());
+        const prevNames = Object.keys(others).sort().join(',');
+        const newNames = Object.keys(newOthers).sort().join(',');
+        const changed = prevNames !== newNames;
         others = newOthers;
         const count = Object.keys(others).length;
         updateWsIndicator('online');
@@ -6537,6 +6648,486 @@ function startChatPolling(){
       }
     } catch(e){}
   }, 3000);
+}
+
+
+// ════════════════════════════════════════════
+// ENEMY ABILITY SYSTEM
+// ════════════════════════════════════════════
+let enemyAbilityCooldowns = {};
+let rageActive = false;
+let reflectNext = false;
+let skipNextTurn = false;
+let doubleAttackPending = false;
+
+function getEnemyDef(){
+  if(!curEnemy) return null;
+  if(curEnemy.isEventBoss) return null;
+  return ENEMIES[curEnemy.id] || null;
+}
+
+function useEnemyAbility(){
+  const def = getEnemyDef();
+  if(!def || !def.abilities || def.abilities.length === 0) return false;
+  const p = player;
+  
+  // Check rage mode
+  const hpPct = curEnemy.hp / (def.maxHp * (curEnemy.isElite ? 3 : 1));
+  if(def.rage && hpPct < 0.3 && !rageActive){
+    rageActive = true;
+    logLine('💀 RAGE MODE! ' + def.name + ' is enraged!', '#ff0000');
+    shakeScreen();
+    skillFlash('#ff0000');
+  }
+  const rageMult = rageActive ? 1.5 : 1;
+
+  // Pick ability (random, respect cooldowns)
+  const available = def.abilities.filter(ab => !(enemyAbilityCooldowns[ab.name] > 0));
+  if(available.length === 0) return false;
+  if(Math.random() > 0.35) return false; // 35% chance to use ability
+
+  const ab = available[Math.floor(Math.random() * available.length)];
+  enemyAbilityCooldowns[ab.name] = ab.cd;
+
+  const baseDmg = def.dmg * rageMult;
+  const eName = def.name;
+
+  logLine('⚠ ' + eName + ': ' + ab.name + ' — ' + ab.msg, def.color || 'var(--red3)');
+  shakeScreen();
+
+  // Apply effect
+  if(ab.effect === 'skip'){
+    skipNextTurn = true;
+    logLine('⏭ Your next action is SKIPPED!', '#ff0000');
+  } else if(ab.effect === 'reflect'){
+    reflectNext = true;
+    logLine('🔄 Next attack will be REFLECTED!', '#60a5fa');
+  } else if(ab.effect === 'drain'){
+    const drain = Math.floor(baseDmg * (ab.dmg||0.6));
+    p.hp = Math.max(0, p.hp - drain);
+    curEnemy.hp = Math.min(def.maxHp * (curEnemy.isElite?3:1), curEnemy.hp + drain);
+    logLine('🩸 ' + eName + ' drains ' + drain + ' HP!', '#a855f7');
+  } else if(ab.effect === 'regen'){
+    const heal = Math.floor(def.maxHp * (ab.selfHeal||0.1));
+    curEnemy.hp = Math.min(def.maxHp * (curEnemy.isElite?3:1), curEnemy.hp + heal);
+    logLine('💚 ' + eName + ' heals ' + heal + ' HP!', '#4ade80');
+  } else if(ab.effect === 'speed' && ab.doubleAttack){
+    doubleAttackPending = true;
+    logLine('⚡ ' + eName + ' is moving at light speed — DOUBLE ATTACK!', '#e0f2fe');
+    const ed1 = Math.max(1, Math.floor(baseDmg * (ab.dmg||1) - (p.end||5)*0.3));
+    p.hp = Math.max(0, p.hp - ed1);
+    logLine('💢 First strike: ' + ed1 + '!', 'var(--red3)');
+  } else if(ab.dmg > 0){
+    let ed = Math.max(1, Math.floor(baseDmg * (ab.dmg||1) * rageMult - (p.end||5)*0.3));
+    if(dodgeRollActive){ ed = 0; logLine('💨 Dodge roll! Avoided ' + eName + "'s " + ab.name + '!', '#00bfff'); }
+    p.hp = Math.max(0, p.hp - ed);
+    if(ed > 0) logLine('💢 ' + ab.name + ' hits for ' + ed + '!', 'var(--red3)');
+    if(ab.effect && ab.effect !== 'none') applyStatus('player', ab.effect, 1, 3);
+  }
+
+  renderAll();
+  return true;
+}
+
+function tickEnemyAbilityCooldowns(){
+  for(const k in enemyAbilityCooldowns){
+    if(enemyAbilityCooldowns[k] > 0) enemyAbilityCooldowns[k]--;
+  }
+}
+
+// ════════════════════════════════════════════
+// DODGE ROLL WITH I-FRAMES
+// ════════════════════════════════════════════
+let dodgeRollActive = false;
+let dodgeRollCooldown = 0;
+const DODGE_ROLL_CD = 8000; // 8 seconds
+
+function doDodgeRoll(){
+  if(dodgeRollCooldown > 0){
+    toast('⚠', 'Dodge on cooldown! ' + Math.ceil(dodgeRollCooldown/1000) + 's');
+    return;
+  }
+  dodgeRollActive = true;
+  dodgeRollCooldown = DODGE_ROLL_CD;
+  logLine('💨 DODGE ROLL! Invincible for 1.5s!', '#00bfff');
+  skillFlash('#00bfff');
+  
+  // Update button
+  const btn = document.getElementById('dodge-roll-btn');
+  if(btn){ btn.style.opacity='0.4'; btn.textContent='💨 ' + Math.ceil(DODGE_ROLL_CD/1000) + 's'; }
+  
+  setTimeout(()=>{ dodgeRollActive = false; }, 1500);
+  
+  // Cooldown timer
+  const cdInt = setInterval(()=>{
+    dodgeRollCooldown = Math.max(0, dodgeRollCooldown - 100);
+    const btn2 = document.getElementById('dodge-roll-btn');
+    if(btn2){
+      if(dodgeRollCooldown <= 0){
+        btn2.style.opacity='1'; btn2.textContent='💨 DODGE';
+        clearInterval(cdInt);
+      } else {
+        btn2.textContent = '💨 ' + (dodgeRollCooldown/1000).toFixed(1) + 's';
+      }
+    }
+  }, 100);
+}
+
+// ════════════════════════════════════════════
+// CHARGED HEAVY ATTACK
+// ════════════════════════════════════════════
+let chargeLevel = 0;
+let chargeInt = null;
+let chargeHeld = false;
+
+function startCharge(){
+  if(!curEnemy || player.hp <= 0) return;
+  chargeHeld = true;
+  chargeLevel = 0;
+  const bar = document.getElementById('charge-bar-fill');
+  if(bar) bar.style.width = '0%';
+  chargeInt = setInterval(()=>{
+    if(!chargeHeld){ clearInterval(chargeInt); return; }
+    chargeLevel = Math.min(100, chargeLevel + 4);
+    const bar2 = document.getElementById('charge-bar-fill');
+    if(bar2) bar2.style.width = chargeLevel + '%';
+    if(chargeLevel >= 100){ releaseCharge(); }
+  }, 50);
+}
+
+function releaseCharge(){
+  chargeHeld = false;
+  if(chargeInt){ clearInterval(chargeInt); chargeInt = null; }
+  if(!curEnemy) return;
+  
+  const mult = chargeLevel >= 100 ? 4.0 : chargeLevel >= 75 ? 2.5 : chargeLevel >= 50 ? 1.8 : chargeLevel >= 25 ? 1.3 : 1.0;
+  const label = chargeLevel >= 100 ? 'MAXIMUM OVERDRIVE' : chargeLevel >= 75 ? 'HEAVY BLOW' : chargeLevel >= 50 ? 'CHARGED ATTACK' : 'ATTACK';
+  const col = chargeLevel >= 100 ? 'rainbow' : chargeLevel >= 75 ? '#ff6400' : chargeLevel >= 50 ? '#fbbf24' : 'var(--ink)';
+  
+  const p = player;
+  let dmg = Math.floor((p.str||5) * 3 * mult + ri(5, 20) * mult);
+  if(domainActive) dmg = Math.floor(dmg * 1.4);
+  if(reflectNext){ reflectNext = false; curEnemy.hp = Math.max(0, curEnemy.hp - dmg); logLine('🔄 Reflected back — ' + dmg + ' to YOU too!', '#60a5fa'); p.hp = Math.max(0, p.hp - Math.floor(dmg*0.5)); } else {
+    curEnemy.hp = Math.max(0, curEnemy.hp - dmg);
+  }
+  
+  logLine('⚡ ' + label + '! ' + dmg + ' damage!', col);
+  if(chargeLevel >= 100) shakeScreen();
+  
+  combo += Math.floor(mult);
+  updateCombo(); checkComboFinisher();
+  
+  const bar3 = document.getElementById('charge-bar-fill');
+  if(bar3) bar3.style.width = '0%';
+  chargeLevel = 0;
+  
+  if(curEnemy && curEnemy.hp <= 0){ killEnemy(); return; }
+  enemyCounter();
+  if(p.hp <= 0){ logLine('💀 DEFEATED!','var(--red3)'); curEnemy=null; waveMode=false; dungeonMode=false; }
+  renderAll();
+}
+
+// ════════════════════════════════════════════
+// COMBO MOVES (chain skills)
+// ════════════════════════════════════════════
+let comboChain = [];
+let comboChainTimer = null;
+
+const COMBO_CHAINS = [
+  {seq:['attack','attack','skill'], name:'ORA Rush',      mult:2.5, color:'#7ec8e3', desc:'2 attacks + skill = ORA Rush!'},
+  {seq:['skill','skill','attack'],  name:'Stand Barrage',  mult:3.0, color:'#e879f9', desc:'2 skills + attack = Stand Barrage!'},
+  {seq:['attack','dodge','attack'], name:'Weave Counter',  mult:2.0, color:'#00bfff', desc:'Attack + dodge + attack = Weave Counter!'},
+  {seq:['skill','attack','skill'],  name:'Bizarre Combo',  mult:3.5, color:'rainbow', desc:'Skill + attack + skill = Bizarre Combo!'},
+];
+
+function recordComboAction(action){
+  comboChain.push(action);
+  if(comboChain.length > 3) comboChain.shift();
+  if(comboChainTimer) clearTimeout(comboChainTimer);
+  comboChainTimer = setTimeout(()=>{ comboChain = []; }, 4000);
+  
+  // Check for combo match
+  for(const combo of COMBO_CHAINS){
+    if(JSON.stringify(comboChain.slice(-3)) === JSON.stringify(combo.seq)){
+      triggerComboMove(combo);
+      comboChain = [];
+      return;
+    }
+  }
+}
+
+function triggerComboMove(comboData){
+  if(!curEnemy || !player) return;
+  const p = player;
+  let dmg = Math.floor((p.str||5) * 5 * comboData.mult + ri(20,50));
+  if(p.tech && p.skills?.[0]) dmg = Math.floor(p.skills[0].dmg * comboData.mult);
+  
+  logLine('🌀 COMBO: ' + comboData.name.toUpperCase() + '! ' + dmg + ' DMG!', comboData.color==='rainbow'?'rainbow':comboData.color);
+  skillFlash(comboData.color === 'rainbow' ? '#ffd700' : comboData.color);
+  shakeScreen();
+  
+  curEnemy.hp = Math.max(0, curEnemy.hp - dmg);
+  const eb = document.getElementById('ebox');
+  const er = eb?.getBoundingClientRect();
+  if(er) showDmgNum(dmg, er.left+er.width/2, er.top-20, comboData.color==='rainbow'?'#ffd700':comboData.color, true);
+  
+  // Show combo toast
+  toast('🌀', comboData.name + '! ×' + comboData.mult);
+  
+  if(curEnemy.hp <= 0){ killEnemy(); return; }
+  renderAll();
+}
+
+// ════════════════════════════════════════════
+// STAND EVOLUTION MID-FIGHT
+// ════════════════════════════════════════════
+let midFightEvoUsed = false;
+
+function tryMidFightEvolution(){
+  const p = player;
+  if(!p.tech || midFightEvoUsed){ toast('⚠','Already evolved this fight!'); return; }
+  if((p.spins||0) < 5){ toast('⚠','Need 5 spins!'); return; }
+  if(!REQUIEM_MAP[p.tech]){ toast('⚠',p.tech+' has no evolution!'); return; }
+  
+  p.spins -= 5;
+  midFightEvoUsed = true;
+  
+  const newStand = REQUIEM_MAP[p.tech];
+  const standData = STANDS.find(s=>s.name===newStand);
+  if(!standData){ toast('⚠','Stand data not found!'); return; }
+  
+  const oldStand = p.tech;
+  p.tech = newStand;
+  p.techRarity = 'SS+';
+  p.skills = standData.skills;
+  skillCds = {};
+  
+  logLine('🌟 MID-FIGHT EVOLUTION! ' + oldStand + ' → ' + newStand + '!', 'rainbow');
+  playAwakeningCutscene(newStand, 'SS+', standData.color||'#ffd700');
+  shakeScreen();
+  toast('🌟', 'EVOLVED: ' + newStand + '!');
+  renderAll(); schedSave();
+}
+
+// ════════════════════════════════════════════
+// KILL STREAK SYSTEM
+// ════════════════════════════════════════════
+let killStreak = 0;
+let killStreakTimer = null;
+const STREAK_MULT = [1, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
+const STREAK_NAMES = ['','Double','Triple','Quad','Penta','HEXA','STAND USER','BIZARRE'];
+
+function addKillStreak(){
+  killStreak++;
+  if(killStreakTimer) clearTimeout(killStreakTimer);
+  killStreakTimer = setTimeout(()=>{ killStreak = 0; }, 8000);
+  
+  if(killStreak >= 2){
+    const idx = Math.min(killStreak-1, STREAK_NAMES.length-1);
+    const name = STREAK_NAMES[idx];
+    const mult = STREAK_MULT[Math.min(killStreak-1, STREAK_MULT.length-1)];
+    logLine('💀 ' + name + ' KILL! ×' + mult + ' rewards!', 'rainbow');
+    toast('💀', name + ' KILL!');
+    document.getElementById('streak-display').textContent = name + ' KILL x' + killStreak;
+    document.getElementById('streak-display').style.display = 'block';
+    setTimeout(()=>{
+      const sd = document.getElementById('streak-display');
+      if(sd && killStreak === 0) sd.style.display = 'none';
+    }, 3000);
+  }
+  return STREAK_MULT[Math.min(killStreak-1, STREAK_MULT.length-1)];
+}
+
+// ════════════════════════════════════════════
+// LOOT DROP SYSTEM
+// ════════════════════════════════════════════
+const LOOT_TABLE = [
+  {id:'hamon_shard',  name:'Hamon Shard',    icon:'💛', desc:'+50 XP',         rarity:'C', effect:p=>{p.xp=(p.xp||0)+50;}},
+  {id:'blood_vial',   name:'Blood Vial',     icon:'🩸', desc:'+30% HP restore', rarity:'B', effect:p=>{p.hp=Math.min(p.maxHp,p.hp+Math.floor(p.maxHp*.3));}},
+  {id:'spin_arrow',   name:'Spin Arrow',     icon:'🏹', desc:'+1 Spin',         rarity:'A', effect:p=>{p.spins=(p.spins||0)+1;}},
+  {id:'star_fragment',name:'Star Fragment',  icon:'⭐', desc:'+200 XP',         rarity:'A', effect:p=>{p.xp=(p.xp||0)+200;}},
+  {id:'requiem_shard',name:'Requiem Shard',  icon:'💠', desc:'+1 Domain Shard', rarity:'S', effect:p=>{earnDomainShard();}},
+  {id:'bizarre_gem',  name:'Bizarre Gem',    icon:'💎', desc:'+500 Coins',      rarity:'S', effect:p=>{p.coins=(p.coins||0)+500;}},
+  {id:'stand_essence',name:'Stand Essence',  icon:'🌀', desc:'+5% perm dmg',   rarity:'SS',effect:p=>{p.dmgBonus=(p.dmgBonus||0)+.05;}},
+  {id:"diary_page",   name:"DIOs Diary",   icon:'📓', desc:'+3 Spins',       rarity:'SS',effect:p=>{p.spins=(p.spins||0)+3;}},
+];
+
+const RARITY_DROP_CHANCE = {E:0.4, D:0.5, C:0.55, B:0.6, A:0.65, S:0.7};
+const LOOT_WEIGHTS = {C:50, B:28, A:14, S:6, SS:2};
+
+function rollLootDrop(enemyGrade){
+  const chance = RARITY_DROP_CHANCE[enemyGrade] || 0.5;
+  if(Math.random() > chance) return null;
+  
+  // Weighted random
+  const weights = LOOT_WEIGHTS;
+  const total = Object.values(weights).reduce((a,b)=>a+b,0);
+  let rand = Math.random()*total;
+  let chosenRarity = 'C';
+  for(const [r,w] of Object.entries(weights)){
+    rand -= w;
+    if(rand <= 0){ chosenRarity = r; break; }
+  }
+  
+  const pool = LOOT_TABLE.filter(l=>l.rarity===chosenRarity);
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function applyLoot(loot){
+  if(!loot || !player) return;
+  try{ loot.effect(player); } catch(e){}
+  logLine('📦 LOOT: ' + loot.icon + ' ' + loot.name + ' — ' + loot.desc, '#fbbf24');
+  toast(loot.icon, loot.name + ' dropped!');
+  // Track in inventory
+  if(!player.inventory) player.inventory = [];
+  player.inventory.push({...loot, obtainedAt: Date.now()});
+  if(player.inventory.length > 50) player.inventory.shift(); // keep last 50
+}
+
+// ════════════════════════════════════════════
+// ELITE ENEMY SPAWNING
+// ════════════════════════════════════════════
+const ELITE_PREFIXES = ['Cursed','Berserk','Ancient','Hollow','Requiem','Awakened','Vampire'];
+const ELITE_CHANCE = 0.08; // 8% chance per enemy spawn
+
+function maybeSpawnElite(baseEnemyIdx){
+  if(Math.random() > ELITE_CHANCE) return false;
+  const prefix = ELITE_PREFIXES[Math.floor(Math.random()*ELITE_PREFIXES.length)];
+  const base = ENEMIES[baseEnemyIdx];
+  curEnemy = {
+    id: baseEnemyIdx,
+    hp: base.maxHp * 3,
+    isElite: true,
+    elitePrefix: prefix,
+    label: prefix + ' ' + base.name,
+  };
+  logLine('⚠ ELITE ENEMY SPAWNED: ' + prefix + ' ' + base.name + '!', '#ff8c00');
+  toast('⚠', 'ELITE: ' + prefix + ' ' + base.name);
+  return true;
+}
+
+// ════════════════════════════════════════════
+// ENEMY BESTIARY
+// ════════════════════════════════════════════
+function openBestiary(){
+  const p = player;
+  const killMap = p.bestiaryKills || {};
+  const ov = document.getElementById('bestiary-ov');
+  if(!ov) return;
+  
+  let html = '';
+  ENEMIES.forEach((e,i)=>{
+    const kills = killMap[e.name] || 0;
+    const pct = Math.min(100, kills/100*100);
+    const el = e.element ? ELEMENTS[e.element] : ELEMENTS.none;
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--card3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px">
+      <div style="font-size:20px">${el.icon||'⚔'}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-family:'Cinzel Decorative',serif;font-size:9px;color:${e.color}">${e.name}</span>
+          <span style="font-size:10px;color:var(--mut)">${kills} kills</span>
+        </div>
+        <div style="font-size:9px;color:var(--mut);margin:2px 0">${e.grade} · ${el.icon} ${e.element||'none'}</div>
+        <div style="background:rgba(0,0,0,.3);height:4px;border-radius:2px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${e.color};transition:width .5s"></div>
+        </div>
+      </div>
+    </div>`;
+  });
+  
+  document.getElementById('bestiary-list').innerHTML = html;
+  ov.style.display = 'flex';
+}
+function closeBestiary(){ document.getElementById('bestiary-ov').style.display='none'; }
+
+// ════════════════════════════════════════════
+// BOSS RUSH MODE
+// ════════════════════════════════════════════
+let bossRushActive = false;
+let bossRushWave = 0;
+const BOSS_RUSH_ENEMIES = [6,7,8,9,10]; // DIO, Kira, Diavolo, Valentine, Pucci
+
+function startBossRush(){
+  if(!player){ toast('⚠','Log in first!'); return; }
+  bossRushActive = true;
+  bossRushWave = 0;
+  player.hp = player.maxHp; // full heal
+  player.ce = player.maxCe;
+  midFightEvoUsed = false;
+  rageActive = false;
+  enemyAbilityCooldowns = {};
+  switchTab('c');
+  logLine('💀 BOSS RUSH BEGINS! Defeat all bosses!','rainbow');
+  toast('💀','BOSS RUSH MODE!');
+  nextBossRushWave();
+}
+
+function nextBossRushWave(){
+  if(bossRushWave >= BOSS_RUSH_ENEMIES.length){
+    bossRushActive = false;
+    const reward = 10000 + player.level*500;
+    player.coins = (player.coins||0)+reward;
+    player.spins = (player.spins||0)+30;
+    player.xp = (player.xp||0)+reward;
+    player.bossRushClears = (player.bossRushClears||0)+1;
+    checkLevelUp(); schedSave(); checkAch();
+    logLine('🏆 BOSS RUSH CLEARED! +'+reward+'💰 +30 Spins!','rainbow');
+    toast('🏆','BOSS RUSH COMPLETE!');
+    renderAll(); return;
+  }
+  const eidx = BOSS_RUSH_ENEMIES[bossRushWave];
+  const e = ENEMIES[eidx];
+  // Heal 20% between waves
+  player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.2));
+  player.ce = Math.min(player.maxCe, player.ce + Math.floor(player.maxCe * 0.3));
+  rageActive = false;
+  enemyAbilityCooldowns = {};
+  curEnemy = {id: eidx, hp: e.maxHp * (1 + bossRushWave * 0.3), isElite: false};
+  bossRushWave++;
+  logLine('💀 BOSS RUSH Wave '+bossRushWave+'/'+BOSS_RUSH_ENEMIES.length+': '+e.name+'!','var(--red3)');
+  renderAll(); renderElist();
+}
+
+// Override killEnemy to handle boss rush
+const _origKillEnemy = killEnemy;
+killEnemy = function(){
+  _origKillEnemy();
+  if(bossRushActive && !curEnemy){
+    setTimeout(nextBossRushWave, 1500);
+  }
+};
+
+// ════════════════════════════════════════════
+// ELEMENTAL WEAKNESS SYSTEM
+// ════════════════════════════════════════════
+function getElementalMult(playerElement, enemyElement){
+  if(!playerElement || !enemyElement || enemyElement === 'none') return 1;
+  const el = ELEMENTS[enemyElement];
+  if(!el) return 1;
+  if(el.weak === playerElement) return 1.5;   // weakness
+  if(el.resist === playerElement) return 0.6; // resistance
+  return 1;
+}
+
+function getPlayerElement(){
+  const p = player;
+  if(!p.tech) return 'none';
+  // Assign elements based on stand type
+  const elemMap = {
+    'Star Platinum':'light', 'Star Platinum Requiem':'light',
+    'The World':'void', 'The World Requiem':'void',
+    'Crazy Diamond':'earth', 'Crazy Diamond Requiem':'earth',
+    'Killer Queen':'fire', 'Killer Queen Requiem':'fire',
+    'Purple Haze':'void', 'Purple Haze Requiem':'void',
+    'Silver Chariot':'light', 'Silver Chariot Requiem':'light',
+    'Gold Experience Requiem':'earth', 'Made in Heaven':'light',
+    'Tusk Act 4':'lightning', 'Wonder of U':'void',
+    'Ultimate Life Form':'lightning', 'Psychic Sovereign':'void',
+    'Hierophant Green':'water', 'Magicians Red':'fire',
+    'Aerosmith':'lightning', 'Sticky Fingers':'earth',
+  };
+  return elemMap[p.tech] || 'none';
 }
 
 </script>
